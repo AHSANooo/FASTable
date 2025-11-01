@@ -14,8 +14,9 @@
         android:orientation="vertical">
 
         <TextView
-            android:paddingTop="5dp"
-            android:paddingLeft="10dp"
+            android:paddingTop="8dp"
+            android:paddingLeft="12dp"
+            android:paddingBottom="5dp"
             android:id="@+id/textCourseName"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -52,7 +53,7 @@
 
         <LinearLayout
             android:paddingLeft="10dp"
-            android:paddingBottom="5dp"
+            android:paddingBottom="15dp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"

@@ -91,6 +91,9 @@
         app:boxCornerRadiusBottomEnd="8dp"
         app:boxStrokeColor="#B0B0B0"
         app:layout_constraintTop_toBottomOf="@id/tabContainer"
+        android:textColorHint="@android:color/darker_gray"
+        android:textColor="@android:color/black"
+        app:boxBackgroundColor="@color/white"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
@@ -111,6 +114,9 @@
         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:textColorHint="@android:color/darker_gray"
+        android:textColor="@android:color/black"
+        app:boxBackgroundColor="@color/white"
         android:hint="@string/select_degree"
         android:layout_marginHorizontal="24dp"
         android:layout_marginTop="16dp"
@@ -141,6 +147,9 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:hint="@string/select_section"
+        android:textColorHint="@android:color/darker_gray"
+        android:textColor="@android:color/black"
+        app:boxBackgroundColor="@color/white"
         android:layout_marginHorizontal="24dp"
         android:layout_marginTop="16dp"
         app:boxCornerRadiusTopStart="8dp"
@@ -166,6 +175,9 @@
     <!-- Dropdown: Subject -->
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/dropdownSubject"
+        android:textColorHint="@android:color/darker_gray"
+        android:textColor="@android:color/black"
+        app:boxBackgroundColor="@color/white"
         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
