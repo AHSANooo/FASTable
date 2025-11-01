@@ -13,7 +13,8 @@ class Notification : AppCompatActivity() {
         setContentView(R.layout.activity_notification)
         val topAppBar = findViewById<MaterialToolbar>(R.id.topAppBar)
         topAppBar.setNavigationOnClickListener {
-        val intent= Intent(this, Menu::class.java)
+            val intent = Intent(this, Home::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
             startActivity(intent)
 
         }

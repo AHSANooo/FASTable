@@ -3,6 +3,7 @@ package com.example.fastable
 import android.content.Intent
 import android.os.Bundle
 import android.widget.ImageView
+import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 
@@ -14,12 +15,18 @@ class Add_Timetable : AppCompatActivity() {
         val ivBack=findViewById<ImageView>(R.id.ivBack)
         val ivMenu=findViewById<ImageView>(R.id.ivMenu)
         ivBack.setOnClickListener {
-            val intent= Intent(this, Menu::class.java)
-            startActivity(intent)
+            finish()
         }
         ivMenu.setOnClickListener {
-            val intent= Intent(this, Menu::class.java)
+            val intent = Intent(this, Menu::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
             startActivity(intent)
+        }
+        var customTimetable = findViewById<TextView>(R.id.tvCustomTimetable)
+        customTimetable.setOnClickListener {
+            val intent = Intent(this, CustomTimetable::class.java)
+            startActivity(intent)
+            finish()
         }
 
 

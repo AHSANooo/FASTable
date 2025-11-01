@@ -15,7 +15,7 @@ class Sign_Up : AppCompatActivity() {
         setContentView(R.layout.activity_sign_up)
         var intent=findViewById<Button>(R.id.btn_signup)
         intent.setOnClickListener {
-            val intent = Intent(this, Login::class.java)
+            val intent = Intent(this, OtpActivity::class.java)
             startActivity(intent)
         }
 

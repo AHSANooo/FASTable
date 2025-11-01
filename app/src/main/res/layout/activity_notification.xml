@@ -10,17 +10,16 @@
 
     <!-- Top App Bar -->
     <com.google.android.material.appbar.MaterialToolbar
-        android:paddingTop="15sp"
         android:id="@+id/topAppBar"
         android:layout_width="0dp"
-        android:layout_height="76dp"
+        android:layout_height="66dp"
         android:background="#0D2A5C"
         android:elevation="4dp"
         app:navigationIcon="@drawable/ic_arrow_back"
         app:title="Notifications"
         app:titleTextColor="@android:color/white"
         app:titleCentered="true"
-        app:menu="@menu/top_app_bar_menu"
+        app:menu="@menu/top_app_bar_notification"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />

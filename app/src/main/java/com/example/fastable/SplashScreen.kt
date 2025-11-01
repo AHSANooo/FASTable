@@ -11,12 +11,12 @@ class SplashScreen : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_splash_screen)
 
-        // Delay for 2.5 seconds and then navigate to Login screen
+        // Delay for 1 second and then navigate to Login screen
         Handler(Looper.getMainLooper()).postDelayed({
             val intent = Intent(this, Login::class.java)
             startActivity(intent)
             finish()
-        }, 2500)
+        }, 1000)
     }
 }
 
