@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FFFFFF"
+    tools:context=".Add_Timetable">
+
+    <!-- Top Bar -->
+    <View
+        android:id="@+id/topBar"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:background="#0A2E5D"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageView
+        android:id="@+id/ivBack"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+        android:src="@drawable/ic_arrow_back"
+        app:layout_constraintTop_toTopOf="@id/topBar"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <TextView
+        android:id="@+id/tvTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Add Timetable"
+        android:textColor="@android:color/white"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        app:layout_constraintTop_toTopOf="@id/topBar"
+        app:layout_constraintBottom_toBottomOf="@id/topBar"
+        app:layout_constraintStart_toEndOf="@id/ivBack"
+        android:layout_marginStart="16dp"/>
+
+    <ImageView
+        android:id="@+id/ivMenu"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_marginEnd="16dp"
+        android:src="@drawable/ic_menu"
+        app:layout_constraintTop_toTopOf="@id/topBar"
+        app:layout_constraintBottom_toBottomOf="@id/topBar"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <!-- Toggle Tabs -->
+    <LinearLayout
+        android:id="@+id/tabContainer"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="24dp"
+        android:layout_marginHorizontal="24dp"
+        android:background="@drawable/toggle_background"
+        android:orientation="horizontal"
+        app:layout_constraintTop_toBottomOf="@id/topBar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:id="@+id/tvBatchTimetable"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="Batch Timetable"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:background="@drawable/selected_tab_left"/>
+
+        <TextView
+            android:id="@+id/tvCustomTimetable"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="Custom Timetable"
+            android:textColor="#0A2E5D"
+            android:textSize="14sp"
+            android:background="@drawable/unselected_tab_right"/>
+    </LinearLayout>
+
+    <!-- Dropdown: Batch -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/dropdownBatch"
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:hint="@string/select_batch"
+        android:layout_marginHorizontal="24dp"
+        android:layout_marginTop="32dp"
+        app:boxCornerRadiusTopStart="8dp"
+        app:boxCornerRadiusTopEnd="8dp"
+        app:boxCornerRadiusBottomStart="8dp"
+        app:boxCornerRadiusBottomEnd="8dp"
+        app:boxStrokeColor="#B0B0B0"
+        app:layout_constraintTop_toBottomOf="@id/tabContainer"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <AutoCompleteTextView
+            android:id="@+id/autoBatch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="none"
+            android:textColor="#000000"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:drawablePadding="8dp"/>
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Dropdown: Degree -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/dropdownDegree"
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:hint="@string/select_degree"
+        android:layout_marginHorizontal="24dp"
+        android:layout_marginTop="16dp"
+        app:boxCornerRadiusTopStart="8dp"
+        app:boxCornerRadiusTopEnd="8dp"
+        app:boxCornerRadiusBottomStart="8dp"
+        app:boxCornerRadiusBottomEnd="8dp"
+        app:boxStrokeColor="#B0B0B0"
+        app:layout_constraintTop_toBottomOf="@id/dropdownBatch"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <AutoCompleteTextView
+            android:id="@+id/autoDegree"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="none"
+            android:textColor="#000000"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:drawablePadding="8dp"/>
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Dropdown: Section -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/dropdownSection"
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:hint="@string/select_section"
+        android:layout_marginHorizontal="24dp"
+        android:layout_marginTop="16dp"
+        app:boxCornerRadiusTopStart="8dp"
+        app:boxCornerRadiusTopEnd="8dp"
+        app:boxCornerRadiusBottomStart="8dp"
+        app:boxCornerRadiusBottomEnd="8dp"
+        app:boxStrokeColor="#B0B0B0"
+        app:layout_constraintTop_toBottomOf="@id/dropdownDegree"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <AutoCompleteTextView
+            android:id="@+id/autoSection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="none"
+            android:textColor="#000000"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:drawablePadding="8dp"/>
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Search Button -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnSearch"
+        android:layout_width="0dp"
+        android:layout_height="48dp"
+        android:text="@string/search"
+        android:textColor="@android:color/white"
+        android:textSize="16sp"
+        android:layout_marginHorizontal="24dp"
+        android:layout_marginTop="24dp"
+        android:layout_marginBottom="24dp"
+        app:cornerRadius="8dp"
+        app:backgroundTint="#0A2E5D"
+        app:layout_constraintTop_toBottomOf="@id/dropdownSection"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"/>
+</androidx.constraintlayout.widget.ConstraintLayout>

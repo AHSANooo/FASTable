@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">FASTable</string>
+    <string name="add_timetable">Add Timetable</string>
+    <string name="batch_timetable">Batch Timetable</string>
+    <string name="custom_timetable">Custom Timetable</string>
+    <string name="select_batch">Select Batch</string>
+    <string name="select_degree">Select Degree</string>
+    <string name="select_section">Select Section</string>
+    <string name="select_subject">Select Subject</string>
+    <string name="search">Search</string>
+    <string name="profile_image">Profile Image</string>
+    <string name="about_us">About Us</string>
+    <string name="log_out">Log Out</string>
+
+
+</resources>

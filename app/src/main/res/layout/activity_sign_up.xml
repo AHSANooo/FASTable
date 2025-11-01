@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="#F5F5F5"
+    tools:context=".Sign_Up">
+
+    <RelativeLayout
+        android:id="@+id/main"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="24dp"
+        tools:ignore="ExtraText">
+
+        <!-- Profile Circular Image -->
+        <de.hdodenhof.circleimageview.CircleImageView
+            android:id="@+id/profile_image"
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:src="@drawable/img_demo"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="100dp"
+            app:civ_border_width="2dp"
+            app:civ_border_color="@android:color/darker_gray" />
+
+        <!-- First Email -->
+        <EditText
+            android:id="@+id/email1"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:hint="Enter Email Address"
+            android:background="@drawable/edittext_border"
+            android:padding="10dp"
+            android:inputType="textEmailAddress"
+            android:layout_below="@id/profile_image"
+            android:layout_marginTop="40dp"/>
+
+        <!-- Second Email -->
+        <EditText
+            android:id="@+id/email2"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:hint="Enter Email Address"
+            android:background="@drawable/edittext_border"
+            android:padding="10dp"
+            android:inputType="textEmailAddress"
+            android:layout_below="@id/email1"
+            android:layout_marginTop="15dp"/>
+
+        <!-- Password -->
+        <EditText
+            android:id="@+id/password"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:hint="Enter Password"
+            android:background="@drawable/edittext_border"
+            android:padding="10dp"
+            android:inputType="textPassword"
+            android:layout_below="@id/email2"
+            android:layout_marginTop="15dp"/>
+
+        <!-- Confirm Password -->
+        <EditText
+            android:id="@+id/confirm_password"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:hint="Confirm Password"
+            android:background="@drawable/edittext_border"
+            android:padding="10dp"
+            android:inputType="textPassword"
+            android:layout_below="@id/password"
+            android:layout_marginTop="15dp"/>
+
+        <!-- Sign Up Button -->
+        <Button
+            android:id="@+id/btn_signup"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Sign Up"
+            android:textSize="19sp"
+            android:textStyle="bold"
+            android:backgroundTint="@color/navy"
+            android:textColor="@android:color/white"
+            android:paddingLeft="30dp"
+            android:paddingRight="30dp"
+            android:layout_centerHorizontal="true"
+            android:layout_below="@id/confirm_password"
+            android:layout_marginTop="45dp"/>
+    </RelativeLayout>
+</ScrollView>

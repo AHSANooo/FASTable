@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/nav_batch_timetable"
+            android:title="Batch Timetable"/>
+        <item
+            android:id="@+id/nav_custom_timetable"
+            android:title="Custom Timetable"/>
+        <item
+            android:id="@+id/nav_about_us"
+            android:title="About Us"/>
+    </group>
+    <group android:id="@+id/bottom_section">
+        <item
+            android:id="@+id/nav_log_out"
+            android:title="Log Out"/>
+    </group>
+</menu>
+
+
