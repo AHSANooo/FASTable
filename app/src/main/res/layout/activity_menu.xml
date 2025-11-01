@@ -10,7 +10,7 @@
     <!-- Right-side shadow (fixed width + optional height percent if needed) -->
     <View
         android:id="@+id/rightShadow"
-        android:layout_width="70dp"
+        android:layout_width="20dp"
         android:layout_height="0dp"
         android:background="@drawable/right_side_shadow"
         app:layout_constraintTop_toTopOf="parent"
@@ -21,10 +21,12 @@
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/top_bar_menu"
         android:layout_width="0dp"
-        android:layout_height="56dp"
+        android:layout_height="80dp"
         android:background="@color/white"
         android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
         android:elevation="4dp"
+        android:paddingTop="30dp"
+        android:paddingBottom="8dp"
         app:navigationIcon="@drawable/ic_menu_black"
         app:titleTextColor="@android:color/white"
         app:layout_constraintTop_toTopOf="parent"
@@ -85,7 +87,7 @@
                     android:layout_height="wrap_content"
                     android:text="hmahsankhetran@gmail.com"
                     android:textColor="@color/navy"
-                    android:textSize="15sp" />
+                    android:textSize="12sp" />
             </LinearLayout>
 
             <ImageView

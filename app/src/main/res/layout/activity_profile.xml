@@ -12,7 +12,9 @@
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/topAppBar"
         android:layout_width="0dp"
-        android:layout_height="56dp"
+        android:layout_height="94dp"
+        android:paddingTop="30dp"
+        android:paddingBottom="8dp"
         android:background="#0A2E5D"
         app:navigationIcon="@drawable/ic_arrow_back"
         app:title="Profile"
