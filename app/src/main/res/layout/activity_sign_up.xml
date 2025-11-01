@@ -28,6 +28,8 @@
 
         <!-- First Email -->
         <EditText
+            android:textColorHint="@android:color/darker_gray"
+            android:textColor="@android:color/black"
             android:id="@+id/name"
             android:layout_width="match_parent"
             android:layout_height="50dp"
@@ -40,6 +42,8 @@
 
         <!-- Second Email -->
         <EditText
+            android:textColorHint="@android:color/darker_gray"
+            android:textColor="@android:color/black"
             android:id="@+id/email"
             android:layout_width="match_parent"
             android:layout_height="50dp"
@@ -50,6 +54,8 @@
             android:layout_below="@id/name"
             android:layout_marginTop="15dp"/>
 <EditText
+    android:textColorHint="@android:color/darker_gray"
+    android:textColor="@android:color/black"
             android:id="@+id/batch"
             android:layout_width="match_parent"
             android:layout_height="50dp"
@@ -60,6 +66,10 @@
             android:layout_below="@id/email"
             android:layout_marginTop="15dp"/>
 <EditText
+
+
+    android:textColorHint="@android:color/darker_gray"
+    android:textColor="@android:color/black"
             android:id="@+id/degree"
             android:layout_width="match_parent"
             android:layout_height="50dp"
@@ -70,6 +80,9 @@
             android:layout_below="@id/batch"
             android:layout_marginTop="15dp"/>
 <EditText
+
+    android:textColorHint="@android:color/darker_gray"
+    android:textColor="@android:color/black"
             android:id="@+id/section"
             android:layout_width="match_parent"
             android:layout_height="50dp"
@@ -82,6 +95,9 @@
 
         <!-- Password -->
         <EditText
+
+            android:textColorHint="@android:color/darker_gray"
+            android:textColor="@android:color/black"
             android:id="@+id/password"
             android:layout_width="match_parent"
             android:layout_height="50dp"
@@ -94,6 +110,9 @@
 
         <!-- Confirm Password -->
         <EditText
+
+            android:textColorHint="@android:color/darker_gray"
+            android:textColor="@android:color/black"
             android:id="@+id/confirm_password"
             android:layout_width="match_parent"
             android:layout_height="50dp"
