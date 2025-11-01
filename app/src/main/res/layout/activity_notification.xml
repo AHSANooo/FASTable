@@ -10,10 +10,9 @@
 
     <!-- Top App Bar -->
     <com.google.android.material.appbar.MaterialToolbar
-        android:paddingTop="15sp"
         android:id="@+id/topAppBar"
         android:layout_width="0dp"
-        android:layout_height="76dp"
+        android:layout_height="66dp"
         android:background="#0D2A5C"
         android:elevation="4dp"
         app:navigationIcon="@drawable/ic_arrow_back"
