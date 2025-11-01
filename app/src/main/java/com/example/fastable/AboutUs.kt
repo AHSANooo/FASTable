@@ -1,10 +1,9 @@
 package com.example.fastable
 
 import android.os.Bundle
+import android.widget.ImageView
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 
 class AboutUs : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -12,5 +11,10 @@ class AboutUs : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_about_us)
 
+        // Handle back button
+        val backBtn = findViewById<ImageView>(R.id.backBtn)
+        backBtn.setOnClickListener {
+            finish()
+        }
     }
 }

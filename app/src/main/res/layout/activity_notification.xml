@@ -20,7 +20,7 @@
         app:title="Notifications"
         app:titleTextColor="@android:color/white"
         app:titleCentered="true"
-        app:menu="@menu/top_app_bar_menu"
+        app:menu="@menu/top_app_bar_notification"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />

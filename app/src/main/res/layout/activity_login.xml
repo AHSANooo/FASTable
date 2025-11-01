@@ -64,30 +64,34 @@
             android:layout_below="@id/password"
             android:layout_marginTop="28dp" />
 
-        <!-- Don't have an account? -->
-        <TextView
-            android:id="@+id/signup_link"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Don’t have an account?"
-            android:textSize="14sp"
-            android:textColor="@android:color/black"
-            android:layout_alignParentBottom="true"
-            android:layout_marginBottom="40dp"
-            android:layout_centerInParent="true"
-           />
 
-        <!-- Sign Up -->
-        <TextView
-            android:id="@+id/signup_link_text"
+        <LinearLayout
+            android:id="@+id/signup_container"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text=" Sign Up"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:textColor="@color/navy"
-            android:layout_toRightOf="@id/signup_link"
-            android:layout_alignBaseline="@id/signup_link"
-            android:layout_marginStart="4dp"/>
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_alignParentBottom="true"
+            android:layout_centerInParent="true"
+            android:layout_marginBottom="40dp">
+
+            <TextView
+                android:id="@+id/signup_link"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Don\u2019t have an account?"
+                android:textSize="14sp"
+                android:textColor="@android:color/black" />
+
+            <TextView
+                android:id="@+id/signup_link_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=" Sign Up"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="@color/navy"
+                android:layout_marginStart="4dp"/>
+        </LinearLayout>
     </RelativeLayout>
 </ScrollView>

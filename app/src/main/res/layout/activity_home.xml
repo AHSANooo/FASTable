@@ -23,7 +23,10 @@
         app:menu="@menu/top_app_bar_menu"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent">
+
+
+    </com.google.android.material.appbar.MaterialToolbar>
 
     <!-- Scrollable content -->
     <ScrollView
