@@ -6,6 +6,7 @@ import android.widget.Button
 import android.widget.LinearLayout
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import com.google.firebase.auth.FirebaseAuth
 
 class Menu : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -14,6 +15,7 @@ class Menu : AppCompatActivity() {
 
         val btnBatchTimetable=findViewById<Button>(R.id.btnBatchTimetable)
         val btnCustomTimetable=findViewById<Button>(R.id.btnCustomTimetable)
+
         btnBatchTimetable.setOnClickListener {
             val intent= Intent(this, CustomTimetable::class.java)
             startActivity(intent)
@@ -29,10 +31,12 @@ class Menu : AppCompatActivity() {
             startActivity(intent)
         }
         val btnLogout=findViewById<Button>(R.id.btnLogout)
-        btnLogout.setOnClickListener {
-            val intent= Intent(this, Login::class.java)
-            startActivity(intent)
-        }
+            btnLogout.setOnClickListener {
+                FirebaseAuth.getInstance().signOut()
+                startActivity(Intent(this, Login::class.java))
+                finish()
+            }
+
         val profile = findViewById<LinearLayout>(R.id.profileSection)
         profile.setOnClickListener {
             val intent= Intent(this, Profile::class.java)
