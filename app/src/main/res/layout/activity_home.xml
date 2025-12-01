@@ -9,6 +9,8 @@
     tools:context=".Home">
 
     <!-- App Bar -->
+
+
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/topAppBar"
         android:layout_width="0dp"
@@ -29,7 +31,11 @@
 
     </com.google.android.material.appbar.MaterialToolbar>
 
+
+
     <!-- Scrollable content -->
+
+
     <ScrollView
         android:id="@+id/scrollView"
         android:layout_width="0dp"
@@ -47,7 +53,7 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- Example Course Card -->
+
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -121,7 +127,7 @@
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
-            <!-- Additional Cards -->
+
             <include layout="@layout/item_course_card"
                 android:id="@+id/card_data_structures"
                 android:layout_width="match_parent"
@@ -170,4 +176,7 @@
                 android:tag="Software Development|Lab 1|11:00 AM - 12:30 PM" />
         </LinearLayout>
     </ScrollView>
+
+
+
 </androidx.constraintlayout.widget.ConstraintLayout>

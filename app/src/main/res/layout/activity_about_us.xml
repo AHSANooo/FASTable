@@ -206,7 +206,7 @@
                                 android:id="@+id/linkedinText2"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="linkedin.com/ali-ahmed-riaz"
+                                android:text="linkedin.com/ali-ahmad-riaz"
                                 android:textColor="#0A2C60"
                                 android:textSize="14sp" />
                         </LinearLayout>
