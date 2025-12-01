@@ -36,7 +36,7 @@
             android:hint="Enter Full Name"
             android:background="@drawable/edittext_border"
             android:padding="10dp"
-            android:inputType="textEmailAddress"
+            android:inputType="textPersonName"
             android:layout_below="@id/profile_image"
             android:layout_marginTop="40dp"/>
 
@@ -62,7 +62,7 @@
             android:hint="Enter Batch"
             android:background="@drawable/edittext_border"
             android:padding="10dp"
-            android:inputType="textEmailAddress"
+            android:inputType="number"
             android:layout_below="@id/email"
             android:layout_marginTop="15dp"/>
 <EditText
@@ -89,8 +89,8 @@
             android:hint="Enter Section"
             android:background="@drawable/edittext_border"
             android:padding="10dp"
-            android:inputType="textEmailAddress"
-            android:layout_below="@id/batch"
+            android:inputType="text"
+            android:layout_below="@id/degree"
             android:layout_marginTop="15dp"/>
 
         <!-- Password -->

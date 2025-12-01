@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "155030500951",
+    "project_id": "fastable-2d1ac",
+    "storage_bucket": "fastable-2d1ac.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:155030500951:android:615efc187a1d8702e05512",
+        "android_client_info": {
+          "package_name": "com.example.fastable"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBVrSAD2AVkH8LHgqB9D855hO8bTZVlj2k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
