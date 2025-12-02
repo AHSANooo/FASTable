@@ -59,5 +59,6 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.9.0")
     implementation("com.google.firebase:firebase-auth-ktx:22.1.0")
+    implementation("androidx.drawerlayout:drawerlayout:1.2.0")
 
 }
