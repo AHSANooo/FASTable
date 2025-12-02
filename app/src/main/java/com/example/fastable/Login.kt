@@ -49,7 +49,9 @@ class Login : AppCompatActivity() {
                         val user = auth.currentUser
                         if (user != null && user.isEmailVerified) {
                             Toast.makeText(this, "Login successful!", Toast.LENGTH_SHORT).show()
-                            startActivity(Intent(this, Home::class.java))
+                            val intent = Intent(this, Home::class.java)
+                            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                            startActivity(intent)
                             finish()
                         } else {
                             // Email not verified
