@@ -40,7 +40,7 @@
             android:name=".Login"
             android:exported="false" />
         <activity
-            android:name=".Sign_Up"
+            android:name=".SignUp"
             android:exported="false" />
         <activity
             android:name=".OtpActivity"

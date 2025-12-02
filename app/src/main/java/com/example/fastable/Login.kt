@@ -26,7 +26,7 @@ class Login : AppCompatActivity() {
 
         // Navigate to sign up
         signUpLinkText.setOnClickListener {
-            startActivity(Intent(this, Sign_Up::class.java))
+            startActivity(Intent(this, SignUp::class.java))
         }
 
         loginBtn.setOnClickListener {
