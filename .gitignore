@@ -17,6 +17,8 @@ out/
 # Gradle files
 .gradle/
 build/
+app/build/
+.kotlin/
 
 # Local configuration file (sdk path, etc)
 local.properties
@@ -47,6 +49,13 @@ captures/
 .idea/navEditor.xml
 .idea/*.iml
 .idea/modules
+.idea/.gitignore
+.idea/compiler.xml
+.idea/deploymentTargetSelector.xml
+.idea/kotlinc.xml
+.idea/migrations.xml
+.idea/misc.xml
+.idea/vcs.xml
 *.ipr
 *.iws
 
@@ -61,7 +70,9 @@ key
 .cxx/
 
 # Google Services (e.g. APIs or Firebase)
-# google-services.json
+# NOTE: google-services.json should be included in the repository
+# so the app can run after cloning. Each developer can override
+# with their own config if needed for development.
 
 # Freeline
 freeline.py
@@ -99,6 +110,13 @@ Thumbs.db
 
 # Legacy Eclipse project files
 .classpath
+.project
+.settings/
+
+# Misc
+*.swp
+*~
+.DS_Store
 .project
 .settings/
 
