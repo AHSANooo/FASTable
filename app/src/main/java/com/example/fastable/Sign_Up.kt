@@ -1,51 +1,27 @@
-                }
-        }
-    }
 package com.example.fastable
-    private fun sendVerificationEmail(email: String) {
-        val user = auth.currentUser
 
-        if (user != null) {
-            // Create ActionCodeSettings for proper email link
-            val actionCodeSettings = ActionCodeSettings.newBuilder()
-                .setUrl("https://fastable.page.link/verify?email=$email")
-                .setHandleCodeInApp(false)
-                .setAndroidPackageName(
-                    "com.example.fastable",
-                    true,  // installIfNotAvailable
-                    null   // minimumVersion
-                )
-                .build()
+import android.content.Intent
+import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
+import android.util.Patterns
+import android.widget.Button
+import android.widget.EditText
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import com.google.firebase.auth.ActionCodeSettings
+import com.google.firebase.auth.FirebaseAuth
 
-            user.sendEmailVerification(actionCodeSettings)
-                .addOnCompleteListener { task ->
-                    if (task.isSuccessful) {
-                        android.util.Log.d("SignUp", "Verification email sent successfully to $email")
-                        Toast.makeText(
-                            this,
-                            "Account created! Verification email sent to $email\nPlease check your inbox and spam folder.",
-                            Toast.LENGTH_LONG
-                        ).show()
+class SignUp : AppCompatActivity() {
 
-                        // Redirect to login screen after short delay
-                        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                            startActivity(Intent(this, Login::class.java))
-                            finish()
-                        }, 2000)
+    private lateinit var auth: FirebaseAuth
 
-                        val errorMessage = task.exception?.message ?: "Unknown error"
-                        android.util.Log.e("SignUp", "Failed to send verification email: $errorMessage")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-                            "Failed to send verification email: $errorMessage\n\nTap Resend in login screen to try again.",
+        setContentView(R.layout.activity_sign_up)
 
         auth = FirebaseAuth.getInstance()
-
-                        // Still allow user to go to login
-                        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                            startActivity(Intent(this, Login::class.java))
-                            finish()
-                        }, 2000)
 
         val nameEt = findViewById<EditText>(R.id.name)
         val emailEt = findViewById<EditText>(R.id.email)
@@ -53,7 +29,6 @@ package com.example.fastable
         val degreeEt = findViewById<EditText>(R.id.degree)
         val sectionEt = findViewById<EditText>(R.id.section)
         val passwordEt = findViewById<EditText>(R.id.password)
-import com.google.firebase.auth.ActionCodeSettings
         val confirmPasswordEt = findViewById<EditText>(R.id.confirm_password)
         val signUpBtn = findViewById<Button>(R.id.btn_signup)
 
@@ -66,14 +41,11 @@ import com.google.firebase.auth.ActionCodeSettings
             val password = passwordEt.text.toString().trim()
             val confirmPassword = confirmPasswordEt.text.toString().trim()
 
-            // Debug logging
-            android.util.Log.d("SignUp", "Name: '$name' (isEmpty: ${name.isEmpty()})")
-            android.util.Log.d("SignUp", "Email: '$email' (isEmpty: ${email.isEmpty()})")
-            android.util.Log.d("SignUp", "Batch: '$batch' (isEmpty: ${batch.isEmpty()})")
-            android.util.Log.d("SignUp", "Degree: '$degree' (isEmpty: ${degree.isEmpty()})")
-            android.util.Log.d("SignUp", "Section: '$section' (isEmpty: ${section.isEmpty()})")
-            android.util.Log.d("SignUp", "Password: (isEmpty: ${password.isEmpty()})")
-            android.util.Log.d("SignUp", "Confirm Password: (isEmpty: ${confirmPassword.isEmpty()})")
+            Log.d("SignUp", "Name: '$name' (isEmpty: ${name.isEmpty()})")
+            Log.d("SignUp", "Email: '$email' (isEmpty: ${email.isEmpty()})")
+            Log.d("SignUp", "Batch: '$batch' (isEmpty: ${batch.isEmpty()})")
+            Log.d("SignUp", "Degree: '$degree' (isEmpty: ${degree.isEmpty()})")
+            Log.d("SignUp", "Section: '$section' (isEmpty: ${section.isEmpty()})")
 
             if (name.isEmpty()) {
                 Toast.makeText(this, "Please enter your full name", Toast.LENGTH_SHORT).show()
@@ -126,48 +98,82 @@ import com.google.firebase.auth.ActionCodeSettings
                 return@setOnClickListener
             }
 
+            // Show loading toast
+            Toast.makeText(this, "Creating account...", Toast.LENGTH_SHORT).show()
+
             // ✅ Create user in Firebase
             auth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener { task ->
                     if (task.isSuccessful) {
+                        Log.d("SignUp", "User account created successfully")
+
+                        // Send verification email
                         val user = auth.currentUser
-                        user?.sendEmailVerification()?.addOnCompleteListener { verifyTask ->
-                            if (verifyTask.isSuccessful) {
-                                Toast.makeText(
-                                    this,
-                                    "Account created! Please verify your email before logging in.",
-                                    Toast.LENGTH_LONG
-                                ).show()
-
-                                // Redirect to login screen
-                                startActivity(Intent(this, Login::class.java))
-                                finish()
-                            } else {
-                                Toast.makeText(
-            // Show loading toast
-            Toast.makeText(this, "Creating account...", Toast.LENGTH_SHORT).show()
-
-                                    this,
-                                    "Failed to send verification email: ${verifyTask.exception?.message}",
-                                    Toast.LENGTH_LONG
-                                ).show()
-                        android.util.Log.d("SignUp", "User account created successfully")
-                            }
-
                         if (user != null) {
-                            sendVerificationEmail(user.email ?: email)
+                            sendVerificationEmail(email)
                         }
+
+                        Toast.makeText(
+                            this,
+                            "Account created! Please verify your email before logging in.",
+                            Toast.LENGTH_LONG
+                        ).show()
+
+                        // Redirect to login screen after short delay
+                        Handler(Looper.getMainLooper()).postDelayed({
+                            startActivity(Intent(this, Login::class.java))
+                            finish()
+                        }, 1500)
+
                     } else {
                         val errorMessage = task.exception?.message ?: "Unknown error"
-                        android.util.Log.e("SignUp", "Failed to create account: $errorMessage")
+                        Log.e("SignUp", "Failed to create account: $errorMessage")
                         Toast.makeText(
                             this,
                             "Sign up failed: $errorMessage",
                             Toast.LENGTH_LONG
                         ).show()
                     }
-                    }
                 }
         }
+    }
+
+    private fun sendVerificationEmail(email: String) {
+        val user = auth.currentUser
+        if (user == null) {
+            Toast.makeText(this, "Unable to send verification email: no user session.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // Create ActionCodeSettings for proper email link
+        val actionCodeSettings = ActionCodeSettings.newBuilder()
+            .setUrl("https://fastable.page.link/verify?email=$email")
+            .setHandleCodeInApp(false)
+            .setAndroidPackageName(
+                "com.example.fastable",
+                true,  // installIfNotAvailable
+                null   // minimumVersion
+            )
+            .build()
+
+        user.sendEmailVerification(actionCodeSettings)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    Log.d("SignUp", "Verification email sent successfully to $email")
+                    Toast.makeText(
+                        this,
+                        "Account created! Verification email sent to $email\nPlease check your inbox and spam folder.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                } else {
+                    val errorMessage = task.exception?.message ?: "Unknown error"
+                    Log.e("SignUp", "Failed to send verification email: $errorMessage")
+                    Toast.makeText(
+                        this,
+                        "Failed to send verification email: $errorMessage",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
     }
 }
