@@ -108,7 +108,7 @@
             android:layout_height="wrap_content"
             android:text="Enter Section"
             android:textSize="14sp"
-            android:textColor="#0A2E5D"
+            android:textColorHint="@color/black"
             android:textStyle="bold"
             android:layout_marginTop="16dp"
             android:layout_marginBottom="8dp"/>
@@ -118,8 +118,8 @@
             android:layout_width="match_parent"
             android:layout_height="50dp"
             android:hint="e.g., A, B, C"
-            android:textColorHint="#999999"
-            android:textColor="#000000"
+            android:textColorHint="@android:color/darker_gray"
+            android:textColor="@color/black"
             android:inputType="textCapCharacters"
             android:maxLength="1"
             android:background="@android:drawable/edit_text"
@@ -132,9 +132,20 @@
             android:text="Load Timetable"
             android:textColor="#FFFFFF"
             android:backgroundTint="#0A2E5D"
+            android:enabled="true"
             android:layout_marginTop="16dp"/>
     </LinearLayout>
 
+    <!-- Progress Bar -->
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/inputSection"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="24dp"/>
 
     <!-- Error TextView -->
     <TextView
