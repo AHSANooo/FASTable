@@ -1,6 +1,5 @@
 package com.example.fastable.data.local
 
-import androidx.lifecycle.LiveData
 import androidx.room.*
 import com.example.fastable.data.models.DashboardSession
 import kotlinx.coroutines.flow.Flow
@@ -14,6 +13,9 @@ interface DashboardDao {
 
     @Query("SELECT * FROM dashboard_sessions")
     fun getAllDashboardSessions(): Flow<List<DashboardSession>>
+
+    @Query("SELECT * FROM dashboard_sessions")
+    suspend fun getAllDashboardSessionsOnce(): List<DashboardSession>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSession(session: DashboardSession)

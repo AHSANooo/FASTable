@@ -21,12 +21,31 @@ class TimetableRepository(context: Context) {
     private val sheetsService = GoogleSheetsService(context)
 
     private var lastSyncTime: Long = 0
-    private val SYNC_INTERVAL = 2 * 60 * 1000 // 2 minutes
+    private val SYNC_INTERVAL = 30 * 1000 // 30 seconds - very aggressive
 
     // Cache the spreadsheet to avoid repeated API calls
     private var cachedSpreadsheet: com.google.api.services.sheets.v4.model.Spreadsheet? = null
     private var cacheTime: Long = 0
-    private val CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+    private val CACHE_DURATION = 30 * 60 * 1000 // 30 minutes - very long cache
+    private var isFetching = false // Prevent multiple simultaneous fetches
+
+    /**
+     * Prefetch spreadsheet in background (call on app start)
+     */
+    suspend fun prefetchSpreadsheet() {
+        if (cachedSpreadsheet != null || isFetching) {
+            return // Already cached or currently fetching
+        }
+
+        withContext(Dispatchers.IO) {
+            try {
+                Log.d(TAG, "Prefetching spreadsheet in background...")
+                getSpreadsheet()
+            } catch (e: Exception) {
+                Log.e(TAG, "Prefetch failed: ${e.message}")
+            }
+        }
+    }
 
     /**
      * Get spreadsheet from cache or fetch new
@@ -36,16 +55,48 @@ class TimetableRepository(context: Context) {
 
         // Return cached if still valid
         if (cachedSpreadsheet != null && (currentTime - cacheTime) < CACHE_DURATION) {
+            Log.d(TAG, "Using cached spreadsheet (age: ${(currentTime - cacheTime) / 1000}s)")
             return cachedSpreadsheet
         }
 
-        // Fetch new
-        val spreadsheet = sheetsService.fetchSpreadsheet()
-        if (spreadsheet != null) {
-            cachedSpreadsheet = spreadsheet
-            cacheTime = currentTime
+        // Prevent multiple simultaneous fetches - wait for existing fetch
+        if (isFetching) {
+            Log.d(TAG, "Already fetching spreadsheet, waiting...")
+            var waitCount = 0
+            while (isFetching && waitCount < 120) { // Wait up to 12 seconds (10s timeout + 2s buffer)
+                kotlinx.coroutines.delay(100)
+                waitCount++
+            }
+
+            // After waiting, check if we now have a cached result
+            if (cachedSpreadsheet != null) {
+                Log.d(TAG, "Fetch completed while waiting, using cached result")
+                return cachedSpreadsheet
+            } else {
+                Log.e(TAG, "Wait timed out and no cached spreadsheet available")
+                // If still no cache, try fetching ourselves (the previous fetch might have failed)
+            }
         }
-        return spreadsheet
+
+        isFetching = true
+        try {
+            // Fetch new
+            Log.d(TAG, "Fetching fresh spreadsheet from Google Sheets...")
+            val startTime = System.currentTimeMillis()
+            val spreadsheet = sheetsService.fetchSpreadsheet()
+            val fetchTime = System.currentTimeMillis() - startTime
+
+            if (spreadsheet != null) {
+                Log.d(TAG, "Spreadsheet fetched successfully in ${fetchTime}ms")
+                cachedSpreadsheet = spreadsheet
+                cacheTime = currentTime
+            } else {
+                Log.e(TAG, "Failed to fetch spreadsheet after ${fetchTime}ms")
+            }
+            return spreadsheet
+        } finally {
+            isFetching = false
+        }
     }
 
     /**
@@ -54,8 +105,16 @@ class TimetableRepository(context: Context) {
     suspend fun syncData(forceRefresh: Boolean = false): Result<Boolean> {
         return withContext(Dispatchers.IO) {
             try {
+                // PERFORMANCE: Check if we have courses first - skip sync if we do
+                val existingCourses = courseDao.getAllCoursesOnce()
+                if (existingCourses.isNotEmpty() && !forceRefresh) {
+                    Log.d(TAG, "Using existing ${existingCourses.size} courses - SKIP SYNC")
+                    return@withContext Result.success(true)
+                }
+
                 val currentTime = System.currentTimeMillis()
                 if (!forceRefresh && (currentTime - lastSyncTime) < SYNC_INTERVAL) {
+                    Log.d(TAG, "Skipping sync - last sync was ${(currentTime - lastSyncTime) / 1000}s ago")
                     return@withContext Result.success(true)
                 }
 
@@ -69,9 +128,11 @@ class TimetableRepository(context: Context) {
                 }
 
                 // Extract and save courses
+                Log.d(TAG, "Extracting courses from spreadsheet...")
                 val courses = CourseExtractor.extractAllCourses(spreadsheet)
                 courseDao.deleteAllCourses()
                 courseDao.insertCourses(courses)
+                Log.d(TAG, "Saved ${courses.size} courses to database")
 
                 lastSyncTime = currentTime
                 Result.success(true)
@@ -300,9 +361,12 @@ class TimetableRepository(context: Context) {
             // Get custom timetable sessions for selected courses
             val sessions = TimetableExtractor.getCustomTimetable(spreadsheet, courses)
 
-            // Convert to dashboard sessions
-            val dashboardSessions = sessions.map { session ->
-                com.example.fastable.data.models.DashboardSession(
+            // Get existing dashboard sessions to avoid duplicates
+            val existingSessions = database.dashboardDao().getAllDashboardSessionsOnce()
+
+            // Convert to dashboard sessions, filtering out duplicates
+            val dashboardSessions = sessions.mapNotNull { session ->
+                val newSession = com.example.fastable.data.models.DashboardSession(
                     day = session.day,
                     timeSlot = session.timeSlot,
                     room = session.room,
@@ -315,9 +379,24 @@ class TimetableRepository(context: Context) {
                     colorCode = session.colorCode,
                     isCustom = true
                 )
+
+                // Check if this session already exists (same course, day, time, section)
+                val isDuplicate = existingSessions.any { existing ->
+                    existing.courseName.equals(newSession.courseName, ignoreCase = true) &&
+                    existing.day == newSession.day &&
+                    existing.timeSlot == newSession.timeSlot &&
+                    existing.section == newSession.section
+                }
+
+                if (!isDuplicate) newSession else null
             }
 
-            database.dashboardDao().insertDashboardSessions(dashboardSessions)
+            if (dashboardSessions.isNotEmpty()) {
+                database.dashboardDao().insertDashboardSessions(dashboardSessions)
+                Log.d(TAG, "addCustomCoursesToDashboard: Added ${dashboardSessions.size} new sessions (${sessions.size - dashboardSessions.size} duplicates skipped)")
+            } else {
+                Log.d(TAG, "addCustomCoursesToDashboard: All sessions already exist in dashboard")
+            }
         }
     }
 }

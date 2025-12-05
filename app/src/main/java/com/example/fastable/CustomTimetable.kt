@@ -24,6 +24,7 @@ class CustomTimetable : AppCompatActivity() {
     private lateinit var tvError: TextView
     private lateinit var tvNoData: TextView
     private lateinit var btnSetAsDefault: Button
+    private lateinit var progressBar: ProgressBar
     private var progressDialog: android.app.ProgressDialog? = null
 
     private val days = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
@@ -62,6 +63,7 @@ class CustomTimetable : AppCompatActivity() {
         tvNoData = findViewById(R.id.tvNoData)
         tabLayout = findViewById(R.id.tabLayout)
         btnSetAsDefault = findViewById(R.id.btnSetAsDefault)
+        progressBar = findViewById(R.id.progressBar)
     }
 
     private fun setupViewModel() {
@@ -92,6 +94,17 @@ class CustomTimetable : AppCompatActivity() {
                 recyclerView.visibility = View.VISIBLE
                 btnSetAsDefault.visibility = View.VISIBLE
                 updateSessionsForDay(days[tabLayout.selectedTabPosition])
+            }
+        }
+
+        // Observe loading state
+        viewModel.isLoading.observe(this) { isLoading ->
+            progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
+            // Hide other views when loading
+            if (isLoading) {
+                tvNoData.visibility = View.GONE
+                recyclerView.visibility = View.GONE
+                tvError.visibility = View.GONE
             }
         }
 

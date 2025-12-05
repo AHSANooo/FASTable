@@ -40,12 +40,21 @@ class Home : AppCompatActivity() {
         val drawerLayout = findViewById<DrawerLayout>(R.id.drawerLayout)
 
         setupDrawer(drawerLayout)
+        setupFab()
     }
 
     override fun onResume() {
         super.onResume()
         // Reload dashboard sessions when activity comes to foreground
         viewModel.loadDashboardSessions()
+    }
+
+    private fun setupFab() {
+        val fab = findViewById<com.google.android.material.floatingactionbutton.FloatingActionButton>(R.id.fabAddTimetable)
+        fab.setOnClickListener {
+            val intent = Intent(this, CustomTimetable::class.java)
+            startActivity(intent)
+        }
     }
 
     private fun setupRecyclerView() {

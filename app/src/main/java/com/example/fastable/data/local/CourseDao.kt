@@ -9,6 +9,9 @@ interface CourseDao {
     @Query("SELECT * FROM courses")
     fun getAllCourses(): Flow<List<Course>>
 
+    @Query("SELECT * FROM courses")
+    suspend fun getAllCoursesOnce(): List<Course>
+
     @Query("SELECT * FROM courses WHERE isSelected = 1")
     fun getSelectedCourses(): Flow<List<Course>>
 

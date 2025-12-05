@@ -49,18 +49,20 @@ class BatchTimetableViewModel(application: Application) : AndroidViewModel(appli
         currentBatch = batch
         currentSection = section
         _errorMessage.value = null
+        _isLoading.value = true
 
         viewModelScope.launch {
             // STEP 1: Load from database IMMEDIATELY (no waiting)
             val cachedSessions = repository.getSessionsFromDatabaseOnce(batch, section)
             if (cachedSessions.isNotEmpty()) {
                 _timetableSessions.value = cachedSessions
-            } else {
-                _errorMessage.value = "Loading..."
+                _isLoading.value = false
             }
 
             // STEP 2: Fetch from API and update
             val result = repository.getBatchTimetable(batch, section)
+            _isLoading.value = false
+
             result.onSuccess { sessions ->
                 _timetableSessions.value = sessions
                 if (sessions.isEmpty()) {
