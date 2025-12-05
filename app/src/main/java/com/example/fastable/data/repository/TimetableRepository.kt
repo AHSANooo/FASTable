@@ -21,12 +21,12 @@ class TimetableRepository(context: Context) {
     private val sheetsService = GoogleSheetsService(context)
 
     private var lastSyncTime: Long = 0
-    private val SYNC_INTERVAL = 5 * 60 * 1000 // 5 minutes
+    private val SYNC_INTERVAL = 2 * 60 * 1000 // 2 minutes
 
     // Cache the spreadsheet to avoid repeated API calls
     private var cachedSpreadsheet: com.google.api.services.sheets.v4.model.Spreadsheet? = null
     private var cacheTime: Long = 0
-    private val CACHE_DURATION = 10 * 60 * 1000 // 10 minutes
+    private val CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
 
     /**
      * Get spreadsheet from cache or fetch new
@@ -209,4 +209,116 @@ class TimetableRepository(context: Context) {
     fun isOnline(): Boolean {
         return sheetsService.isOnline()
     }
+
+    /**
+     * Dashboard Session Operations
+     */
+
+    /**
+     * Get all dashboard sessions
+     */
+    fun getDashboardSessions(): Flow<List<com.example.fastable.data.models.DashboardSession>> {
+        return database.dashboardDao().getAllDashboardSessions()
+    }
+
+    /**
+     * Delete a dashboard session
+     */
+    suspend fun deleteDashboardSession(session: com.example.fastable.data.models.DashboardSession) {
+        withContext(Dispatchers.IO) {
+            database.dashboardDao().deleteDashboardSession(session)
+        }
+    }
+
+    /**
+     * Set batch as default (clear old batch sessions and add new)
+     */
+    suspend fun setDefaultBatch(batch: String, section: String) {
+        withContext(Dispatchers.IO) {
+            Log.d(TAG, "setDefaultBatch: Starting for $batch - Section $section")
+
+            try {
+                // Delete all batch (non-custom) sessions
+                database.dashboardDao().deleteBatchSessions()
+                Log.d(TAG, "setDefaultBatch: Deleted old batch sessions")
+
+                // Get sessions for this batch
+                Log.d(TAG, "setDefaultBatch: Calling getBatchTimetable...")
+                val sessions = getBatchTimetable(batch, section).getOrNull() ?: emptyList()
+                Log.d(TAG, "setDefaultBatch: Retrieved ${sessions.size} sessions from getBatchTimetable")
+
+                if (sessions.isEmpty()) {
+                    Log.w(TAG, "setDefaultBatch: No sessions found for $batch - Section $section")
+                }
+
+                // Convert to dashboard sessions
+                val dashboardSessions = sessions.map { session ->
+                    com.example.fastable.data.models.DashboardSession(
+                        day = session.day,
+                        timeSlot = session.timeSlot,
+                        room = session.room,
+                        sessionType = session.sessionType,
+                        courseName = session.courseName,
+                        section = session.section,
+                        batch = session.batch,
+                        department = session.department,
+                        rank = session.rank,
+                        colorCode = session.colorCode,
+                        isCustom = false
+                    )
+                }
+
+                Log.d(TAG, "setDefaultBatch: Converted to ${dashboardSessions.size} dashboard sessions")
+
+                // Save new batch sessions
+                database.dashboardDao().insertDashboardSessions(dashboardSessions)
+                Log.d(TAG, "setDefaultBatch: Inserted dashboard sessions to database")
+
+                // Save default batch info
+                val defaultBatch = com.example.fastable.data.models.DefaultBatch(
+                    batchName = batch,
+                    section = section
+                )
+                database.defaultBatchDao().setDefaultBatch(defaultBatch)
+                Log.d(TAG, "setDefaultBatch: Saved default batch info - COMPLETE")
+            } catch (e: Exception) {
+                Log.e(TAG, "setDefaultBatch: Exception occurred", e)
+                throw e
+            }
+        }
+    }
+
+
+    /**
+     * Add custom courses to dashboard
+     */
+    suspend fun addCustomCoursesToDashboard(courses: List<Course>) {
+        withContext(Dispatchers.IO) {
+            // Get spreadsheet to extract full session data
+            val spreadsheet = getSpreadsheet() ?: return@withContext
+
+            // Get custom timetable sessions for selected courses
+            val sessions = TimetableExtractor.getCustomTimetable(spreadsheet, courses)
+
+            // Convert to dashboard sessions
+            val dashboardSessions = sessions.map { session ->
+                com.example.fastable.data.models.DashboardSession(
+                    day = session.day,
+                    timeSlot = session.timeSlot,
+                    room = session.room,
+                    sessionType = session.sessionType,
+                    courseName = session.courseName,
+                    section = session.section,
+                    batch = session.batch,
+                    department = session.department,
+                    rank = session.rank,
+                    colorCode = session.colorCode,
+                    isCustom = true
+                )
+            }
+
+            database.dashboardDao().insertDashboardSessions(dashboardSessions)
+        }
+    }
 }
+

@@ -211,11 +211,7 @@ object TimetableExtractor {
                                     ).filterNotNull()
 
                                     val sectionMatch = sectionPatterns.any { pattern ->
-                                        val found = pattern in classEntry
-                                        if (!found && cellsMatched <= 10) {
-                                            Log.v(TAG, "        Testing pattern '$pattern' in '$classEntry': $found")
-                                        }
-                                        found
+                                        pattern in classEntry
                                     }
 
                                     if (sectionMatch) {

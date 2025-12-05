@@ -23,8 +23,12 @@ class CustomTimetable : AppCompatActivity() {
     private lateinit var btnLoad: Button
     private lateinit var tvError: TextView
     private lateinit var tvNoData: TextView
+    private lateinit var btnSetAsDefault: Button
+    private var progressDialog: android.app.ProgressDialog? = null
 
     private val days = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
+    private var currentBatch: String = ""
+    private var currentSection: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,6 +51,7 @@ class CustomTimetable : AppCompatActivity() {
         findViewById<TextView>(R.id.tvBatchTimetable).setOnClickListener {
             val intent = Intent(this, Add_Timetable::class.java)
             startActivity(intent)
+            finish()
         }
 
         spinnerBatch = findViewById(R.id.spinnerBatch)
@@ -56,6 +61,7 @@ class CustomTimetable : AppCompatActivity() {
         tvError = findViewById(R.id.tvError)
         tvNoData = findViewById(R.id.tvNoData)
         tabLayout = findViewById(R.id.tabLayout)
+        btnSetAsDefault = findViewById(R.id.btnSetAsDefault)
     }
 
     private fun setupViewModel() {
@@ -80,18 +86,37 @@ class CustomTimetable : AppCompatActivity() {
             if (sessions.isEmpty()) {
                 tvNoData.visibility = View.VISIBLE
                 recyclerView.visibility = View.GONE
+                btnSetAsDefault.visibility = View.GONE
             } else {
                 tvNoData.visibility = View.GONE
                 recyclerView.visibility = View.VISIBLE
+                btnSetAsDefault.visibility = View.VISIBLE
                 updateSessionsForDay(days[tabLayout.selectedTabPosition])
             }
         }
 
-        // Observe errors
+        // Observe errors and success messages
         viewModel.errorMessage.observe(this) { error ->
             if (error != null) {
-                tvError.text = error
-                tvError.visibility = View.VISIBLE
+                if (error == "Batch set as default!") {
+                    // Success - navigate to Home
+                    progressDialog?.dismiss()
+                    Toast.makeText(this, "Successfully set as default! Navigating to Dashboard...", Toast.LENGTH_SHORT).show()
+
+                    // Navigate to Home after a short delay
+                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                        val intent = Intent(this, Home::class.java)
+                        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        startActivity(intent)
+                        finish()
+                    }, 500)
+                } else {
+                    // Error - show and re-enable button
+                    progressDialog?.dismiss()
+                    tvError.text = error
+                    tvError.visibility = View.VISIBLE
+                    btnSetAsDefault.isEnabled = true
+                }
             } else {
                 tvError.visibility = View.GONE
             }
@@ -136,7 +161,27 @@ class CustomTimetable : AppCompatActivity() {
                 return@setOnClickListener
             }
 
+            currentBatch = batch
+            currentSection = section
             viewModel.loadTimetable(batch, section)
+        }
+
+        btnSetAsDefault.setOnClickListener {
+            if (currentBatch.isEmpty() || currentSection.isEmpty()) {
+                Toast.makeText(this, "Please load a timetable first", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            // Show progress dialog
+            progressDialog = android.app.ProgressDialog(this).apply {
+                setMessage("Setting as default...\nPlease wait")
+                setCancelable(false)
+                show()
+            }
+
+            btnSetAsDefault.isEnabled = false
+
+            viewModel.setDefaultBatch(currentBatch, currentSection)
         }
     }
 

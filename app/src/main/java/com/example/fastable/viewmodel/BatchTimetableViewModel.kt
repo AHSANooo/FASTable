@@ -1,6 +1,7 @@
 package com.example.fastable.viewmodel
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -11,6 +12,7 @@ import kotlinx.coroutines.launch
 
 class BatchTimetableViewModel(application: Application) : AndroidViewModel(application) {
 
+    private val TAG = "BatchTimetableViewModel"
     private val repository = TimetableRepository(application)
 
     private val _timetableSessions = MutableLiveData<List<TimetableSession>>()
@@ -24,6 +26,9 @@ class BatchTimetableViewModel(application: Application) : AndroidViewModel(appli
 
     private val _batches = MutableLiveData<List<String>>()
     val batches: LiveData<List<String>> = _batches
+
+    private val _setAsDefaultStatus = MutableLiveData<Boolean?>()
+    val setAsDefaultStatus: LiveData<Boolean?> = _setAsDefaultStatus
 
     private var currentBatch: String = ""
     private var currentSection: String = ""
@@ -85,6 +90,31 @@ class BatchTimetableViewModel(application: Application) : AndroidViewModel(appli
 
     fun getSessionsByDay(day: String): List<TimetableSession> {
         return _timetableSessions.value?.filter { it.day == day } ?: emptyList()
+    }
+
+    fun setDefaultBatch(batch: String, section: String) {
+        // Use GlobalScope to prevent cancellation when activity is destroyed
+        kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                Log.d(TAG, "setDefaultBatch: Calling repository for $batch - Section $section")
+                repository.setDefaultBatch(batch, section)
+                Log.d(TAG, "setDefaultBatch: Successfully set default batch")
+
+                // Post success on main thread
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    _errorMessage.value = "Batch set as default!"
+                    _setAsDefaultStatus.value = true
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "setDefaultBatch: Failed", e)
+
+                // Post error on main thread
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    _errorMessage.value = "Failed to set as default: ${e.message}"
+                    _setAsDefaultStatus.value = false
+                }
+            }
+        }
     }
 
     fun clearError() {
