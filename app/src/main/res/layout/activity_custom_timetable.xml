@@ -148,6 +148,18 @@
         android:visibility="gone"
         app:layout_constraintTop_toBottomOf="@id/inputSection"/>
 
+    <!-- Loading ProgressBar -->
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:indeterminateTint="#0A2E5D"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/inputSection"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"/>
+
     <!-- No Data TextView -->
     <TextView
         android:id="@+id/tvNoData"
@@ -182,6 +194,18 @@
         android:padding="8dp"
         android:clipToPadding="false"
         app:layout_constraintTop_toBottomOf="@id/tabLayout"
+        app:layout_constraintBottom_toTopOf="@id/btnSetAsDefault"/>
+
+    <!-- Set as Default Button -->
+    <Button
+        android:id="@+id/btnSetAsDefault"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:text="Set as Default"
+        android:textColor="#FFFFFF"
+        android:backgroundTint="#0A2E5D"
+        android:layout_margin="16dp"
+        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

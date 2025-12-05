@@ -32,6 +32,8 @@ class Add_Timetable : AppCompatActivity() {
     private lateinit var tabLayout: TabLayout
     private lateinit var llCourseSelection: LinearLayout
     private lateinit var llTimetableView: LinearLayout
+    private lateinit var btnSaveToDashboard: Button
+    private var progressDialog: android.app.ProgressDialog? = null
 
     private val days = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
     private var showingTimetable = false
@@ -67,6 +69,7 @@ class Add_Timetable : AppCompatActivity() {
         findViewById<TextView>(R.id.tvBatchTimetable).setOnClickListener {
             val intent = Intent(this, CustomTimetable::class.java)
             startActivity(intent)
+            finish()
         }
 
         rvCourses = findViewById(R.id.rvCourses)
@@ -81,6 +84,15 @@ class Add_Timetable : AppCompatActivity() {
         tabLayout = findViewById(R.id.tabLayout)
         llCourseSelection = findViewById(R.id.llCourseSelection)
         llTimetableView = findViewById(R.id.llTimetableView)
+        btnSaveToDashboard = findViewById(R.id.btnSaveToDashboard)
+
+        // Set SearchView colors programmatically
+        val searchEditText = searchView.findViewById<EditText>(androidx.appcompat.R.id.search_src_text)
+        searchEditText?.setTextColor(resources.getColor(android.R.color.black, null))
+        searchEditText?.setHintTextColor(resources.getColor(android.R.color.darker_gray, null))
+
+        // Update hint text
+        searchView.queryHint = "Search courses..."
     }
 
     private fun setupViewModel() {
@@ -112,10 +124,27 @@ class Add_Timetable : AppCompatActivity() {
             btnGenerate.isEnabled = !isLoading
         }
 
-        // Observe errors
+        // Observe errors and success messages
         viewModel.errorMessage.observe(this) { error ->
             if (error != null) {
-                Toast.makeText(this, error, Toast.LENGTH_LONG).show()
+                if (error == "Courses added to dashboard!") {
+                    // Success - navigate to Home
+                    progressDialog?.dismiss()
+                    Toast.makeText(this, error, Toast.LENGTH_SHORT).show()
+
+                    // Navigate to Home after a short delay
+                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                        val intent = Intent(this, Home::class.java)
+                        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        startActivity(intent)
+                        finish()
+                    }, 500)
+                } else {
+                    // Error - just show toast and re-enable button
+                    progressDialog?.dismiss()
+                    Toast.makeText(this, error, Toast.LENGTH_LONG).show()
+                    btnSaveToDashboard.isEnabled = true
+                }
                 viewModel.clearError()
             }
         }
@@ -156,6 +185,18 @@ class Add_Timetable : AppCompatActivity() {
         btnClear.setOnClickListener {
             viewModel.clearAllSelections()
             Toast.makeText(this, "All selections cleared", Toast.LENGTH_SHORT).show()
+        }
+
+        btnSaveToDashboard.setOnClickListener {
+            // Show progress dialog
+            progressDialog = android.app.ProgressDialog(this).apply {
+                setMessage("Adding courses to dashboard...\nPlease wait")
+                setCancelable(false)
+                show()
+            }
+
+            btnSaveToDashboard.isEnabled = false
+            viewModel.addToDashboard()
         }
     }
 

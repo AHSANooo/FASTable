@@ -5,19 +5,103 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import android.widget.Button
 import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.appcompat.widget.Toolbar
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
+import androidx.lifecycle.ViewModelProvider
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.appbar.MaterialToolbar
+import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
+import com.example.fastable.adapters.DashboardSessionAdapter
+import com.example.fastable.viewmodel.HomeViewModel
 
 class Home : AppCompatActivity() {
+
+    private lateinit var viewModel: HomeViewModel
+    private lateinit var adapter: DashboardSessionAdapter
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
 
+        // Initialize ViewModel
+        viewModel = ViewModelProvider(this)[HomeViewModel::class.java]
+
+        // Initialize RecyclerView
+        setupRecyclerView()
+
+        // Observe data
+        observeViewModel()
+
         // Get reference to the drawer layout
         val drawerLayout = findViewById<DrawerLayout>(R.id.drawerLayout)
+
+        setupDrawer(drawerLayout)
+        setupFab()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Reload dashboard sessions when activity comes to foreground
+        viewModel.loadDashboardSessions()
+    }
+
+    private fun setupFab() {
+        val fab = findViewById<com.google.android.material.floatingactionbutton.FloatingActionButton>(R.id.fabAddTimetable)
+        fab.setOnClickListener {
+            val intent = Intent(this, CustomTimetable::class.java)
+            startActivity(intent)
+        }
+    }
+
+    private fun setupRecyclerView() {
+        val recyclerView = findViewById<RecyclerView>(R.id.rvDashboardSessions)
+        adapter = DashboardSessionAdapter(
+            onLongClick = { session ->
+                // Show confirmation and delete
+                androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setTitle("Remove Session")
+                    .setMessage("Remove ${session.courseName} from dashboard?")
+                    .setPositiveButton("Remove") { _, _ ->
+                        viewModel.deleteDashboardSession(session)
+                    }
+                    .setNegativeButton("Cancel", null)
+                    .show()
+            }
+        )
+        recyclerView.layoutManager = LinearLayoutManager(this)
+        recyclerView.adapter = adapter
+    }
+
+    private fun observeViewModel() {
+        // Observe current day
+        viewModel.currentDay.observe(this) { day ->
+            findViewById<TextView>(R.id.tvCurrentDay).text = day
+        }
+
+        // Observe today's sessions
+        viewModel.todaysSessions.observe(this) { sessions ->
+            adapter.submitList(sessions)
+
+            // Show/hide empty state
+            findViewById<TextView>(R.id.tvEmptyState).visibility =
+                if (sessions.isEmpty()) android.view.View.VISIBLE
+                else android.view.View.GONE
+        }
+
+        // Observe error messages
+        viewModel.errorMessage.observe(this) { message ->
+            message?.let {
+                Snackbar.make(findViewById(android.R.id.content), it, Snackbar.LENGTH_SHORT).show()
+                viewModel.clearError()
+            }
+        }
+    }
+
+    private fun setupDrawer(drawerLayout: DrawerLayout) {
 
         // Top app bar - open drawer on menu icon click
         val topAppBar = findViewById<MaterialToolbar>(R.id.topAppBar)

@@ -121,6 +121,35 @@ class CustomTimetableViewModel(application: Application) : AndroidViewModel(appl
         }
     }
 
+    fun addToDashboard() {
+        val selected = _selectedCourses.value ?: emptyList()
+
+        if (selected.isEmpty()) {
+            _errorMessage.value = "Please select courses first"
+            return
+        }
+
+        _isLoading.value = true
+        // Use GlobalScope to prevent cancellation when activity is destroyed
+        kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                repository.addCustomCoursesToDashboard(selected)
+
+                // Post success on main thread
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    _errorMessage.value = "Courses added to dashboard!"
+                    _isLoading.value = false
+                }
+            } catch (e: Exception) {
+                // Post error on main thread
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    _errorMessage.value = "Failed to add to dashboard: ${e.message}"
+                    _isLoading.value = false
+                }
+            }
+        }
+    }
+
     fun syncData() {
         _isLoading.value = true
         viewModelScope.launch {

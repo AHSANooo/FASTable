@@ -42,12 +42,12 @@ class GoogleSheetsService(private val context: Context) {
     }
 
     private fun getSheetsService(): Sheets {
-        // Use NetHttpTransport with timeouts for Android compatibility
+        // Use NetHttpTransport with optimized timeouts
         val httpTransport = NetHttpTransport.Builder()
             .setConnectionFactory { url ->
                 val connection = url.openConnection() as java.net.HttpURLConnection
-                connection.connectTimeout = 15000 // 15 seconds
-                connection.readTimeout = 30000 // 30 seconds
+                connection.connectTimeout = 8000 // 8 seconds
+                connection.readTimeout = 12000 // 12 seconds
                 connection
             }
             .build()
@@ -61,25 +61,31 @@ class GoogleSheetsService(private val context: Context) {
 
     /**
      * Fetch spreadsheet data with grid data (includes formatting and colors)
+     * Optimized: Only fetch the 5 timetable sheets to reduce payload size
      */
     suspend fun fetchSpreadsheet(): com.google.api.services.sheets.v4.model.Spreadsheet? {
         return withContext(Dispatchers.IO) {
             try {
-                // 20-second timeout for better UX
-                val result = withTimeout(TimeUnit.SECONDS.toMillis(20)) {
+                // 10-second timeout for better UX
+                val result = withTimeout(TimeUnit.SECONDS.toMillis(10)) {
                     val service = getSheetsService()
 
-                    // Fetch spreadsheet with includeGridData to get cell formatting and colors
+                    // Fetch only the timetable sheets (Monday-Friday) to reduce payload
+                    val timetableSheets = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
+                    val ranges = timetableSheets.map { "$it!A1:AN100" }
+
+                    // Fetch spreadsheet with includeGridData for only the timetable sheets
                     val request = service.spreadsheets()
                         .get(GoogleSheetsConfig.SPREADSHEET_ID)
                         .setIncludeGridData(true)
+                        .setRanges(ranges)
 
                     request.execute()
                 }
 
                 result
             } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
-                Log.e(TAG, "Request timeout")
+                Log.e(TAG, "Request timeout after 10 seconds")
                 null
             } catch (e: java.net.SocketTimeoutException) {
                 Log.e(TAG, "Network timeout")
@@ -91,7 +97,6 @@ class GoogleSheetsService(private val context: Context) {
                 null
             } catch (e: Exception) {
                 Log.e(TAG, "Error fetching spreadsheet: ${e.message}")
-                null
                 null
             }
         }

@@ -40,8 +40,6 @@
 
 
     <!-- Scrollable content -->
-
-
     <ScrollView
         android:id="@+id/scrollView"
         android:layout_width="0dp"
@@ -59,129 +57,54 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-
-            <androidx.cardview.widget.CardView
+            <!-- Current Day Header -->
+            <TextView
+                android:id="@+id/tvCurrentDay"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:text="Monday"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:textColor="#0D2A5C"
                 android:layout_marginBottom="16dp"
-                android:backgroundTint="#FFFFFF"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="4dp"
-                android:padding="0dp">
+                android:fontFamily="sans-serif-medium" />
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="100sp"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:paddingTop="5dp"
-                        android:paddingLeft="10dp"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Software Design and Analysis"
-                        android:textSize="17sp"
-                        android:textStyle="bold"
-                        android:textColor="#0D2A5C"
-                        android:layout_marginBottom="6dp"
-                        android:fontFamily="sans-serif-medium" />
-
-                    <LinearLayout
-                        android:paddingLeft="10dp"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:layout_marginBottom="4dp"
-                        android:gravity="center_vertical">
-
-                        <ImageView
-                            android:layout_width="18dp"
-                            android:layout_height="18dp"
-                            android:layout_marginEnd="6dp"
-                            android:src="@drawable/ic_location"
-                            app:tint="#444" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Room 101"
-                            android:textColor="#444"
-                            android:textSize="14sp" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:paddingLeft="10dp"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical">
-
-                        <ImageView
-                            android:layout_width="18dp"
-                            android:layout_height="18dp"
-                            android:layout_marginEnd="6dp"
-                            android:src="@drawable/ic_clock"
-                            app:tint="#444" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="9:00 AM - 10:30 AM"
-                            android:textColor="#444"
-                            android:textSize="14sp" />
-                    </LinearLayout>
-                </LinearLayout>
-            </androidx.cardview.widget.CardView>
-
-
-            <include layout="@layout/item_course_card"
-                android:id="@+id/card_data_structures"
+            <!-- RecyclerView for Dashboard Sessions -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvDashboardSessions"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:tag="Data Structures|Room 205|11:00 AM - 12:30 PM" />
+                android:nestedScrollingEnabled="false"
+                android:clipToPadding="false" />
 
-            <include layout="@layout/item_course_card"
-                android:id="@+id/card_networks"
+            <!-- Empty State -->
+            <TextView
+                android:id="@+id/tvEmptyState"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:tag="Computer Networks|Lab 3|2:00 PM - 3:30 PM" />
+                android:text="No classes scheduled for today\n\nAdd courses from:\n• Batch Timetable\n• Custom Timetable"
+                android:textSize="16sp"
+                android:textColor="#666"
+                android:textAlignment="center"
+                android:padding="32dp"
+                android:visibility="gone"
+                android:lineSpacingExtra="4dp" />
 
-            <include layout="@layout/item_course_card"
-                android:id="@+id/card_db"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:tag="Database Systems|Room 301|4:00 PM - 5:30 PM" />
-
-            <include layout="@layout/item_course_card"
-                android:id="@+id/card_ml"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:tag="Machine Learning|Room 202|9:00 AM - 10:30 AM" />
-
-            <include layout="@layout/item_course_card"
-                android:id="@+id/card_web"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:tag="Web Development|Lab 1|11:00 AM - 12:30 PM" />
-            <include layout="@layout/item_course_card"
-                android:id="@+id/card_app"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:tag="App Development|Lab 1|11:00 AM - 12:30 PM" />
-            <include layout="@layout/item_course_card"
-                android:id="@+id/card_se"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:tag="Software Development|Lab 1|11:00 AM - 12:30 PM" />
         </LinearLayout>
     </ScrollView>
+
+    <!-- Floating Action Button -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabAddTimetable"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:contentDescription="@string/add_timetable"
+        android:src="@android:drawable/ic_input_add"
+        app:backgroundTint="#0D2A5C"
+        app:tint="@android:color/white"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

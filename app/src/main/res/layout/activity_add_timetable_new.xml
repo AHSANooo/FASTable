@@ -97,12 +97,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="50dp"
                 android:background="@android:drawable/edit_text"
-                android:textColorHint="@color/black"
-                android:textColor="@color/black"
-                android:outlineAmbientShadowColor="@color/black"
-                android:outlineSpotShadowColor="@color/black"
                 app:iconifiedByDefault="false"
-                app:queryHint="Search courses..."/>
+                app:queryHint="Search courses..."
+                />
 
             <TextView
                 android:id="@+id/tvSelectedCount"
@@ -202,11 +199,24 @@
             app:tabIndicatorColor="#0A2E5D"
             app:tabMode="scrollable"/>
 
+        <!-- Save to Dashboard Button -->
+        <Button
+            android:id="@+id/btnSaveToDashboard"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_margin="16dp"
+            android:text="Save to Dashboard"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:backgroundTint="#0A2E5D"/>
+
         <!-- Timetable RecyclerView -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rvTimetable"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:padding="8dp"
             android:clipToPadding="false"/>
     </LinearLayout>
