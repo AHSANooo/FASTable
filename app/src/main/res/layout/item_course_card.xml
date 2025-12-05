@@ -4,12 +4,12 @@
     android:id="@+id/cardView"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="12dp"
-    android:layout_marginStart="16dp"
-    android:layout_marginEnd="16dp"
+    android:layout_marginBottom="16dp"
     app:cardCornerRadius="16dp"
     app:cardElevation="6dp"
-    app:cardUseCompatPadding="true">
+    android:backgroundTint="@color/white"
+    android:background="@color/white"
+    >
 
     <LinearLayout
         android:layout_width="match_parent"
