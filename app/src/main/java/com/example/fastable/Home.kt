@@ -22,6 +22,9 @@ class Home : AppCompatActivity() {
 
     private lateinit var viewModel: HomeViewModel
     private lateinit var adapter: DashboardSessionAdapter
+    private lateinit var allTimetableAdapter: DashboardSessionAdapter
+    private val days = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
+    private var currentSelectedDay = "Monday"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -30,8 +33,12 @@ class Home : AppCompatActivity() {
         // Initialize ViewModel
         viewModel = ViewModelProvider(this)[HomeViewModel::class.java]
 
-        // Initialize RecyclerView
+        // Initialize RecyclerViews
         setupRecyclerView()
+        setupAllTimetableView()
+
+        // Setup tabs
+        setupTabs()
 
         // Observe data
         observeViewModel()
@@ -55,6 +62,83 @@ class Home : AppCompatActivity() {
             val intent = Intent(this, CustomTimetable::class.java)
             startActivity(intent)
         }
+    }
+
+    private fun setupTabs() {
+        val btnTabToday = findViewById<com.google.android.material.button.MaterialButton>(R.id.btnTabToday)
+        val btnTabAllTimetable = findViewById<com.google.android.material.button.MaterialButton>(R.id.btnTabAllTimetable)
+        val scrollViewToday = findViewById<android.widget.ScrollView>(R.id.scrollViewToday)
+        val containerAllTimetable = findViewById<LinearLayout>(R.id.containerAllTimetable)
+
+        btnTabToday.setOnClickListener {
+            // Update tab appearance
+            btnTabToday.backgroundTintList = null
+            btnTabToday.setBackgroundResource(R.drawable.selected_tab_left)
+            btnTabToday.setTextColor(resources.getColor(android.R.color.white, null))
+
+            btnTabAllTimetable.backgroundTintList = null
+            btnTabAllTimetable.setBackgroundResource(R.drawable.unselected_tab_right)
+            btnTabAllTimetable.setTextColor(resources.getColor(R.color.navy, null))
+
+            // Show/hide views
+            scrollViewToday.visibility = android.view.View.VISIBLE
+            containerAllTimetable.visibility = android.view.View.GONE
+        }
+
+        btnTabAllTimetable.setOnClickListener {
+            // Update tab appearance
+            btnTabAllTimetable.backgroundTintList = null
+            btnTabAllTimetable.setBackgroundResource(R.drawable.selected_tab_right)
+            btnTabAllTimetable.setTextColor(resources.getColor(android.R.color.white, null))
+
+            btnTabToday.backgroundTintList = null
+            btnTabToday.setBackgroundResource(R.drawable.unselected_tab_left)
+            btnTabToday.setTextColor(resources.getColor(R.color.navy, null))
+
+            // Show/hide views
+            scrollViewToday.visibility = android.view.View.GONE
+            containerAllTimetable.visibility = android.view.View.VISIBLE
+
+            // Load all timetable for current day
+            viewModel.loadAllSessionsForDay(currentSelectedDay)
+        }
+    }
+
+    private fun setupAllTimetableView() {
+        val rvAllTimetable = findViewById<RecyclerView>(R.id.rvAllTimetable)
+        allTimetableAdapter = DashboardSessionAdapter(
+            onLongClick = { session ->
+                androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setTitle("Remove Session")
+                    .setMessage("Remove ${session.courseName} from dashboard?")
+                    .setPositiveButton("Remove") { _, _ ->
+                        viewModel.deleteDashboardSession(session)
+                    }
+                    .setNegativeButton("Cancel", null)
+                    .show()
+            }
+        )
+        rvAllTimetable.layoutManager = LinearLayoutManager(this)
+        rvAllTimetable.adapter = allTimetableAdapter
+
+        // Setup day tabs
+        val tabLayoutDays = findViewById<com.google.android.material.tabs.TabLayout>(R.id.tabLayoutDays)
+        tabLayoutDays.removeAllTabs()
+        days.forEach { day ->
+            tabLayoutDays.addTab(tabLayoutDays.newTab().setText(day))
+        }
+
+        tabLayoutDays.addOnTabSelectedListener(object : com.google.android.material.tabs.TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: com.google.android.material.tabs.TabLayout.Tab?) {
+                tab?.let {
+                    currentSelectedDay = days[it.position]
+                    viewModel.loadAllSessionsForDay(currentSelectedDay)
+                }
+            }
+
+            override fun onTabUnselected(tab: com.google.android.material.tabs.TabLayout.Tab?) {}
+            override fun onTabReselected(tab: com.google.android.material.tabs.TabLayout.Tab?) {}
+        })
     }
 
     private fun setupRecyclerView() {
@@ -88,6 +172,16 @@ class Home : AppCompatActivity() {
 
             // Show/hide empty state
             findViewById<TextView>(R.id.tvEmptyState).visibility =
+                if (sessions.isEmpty()) android.view.View.VISIBLE
+                else android.view.View.GONE
+        }
+
+        // Observe all day sessions for All Timetable tab
+        viewModel.allDaySessions.observe(this) { sessions ->
+            allTimetableAdapter.submitList(sessions)
+
+            // Show/hide empty state
+            findViewById<TextView>(R.id.tvEmptyStateAll).visibility =
                 if (sessions.isEmpty()) android.view.View.VISIBLE
                 else android.view.View.GONE
         }
