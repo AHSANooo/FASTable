@@ -20,7 +20,7 @@
             android:id="@+id/profile_image"
             android:layout_width="120dp"
             android:layout_height="120dp"
-            android:src="@drawable/img_demo"
+            android:src="@drawable/ic_profile_placeholder"
             android:layout_centerHorizontal="true"
             android:layout_marginTop="80dp"
             app:civ_border_width="2dp"
