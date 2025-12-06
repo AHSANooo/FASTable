@@ -65,15 +65,18 @@ class Home : AppCompatActivity() {
     }
 
     private fun setupTabs() {
-        val btnTabToday = findViewById<Button>(R.id.btnTabToday)
-        val btnTabAllTimetable = findViewById<Button>(R.id.btnTabAllTimetable)
+        val btnTabToday = findViewById<com.google.android.material.button.MaterialButton>(R.id.btnTabToday)
+        val btnTabAllTimetable = findViewById<com.google.android.material.button.MaterialButton>(R.id.btnTabAllTimetable)
         val scrollViewToday = findViewById<android.widget.ScrollView>(R.id.scrollViewToday)
         val containerAllTimetable = findViewById<LinearLayout>(R.id.containerAllTimetable)
 
         btnTabToday.setOnClickListener {
             // Update tab appearance
+            btnTabToday.backgroundTintList = null
             btnTabToday.setBackgroundResource(R.drawable.selected_tab_left)
             btnTabToday.setTextColor(resources.getColor(android.R.color.white, null))
+
+            btnTabAllTimetable.backgroundTintList = null
             btnTabAllTimetable.setBackgroundResource(R.drawable.unselected_tab_right)
             btnTabAllTimetable.setTextColor(resources.getColor(R.color.navy, null))
 
@@ -84,8 +87,11 @@ class Home : AppCompatActivity() {
 
         btnTabAllTimetable.setOnClickListener {
             // Update tab appearance
+            btnTabAllTimetable.backgroundTintList = null
             btnTabAllTimetable.setBackgroundResource(R.drawable.selected_tab_right)
             btnTabAllTimetable.setTextColor(resources.getColor(android.R.color.white, null))
+
+            btnTabToday.backgroundTintList = null
             btnTabToday.setBackgroundResource(R.drawable.unselected_tab_left)
             btnTabToday.setTextColor(resources.getColor(R.color.navy, null))
 

@@ -50,7 +50,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnTabToday"
             android:layout_width="0dp"
             android:layout_height="48dp"
@@ -60,10 +60,13 @@
             android:textSize="16sp"
             android:textStyle="bold"
             android:background="@drawable/selected_tab_left"
-            android:elevation="0dp"
-            android:stateListAnimator="@null" />
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            app:backgroundTint="@null"
+            app:elevation="0dp"
+            app:strokeWidth="0dp" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnTabAllTimetable"
             android:layout_width="0dp"
             android:layout_height="48dp"
@@ -73,8 +76,11 @@
             android:textSize="16sp"
             android:textStyle="bold"
             android:background="@drawable/unselected_tab_right"
-            android:elevation="0dp"
-            android:stateListAnimator="@null" />
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            app:backgroundTint="@null"
+            app:elevation="0dp"
+            app:strokeWidth="0dp" />
     </LinearLayout>
 
     <!-- Container for Today View -->
