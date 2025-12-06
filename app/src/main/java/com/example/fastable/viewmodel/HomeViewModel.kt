@@ -34,6 +34,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val _errorMessage = MutableLiveData<String?>()
     val errorMessage: LiveData<String?> = _errorMessage
 
+    private var currentViewingDay: String? = null
+
     init {
         updateCurrentDay()
         loadDashboardSessions()
@@ -65,6 +67,13 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 Log.d(TAG, "loadDashboardSessions: Received ${sessions.size} total sessions from repository")
                 _dashboardSessions.value = sessions
                 filterTodaysSessions(sessions)
+
+                // Also update all-day sessions if a day is currently being viewed
+                currentViewingDay?.let { day ->
+                    Log.d(TAG, "loadDashboardSessions: Auto-refreshing All Timetable for $day")
+                    loadAllSessionsForDay(day)
+                }
+
                 _isLoading.value = false
             }
         }
@@ -93,6 +102,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun loadAllSessionsForDay(day: String) {
         Log.d(TAG, "loadAllSessionsForDay: Loading sessions for $day")
+        currentViewingDay = day
         val allSessions = _dashboardSessions.value ?: emptyList()
         val filtered = allSessions.filter { it.day.equals(day, ignoreCase = true) }
             .sortedBy { it.getStartTimeMillis() }

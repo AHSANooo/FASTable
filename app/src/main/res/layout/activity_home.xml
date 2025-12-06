@@ -314,9 +314,9 @@
                 android:textAllCaps="false"
                 android:textSize="15sp"
                 android:textStyle="bold"
-                android:textColor="#FFFFFF"
+                android:textColor="#0A2E5D"
                 app:cornerRadius="10dp"
-                app:backgroundTint="#0A2E5D"
+                app:backgroundTint="#FFFFFF"
                 app:strokeColor="#0A2E5D"
                 app:strokeWidth="1dp" />
 
