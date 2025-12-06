@@ -165,7 +165,7 @@ object TimetableExtractor {
             gridData.forEachIndexed { idx, row ->
                 val values = row.values
                 val firstCellValue = SheetsHelper.getFormattedValue(SheetsHelper.getCellAt(values, 0))
-                if (firstCellValue != null && firstCellValue.contains("Lab")) {
+                if (firstCellValue != null && firstCellValue.equals("Lab", ignoreCase = true)) {
                     labTimeRow = row
                     labTimeRowIndex = idx
                     Log.d(TAG, "    Lab row found at index: $idx")
@@ -221,10 +221,44 @@ object TimetableExtractor {
 
                                         val timeSlot = if (hasEmbeddedTime) {
                                             embeddedTime
+                                        } else if (isLab && labTimeRow != null) {
+                                            // For labs, get time from the Lab row itself
+                                            val labTimeValues = labTimeRow.values
+                                            if (labTimeValues != null) {
+                                                val labTimeList = labTimeValues.toList()
+                                                if (labTimeList.isNotEmpty() && labTimeList[0] is ArrayList<*>) {
+                                                    val labTimeCellArray = labTimeList[0] as ArrayList<*>
+
+                                                    // Collect all time values from merged cells
+                                                    val timeValues = mutableListOf<String>()
+                                                    for (i in colIdx until minOf(colIdx + 10, labTimeCellArray.size)) {
+                                                        val timeValue = SheetsHelper.getFormattedValue(labTimeCellArray[i])
+                                                        if (timeValue != null && timeValue.isNotEmpty() &&
+                                                            timeValue.contains(":")) {
+                                                            timeValues.add(timeValue)
+                                                        } else if (timeValues.isNotEmpty()) {
+                                                            // Stop when we hit empty or non-time cell
+                                                            break
+                                                        }
+                                                    }
+
+                                                    // Build time range
+                                                    if (timeValues.size >= 2) {
+                                                        "${timeValues.first()}-${timeValues.last()}"
+                                                    } else if (timeValues.isNotEmpty()) {
+                                                        timeValues.first()
+                                                    } else {
+                                                        "Unknown"
+                                                    }
+                                                } else {
+                                                    SheetsHelper.getFormattedValue(SheetsHelper.getCellAt(labTimeValues, colIdx)) ?: "Unknown"
+                                                }
+                                            } else {
+                                                "Unknown"
+                                            }
                                         } else {
-                                            val timeRowForSlot = if (isLab) labTimeRow else timeRow
-                                            val timeValues = timeRowForSlot?.values
-                                            // Get time from the ArrayList at colIdx
+                                            // For regular classes, use the time row
+                                            val timeValues = timeRow?.values
                                             val timeCell = if (timeValues != null) {
                                                 val timeList = timeValues.toList()
                                                 if (timeList.isNotEmpty() && timeList[0] is ArrayList<*>) {
@@ -314,7 +348,7 @@ object TimetableExtractor {
             gridData.forEachIndexed { idx, row ->
                 val values = row.values
                 val firstCellValue = SheetsHelper.getFormattedValue(SheetsHelper.getCellAt(values, 0))
-                if (firstCellValue != null && firstCellValue.contains("Lab")) {
+                if (firstCellValue != null && firstCellValue.equals("Lab", ignoreCase = true)) {
                     labTimeRow = row
                     labTimeRowIndex = idx
                 }
@@ -345,10 +379,44 @@ object TimetableExtractor {
 
                                     val timeSlot = if (hasEmbeddedTime) {
                                         embeddedTime
+                                    } else if (isLab && labTimeRow != null) {
+                                        // For labs, get time from the Lab row itself
+                                        val labTimeValues = labTimeRow.values
+                                        if (labTimeValues != null) {
+                                            val labTimeList = labTimeValues.toList()
+                                            if (labTimeList.isNotEmpty() && labTimeList[0] is ArrayList<*>) {
+                                                val labTimeCellArray = labTimeList[0] as ArrayList<*>
+
+                                                // Collect all time values from merged cells
+                                                val timeValues = mutableListOf<String>()
+                                                for (i in colIdx until minOf(colIdx + 10, labTimeCellArray.size)) {
+                                                    val timeValue = SheetsHelper.getFormattedValue(labTimeCellArray[i])
+                                                    if (timeValue != null && timeValue.isNotEmpty() &&
+                                                        timeValue.contains(":")) {
+                                                        timeValues.add(timeValue)
+                                                    } else if (timeValues.isNotEmpty()) {
+                                                        // Stop when we hit empty or non-time cell
+                                                        break
+                                                    }
+                                                }
+
+                                                // Build time range
+                                                if (timeValues.size >= 2) {
+                                                    "${timeValues.first()}-${timeValues.last()}"
+                                                } else if (timeValues.isNotEmpty()) {
+                                                    timeValues.first()
+                                                } else {
+                                                    "Unknown"
+                                                }
+                                            } else {
+                                                SheetsHelper.getFormattedValue(SheetsHelper.getCellAt(labTimeValues, colIdx)) ?: "Unknown"
+                                            }
+                                        } else {
+                                            "Unknown"
+                                        }
                                     } else {
-                                        val timeRowForSlot = if (isLab) labTimeRow else timeRow
-                                        val timeValues = timeRowForSlot?.values
-                                        // Get time from ArrayList at colIdx
+                                        // For regular classes, use the time row
+                                        val timeValues = timeRow?.values
                                         val timeCell = if (timeValues != null) {
                                             val timeList = timeValues.toList()
                                             if (timeList.isNotEmpty() && timeList[0] is ArrayList<*>) {
@@ -403,9 +471,14 @@ object TimetableExtractor {
 
                                     val timeSlot = if (hasEmbeddedTime) {
                                         embeddedTime
+                                    } else if (isLab && labTimeRow != null) {
+                                        // For labs, get time from the Lab row itself
+                                        val labTimeValues = labTimeRow.values
+                                        val timeCell = SheetsHelper.getFormattedValue(SheetsHelper.getCellAt(labTimeValues, colIdx))
+                                        timeCell ?: "Unknown"
                                     } else {
-                                        val timeRowForSlot = if (isLab) labTimeRow else timeRow
-                                        val timeValues = timeRowForSlot?.values
+                                        // For regular classes
+                                        val timeValues = timeRow?.values
                                         val timeCell = SheetsHelper.getFormattedValue(SheetsHelper.getCellAt(timeValues, colIdx))
                                         timeCell ?: "Unknown"
                                     }

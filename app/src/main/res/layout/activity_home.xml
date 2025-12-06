@@ -37,15 +37,53 @@
 
     </com.google.android.material.appbar.MaterialToolbar>
 
+    <!-- Tab Layout for Today/All Timetable -->
+    <LinearLayout
+        android:id="@+id/tabContainer"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:background="#FFFFFF"
+        android:elevation="2dp"
+        app:layout_constraintTop_toBottomOf="@id/topAppBar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
+        <Button
+            android:id="@+id/btnTabToday"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:text="Today"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:background="@drawable/selected_tab_left"
+            android:elevation="0dp"
+            android:stateListAnimator="@null" />
 
-    <!-- Scrollable content -->
+        <Button
+            android:id="@+id/btnTabAllTimetable"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:text="All Timetable"
+            android:textColor="#0A2E5D"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:background="@drawable/unselected_tab_right"
+            android:elevation="0dp"
+            android:stateListAnimator="@null" />
+    </LinearLayout>
+
+    <!-- Container for Today View -->
     <ScrollView
-        android:id="@+id/scrollView"
+        android:id="@+id/scrollViewToday"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:padding="16dp"
-        app:layout_constraintTop_toBottomOf="@id/topAppBar"
+        app:layout_constraintTop_toBottomOf="@id/tabContainer"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         android:scrollbars="none"
@@ -69,7 +107,7 @@
                 android:layout_marginBottom="16dp"
                 android:fontFamily="sans-serif-medium" />
 
-            <!-- RecyclerView for Dashboard Sessions -->
+            <!-- RecyclerView for Today's Sessions -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvDashboardSessions"
                 android:layout_width="match_parent"
@@ -92,6 +130,53 @@
 
         </LinearLayout>
     </ScrollView>
+
+    <!-- Container for All Timetable View -->
+    <LinearLayout
+        android:id="@+id/containerAllTimetable"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:orientation="vertical"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/tabContainer"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- Day Tabs for All Timetable -->
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/tabLayoutDays"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#FFFFFF"
+            app:tabTextColor="#666"
+            app:tabSelectedTextColor="#0A2E5D"
+            app:tabIndicatorColor="#0A2E5D"
+            app:tabMode="scrollable" />
+
+        <!-- RecyclerView for All Timetable Sessions -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvAllTimetable"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:padding="8dp"
+            android:clipToPadding="false" />
+
+        <!-- Empty State for All Timetable -->
+        <TextView
+            android:id="@+id/tvEmptyStateAll"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:text="No classes scheduled\n\nAdd courses from:\n• Batch Timetable\n• Custom Timetable"
+            android:textSize="16sp"
+            android:textColor="#666"
+            android:textAlignment="center"
+            android:padding="32dp"
+            android:gravity="center"
+            android:visibility="gone"
+            android:lineSpacingExtra="4dp" />
+    </LinearLayout>
 
     <!-- Floating Action Button -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton

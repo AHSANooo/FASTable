@@ -25,6 +25,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val _todaysSessions = MutableLiveData<List<DashboardSession>>()
     val todaysSessions: LiveData<List<DashboardSession>> = _todaysSessions
 
+    private val _allDaySessions = MutableLiveData<List<DashboardSession>>()
+    val allDaySessions: LiveData<List<DashboardSession>> = _allDaySessions
+
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> = _isLoading
 
@@ -86,6 +89,16 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 _errorMessage.value = "Failed to remove session: ${e.message}"
             }
         }
+    }
+
+    fun loadAllSessionsForDay(day: String) {
+        Log.d(TAG, "loadAllSessionsForDay: Loading sessions for $day")
+        val allSessions = _dashboardSessions.value ?: emptyList()
+        val filtered = allSessions.filter { it.day.equals(day, ignoreCase = true) }
+            .sortedBy { it.getStartTimeMillis() }
+
+        Log.d(TAG, "loadAllSessionsForDay: Found ${filtered.size} sessions for $day")
+        _allDaySessions.value = filtered
     }
 
     fun refreshData() {
