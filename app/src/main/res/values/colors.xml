@@ -5,4 +5,5 @@
     <color name="navy">#0F3460</color>
     <color name="lab_color">#FF6B6B</color>
     <color name="class_color">#4ECDC4</color>
+    <color name="notification_unread">#E8F4FD</color>
 </resources>

@@ -1,9 +1,12 @@
 package com.example.fastable
 
 import android.content.Intent
+import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.provider.MediaStore
 import android.util.Log
 import android.util.Patterns
 import android.widget.Button
@@ -16,14 +19,20 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.DatabaseReference
 import com.example.fastable.data.local.AppDatabase
 import com.example.fastable.data.models.UserProfile
+import de.hdodenhof.circleimageview.CircleImageView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.io.File
+import java.io.FileOutputStream
 
 class SignUp : AppCompatActivity() {
 
     private lateinit var auth: FirebaseAuth
     private lateinit var database: DatabaseReference
+    private lateinit var profileImageView: CircleImageView
+    private var selectedImageUri: Uri? = null
+    private val PICK_IMAGE_REQUEST = 1
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,6 +41,7 @@ class SignUp : AppCompatActivity() {
         auth = FirebaseAuth.getInstance()
         database = FirebaseDatabase.getInstance().reference
 
+        profileImageView = findViewById(R.id.profile_image)
         val nameEt = findViewById<EditText>(R.id.name)
         val emailEt = findViewById<EditText>(R.id.email)
         val batchEt = findViewById<EditText>(R.id.batch)
@@ -40,6 +50,11 @@ class SignUp : AppCompatActivity() {
         val passwordEt = findViewById<EditText>(R.id.password)
         val confirmPasswordEt = findViewById<EditText>(R.id.confirm_password)
         val signUpBtn = findViewById<Button>(R.id.btn_signup)
+
+        // Set click listener for profile image
+        profileImageView.setOnClickListener {
+            openImagePicker()
+        }
 
         signUpBtn.setOnClickListener {
             val name = nameEt.text.toString().trim()
@@ -119,6 +134,9 @@ class SignUp : AppCompatActivity() {
                         // Save user data to Realtime Database and offline DB
                         val user = auth.currentUser
                         if (user != null) {
+                            // Save profile image if selected
+                            val profileImagePath = saveProfileImageLocally(user.uid)
+
                             val userData = mapOf(
                                 "uid" to user.uid,
                                 "name" to name,
@@ -126,7 +144,7 @@ class SignUp : AppCompatActivity() {
                                 "batch" to batch,
                                 "degree" to degree,
                                 "section" to section,
-                                "profileImageUrl" to "" // Empty initially
+                                "profileImageUrl" to profileImagePath
                             )
 
                             // Save to Firebase
@@ -142,7 +160,7 @@ class SignUp : AppCompatActivity() {
                                         batch = batch,
                                         degree = degree,
                                         section = section,
-                                        profileImageUrl = ""
+                                        profileImageUrl = profileImagePath
                                     )
 
                                     CoroutineScope(Dispatchers.IO).launch {
@@ -224,5 +242,45 @@ class SignUp : AppCompatActivity() {
                     ).show()
                 }
             }
+    }
+
+    private fun openImagePicker() {
+        val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+        startActivityForResult(intent, PICK_IMAGE_REQUEST)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == PICK_IMAGE_REQUEST && resultCode == RESULT_OK && data != null) {
+            selectedImageUri = data.data
+            if (selectedImageUri != null) {
+                profileImageView.setImageURI(selectedImageUri)
+            }
+        }
+    }
+
+    private fun saveProfileImageLocally(uid: String): String {
+        if (selectedImageUri == null) return ""
+
+        return try {
+            val bitmap = MediaStore.Images.Media.getBitmap(contentResolver, selectedImageUri)
+
+            val directory = File(filesDir, "profile_images")
+            if (!directory.exists()) {
+                directory.mkdirs()
+            }
+
+            val filename = "${uid}.jpg"
+            val file = File(directory, filename)
+
+            FileOutputStream(file).use { out ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+            }
+
+            file.absolutePath
+        } catch (e: Exception) {
+            Log.e("SignUp", "Error saving profile image: ${e.message}")
+            ""
+        }
     }
 }

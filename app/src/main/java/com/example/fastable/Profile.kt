@@ -107,12 +107,12 @@ class Profile : AppCompatActivity() {
             val localFile = File(profile.profileImageUrl)
             if (localFile.exists()) {
                 Glide.with(this@Profile).load(localFile)
-                    .placeholder(R.drawable.img_demo).into(profileImage)
+                    .placeholder(R.drawable.ic_profile_placeholder).into(profileImage)
             } else {
-                profileImage.setImageResource(R.drawable.img_demo)
+                profileImage.setImageResource(R.drawable.ic_profile_placeholder)
             }
         } else {
-            profileImage.setImageResource(R.drawable.img_demo)
+            profileImage.setImageResource(R.drawable.ic_profile_placeholder)
         }
     }
 
@@ -279,7 +279,7 @@ class Profile : AppCompatActivity() {
 
                 withContext(Dispatchers.Main) {
                     Toast.makeText(this@Profile, "Profile image updated", Toast.LENGTH_SHORT).show()
-                    Glide.with(this@Profile).load(file).placeholder(R.drawable.img_demo).into(profileImage)
+                    Glide.with(this@Profile).load(file).placeholder(R.drawable.ic_profile_placeholder).into(profileImage)
                 }
             }
 

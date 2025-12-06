@@ -9,10 +9,11 @@ import com.example.fastable.data.models.TimetableSession
 import com.example.fastable.data.models.DashboardSession
 import com.example.fastable.data.models.DefaultBatch
 import com.example.fastable.data.models.UserProfile
+import com.example.fastable.data.models.NotificationItem
 
 @Database(
-    entities = [Course::class, TimetableSession::class, DashboardSession::class, DefaultBatch::class, UserProfile::class],
-    version = 4,
+    entities = [Course::class, TimetableSession::class, DashboardSession::class, DefaultBatch::class, UserProfile::class, NotificationItem::class],
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -21,6 +22,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun dashboardDao(): DashboardDao
     abstract fun defaultBatchDao(): DefaultBatchDao
     abstract fun userProfileDao(): UserProfileDao
+    abstract fun notificationDao(): NotificationDao
 
     companion object {
         @Volatile
