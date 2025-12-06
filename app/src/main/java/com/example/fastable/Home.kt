@@ -320,12 +320,12 @@ class Home : AppCompatActivity() {
             val localFile = File(profile.profileImageUrl)
             if (localFile.exists()) {
                 Glide.with(this@Home).load(localFile)
-                    .placeholder(R.drawable.img_demo).into(profileImage)
+                    .placeholder(R.drawable.ic_profile_placeholder).into(profileImage)
             } else {
-                profileImage.setImageResource(R.drawable.img_demo)
+                profileImage.setImageResource(R.drawable.ic_profile_placeholder)
             }
         } else {
-            profileImage.setImageResource(R.drawable.img_demo)
+            profileImage.setImageResource(R.drawable.ic_profile_placeholder)
         }
     }
 

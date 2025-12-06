@@ -8,6 +8,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.example.fastable.data.models.DashboardSession
 import com.example.fastable.data.repository.TimetableRepository
+import com.example.fastable.utils.NotificationScheduler
 import kotlinx.coroutines.launch
 import java.util.*
 
@@ -15,6 +16,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val TAG = "HomeViewModel"
     private val repository = TimetableRepository(application)
+    private val context = application.applicationContext
 
     private val _dashboardSessions = MutableLiveData<List<DashboardSession>>()
     val dashboardSessions: LiveData<List<DashboardSession>> = _dashboardSessions
@@ -68,6 +70,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 _dashboardSessions.value = sessions
                 filterTodaysSessions(sessions)
 
+                // Schedule notifications for all sessions
+                NotificationScheduler.scheduleNotificationsForSessions(context, sessions)
+                Log.d(TAG, "loadDashboardSessions: Notifications scheduled for ${sessions.size} sessions")
+
                 // Also update all-day sessions if a day is currently being viewed
                 currentViewingDay?.let { day ->
                     Log.d(TAG, "loadDashboardSessions: Auto-refreshing All Timetable for $day")
@@ -93,6 +99,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 repository.deleteDashboardSession(session)
+                // Cancel notifications for this session
+                NotificationScheduler.cancelNotificationForSession(context, session.id)
                 _errorMessage.value = "Session removed from dashboard"
             } catch (e: Exception) {
                 _errorMessage.value = "Failed to remove session: ${e.message}"

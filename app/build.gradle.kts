@@ -107,6 +107,12 @@ dependencies {
     // Firebase Realtime Database for user data (Free tier: unlimited, auto-created)
     implementation("com.google.firebase:firebase-database-ktx:20.3.0")
 
+    // Firebase Cloud Messaging for push notifications
+    implementation("com.google.firebase:firebase-messaging-ktx:23.4.0")
+
+    // WorkManager for scheduling notifications
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+
     //glide for image loading
     implementation("com.github.bumptech.glide:glide:4.15.1")
     kapt("com.github.bumptech.glide:compiler:4.15.1")
