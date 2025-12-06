@@ -259,7 +259,7 @@
                     android:id="@+id/profileImage"
                     android:layout_width="56dp"
                     android:layout_height="56dp"
-                    android:src="@drawable/img_demo"
+                    android:src="@drawable/ic_profile_placeholder"
                     app:civ_border_width="2dp"
                     app:civ_border_color="#E0E0E0"
                     android:contentDescription="@string/profile_image" />

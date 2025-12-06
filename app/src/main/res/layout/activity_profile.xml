@@ -29,7 +29,7 @@
         android:id="@+id/profileImage"
         android:layout_width="96dp"
         android:layout_height="96dp"
-        android:src="@drawable/img_demo"
+        android:src="@drawable/ic_profile_placeholder"
         android:layout_marginTop="24dp"
         app:civ_border_color="#0A2E5D"
         app:civ_border_width="2dp"
@@ -84,7 +84,7 @@
                     android:id="@+id/value_name"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Ali Ahmad Riaz"
+                    android:text="Full Name"
                     android:textSize="14sp"
                     android:textColor="#000000"/>
             </LinearLayout>
@@ -125,7 +125,7 @@
                     android:id="@+id/value_email"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="ali.ahmad@example.com"
+                    android:text="email@example.com"
                     android:textSize="14sp"
                     android:textColor="#000000"/>
             </LinearLayout>

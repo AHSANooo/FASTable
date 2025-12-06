@@ -15,20 +15,38 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.ValueEventListener
 import com.example.fastable.adapters.DashboardSessionAdapter
 import com.example.fastable.viewmodel.HomeViewModel
+import com.bumptech.glide.Glide
+import de.hdodenhof.circleimageview.CircleImageView
+import java.io.File
+import com.example.fastable.data.local.AppDatabase
+import com.example.fastable.data.models.UserProfile
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class Home : AppCompatActivity() {
 
     private lateinit var viewModel: HomeViewModel
     private lateinit var adapter: DashboardSessionAdapter
     private lateinit var allTimetableAdapter: DashboardSessionAdapter
+    private lateinit var database: DatabaseReference
     private val days = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
     private var currentSelectedDay = "Monday"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
+
+        // Initialize Realtime Database
+        database = FirebaseDatabase.getInstance().reference
 
         // Initialize ViewModel
         viewModel = ViewModelProvider(this)[HomeViewModel::class.java]
@@ -48,12 +66,18 @@ class Home : AppCompatActivity() {
 
         setupDrawer(drawerLayout)
         setupFab()
+
+
+        // Load user profile
+        loadUserProfile()
     }
 
     override fun onResume() {
         super.onResume()
         // Reload dashboard sessions when activity comes to foreground
         viewModel.loadDashboardSessions()
+        // Reload user profile to get latest data
+        loadUserProfile()
     }
 
     private fun setupFab() {
@@ -262,5 +286,88 @@ class Home : AppCompatActivity() {
             startActivity(intent)
             drawerLayout.closeDrawer(GravityCompat.START)
         }
+    }
+
+
+    private fun loadUserProfile() {
+        val currentUser = FirebaseAuth.getInstance().currentUser
+        if (currentUser != null) {
+            // Load from offline database first (instant)
+            CoroutineScope(Dispatchers.IO).launch {
+                val offlineProfile = AppDatabase.getDatabase(this@Home).userProfileDao()
+                    .getUserProfile(currentUser.uid)
+
+                withContext(Dispatchers.Main) {
+                    if (offlineProfile != null) {
+                        // Display offline data immediately
+                        displayUserProfile(offlineProfile)
+                        android.util.Log.d("Home", "Loaded profile from offline DB")
+                    }
+                }
+
+                // Then sync with Firebase in background (for updates)
+                syncProfileFromFirebase(currentUser.uid)
+            }
+        }
+    }
+
+    private fun displayUserProfile(profile: UserProfile) {
+        findViewById<TextView>(R.id.tvName).text = profile.name
+        findViewById<TextView>(R.id.tvEmail).text = profile.email
+
+        val profileImage = findViewById<CircleImageView>(R.id.profileImage)
+        if (profile.profileImageUrl.isNotEmpty()) {
+            val localFile = File(profile.profileImageUrl)
+            if (localFile.exists()) {
+                Glide.with(this@Home).load(localFile)
+                    .placeholder(R.drawable.img_demo).into(profileImage)
+            } else {
+                profileImage.setImageResource(R.drawable.img_demo)
+            }
+        } else {
+            profileImage.setImageResource(R.drawable.img_demo)
+        }
+    }
+
+    private fun syncProfileFromFirebase(uid: String) {
+        database.child("users").child(uid)
+            .addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    if (snapshot.exists()) {
+                        val name = snapshot.child("name").getValue(String::class.java) ?: ""
+                        val email = snapshot.child("email").getValue(String::class.java) ?: ""
+                        val batch = snapshot.child("batch").getValue(String::class.java) ?: ""
+                        val degree = snapshot.child("degree").getValue(String::class.java) ?: ""
+                        val section = snapshot.child("section").getValue(String::class.java) ?: ""
+                        val profileImageUrl = snapshot.child("profileImageUrl").getValue(String::class.java) ?: ""
+
+                        // Save to offline database
+                        val profile = UserProfile(
+                            uid = uid,
+                            name = name,
+                            email = email,
+                            batch = batch,
+                            degree = degree,
+                            section = section,
+                            profileImageUrl = profileImageUrl
+                        )
+
+                        CoroutineScope(Dispatchers.IO).launch {
+                            AppDatabase.getDatabase(this@Home).userProfileDao()
+                                .insertUserProfile(profile)
+
+                            withContext(Dispatchers.Main) {
+                                // Update UI with synced data
+                                displayUserProfile(profile)
+                                android.util.Log.d("Home", "Synced profile from Firebase")
+                            }
+                        }
+                    }
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    android.util.Log.e("Home", "Error syncing profile: ${error.message}")
+                }
+            })
     }
 }

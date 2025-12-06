@@ -12,16 +12,25 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.firebase.auth.ActionCodeSettings
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.DatabaseReference
+import com.example.fastable.data.local.AppDatabase
+import com.example.fastable.data.models.UserProfile
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class SignUp : AppCompatActivity() {
 
     private lateinit var auth: FirebaseAuth
+    private lateinit var database: DatabaseReference
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_sign_up)
 
         auth = FirebaseAuth.getInstance()
+        database = FirebaseDatabase.getInstance().reference
 
         val nameEt = findViewById<EditText>(R.id.name)
         val emailEt = findViewById<EditText>(R.id.email)
@@ -107,10 +116,50 @@ class SignUp : AppCompatActivity() {
                     if (task.isSuccessful) {
                         Log.d("SignUp", "User account created successfully")
 
-                        // Send verification email
+                        // Save user data to Realtime Database and offline DB
                         val user = auth.currentUser
                         if (user != null) {
-                            sendVerificationEmail(email)
+                            val userData = mapOf(
+                                "uid" to user.uid,
+                                "name" to name,
+                                "email" to email,
+                                "batch" to batch,
+                                "degree" to degree,
+                                "section" to section,
+                                "profileImageUrl" to "" // Empty initially
+                            )
+
+                            // Save to Firebase
+                            database.child("users").child(user.uid).setValue(userData)
+                                .addOnSuccessListener {
+                                    Log.d("SignUp", "User data saved to Realtime Database")
+
+                                    // Also save to offline database
+                                    val userProfile = UserProfile(
+                                        uid = user.uid,
+                                        name = name,
+                                        email = email,
+                                        batch = batch,
+                                        degree = degree,
+                                        section = section,
+                                        profileImageUrl = ""
+                                    )
+
+                                    CoroutineScope(Dispatchers.IO).launch {
+                                        try {
+                                            AppDatabase.getDatabase(this@SignUp).userProfileDao()
+                                                .insertUserProfile(userProfile)
+                                            Log.d("SignUp", "User data saved to offline database")
+                                        } catch (e: Exception) {
+                                            Log.e("SignUp", "Failed to save offline: ${e.message}")
+                                        }
+                                    }
+
+                                    sendVerificationEmail(email)
+                                }
+                                .addOnFailureListener { e ->
+                                    Log.e("SignUp", "Failed to save user data: ${e.message}")
+                                }
                         }
 
                         Toast.makeText(
