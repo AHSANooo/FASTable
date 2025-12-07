@@ -22,15 +22,19 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
 import com.example.fastable.adapters.DashboardSessionAdapter
 import com.example.fastable.viewmodel.HomeViewModel
-import com.bumptech.glide.Glide
+import com.example.fastable.api.ProfileApiService
 import de.hdodenhof.circleimageview.CircleImageView
-import java.io.File
 import com.example.fastable.data.local.AppDatabase
 import com.example.fastable.data.models.UserProfile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileOutputStream
+import android.util.Base64
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 
 class Home : AppCompatActivity() {
 
@@ -319,8 +323,12 @@ class Home : AppCompatActivity() {
         if (profile.profileImageUrl.isNotEmpty()) {
             val localFile = File(profile.profileImageUrl)
             if (localFile.exists()) {
-                Glide.with(this@Home).load(localFile)
-                    .placeholder(R.drawable.ic_profile_placeholder).into(profileImage)
+                // Use Picasso for loading local files
+                com.squareup.picasso.Picasso.get()
+                    .load(localFile)
+                    .placeholder(R.drawable.ic_profile_placeholder)
+                    .error(R.drawable.ic_profile_placeholder)
+                    .into(profileImage)
             } else {
                 profileImage.setImageResource(R.drawable.ic_profile_placeholder)
             }
@@ -339,20 +347,28 @@ class Home : AppCompatActivity() {
                         val batch = snapshot.child("batch").getValue(String::class.java) ?: ""
                         val degree = snapshot.child("degree").getValue(String::class.java) ?: ""
                         val section = snapshot.child("section").getValue(String::class.java) ?: ""
-                        val profileImageUrl = snapshot.child("profileImageUrl").getValue(String::class.java) ?: ""
-
-                        // Save to offline database
-                        val profile = UserProfile(
-                            uid = uid,
-                            name = name,
-                            email = email,
-                            batch = batch,
-                            degree = degree,
-                            section = section,
-                            profileImageUrl = profileImageUrl
-                        )
+                        // This will be Base64 string from Firebase
+                        val profileImageBase64 = snapshot.child("profileImageUrl").getValue(String::class.java) ?: ""
 
                         CoroutineScope(Dispatchers.IO).launch {
+                            // Convert Base64 to local file path
+                            val localImagePath = if (profileImageBase64.isNotEmpty()) {
+                                saveBase64ImageLocally(uid, profileImageBase64)
+                            } else {
+                                ""
+                            }
+
+                            // Save to offline database
+                            val profile = UserProfile(
+                                uid = uid,
+                                name = name,
+                                email = email,
+                                batch = batch,
+                                degree = degree,
+                                section = section,
+                                profileImageUrl = localImagePath  // Store local path
+                            )
+
                             AppDatabase.getDatabase(this@Home).userProfileDao()
                                 .insertUserProfile(profile)
 
@@ -369,5 +385,48 @@ class Home : AppCompatActivity() {
                     android.util.Log.e("Home", "Error syncing profile: ${error.message}")
                 }
             })
+    }
+
+    /**
+     * Convert Base64 string to bitmap and save locally
+     * Returns the local file path
+     */
+    private fun saveBase64ImageLocally(uid: String, base64String: String): String {
+        return try {
+            // Decode Base64 to bitmap
+            val bytes = Base64.decode(base64String, Base64.DEFAULT)
+            val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+
+            if (bitmap == null) {
+                android.util.Log.e("Home", "Failed to decode Base64 image")
+                return ""
+            }
+
+            // Create directory for profile images
+            val directory = File(filesDir, "profile_images")
+            if (!directory.exists()) {
+                directory.mkdirs()
+            }
+
+            // Save to file
+            val filename = "$uid.jpg"
+            val file = File(directory, filename)
+
+            FileOutputStream(file).use { out ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+            }
+
+            // Verify file was saved
+            if (file.exists() && file.length() > 0) {
+                android.util.Log.d("Home", "Profile image saved locally: ${file.absolutePath}")
+                file.absolutePath
+            } else {
+                android.util.Log.e("Home", "Failed to save profile image")
+                ""
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("Home", "Error saving Base64 image: ${e.message}", e)
+            ""
+        }
     }
 }

@@ -1,28 +1,23 @@
 package com.example.fastable
 
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.provider.MediaStore
 import android.util.Log
 import android.util.Patterns
 import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
-import com.google.firebase.auth.ActionCodeSettings
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.DatabaseReference
 import com.example.fastable.data.local.AppDatabase
 import com.example.fastable.data.models.UserProfile
+import com.example.fastable.api.ProfileApiService
 import de.hdodenhof.circleimageview.CircleImageView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -36,8 +31,8 @@ class SignUp : AppCompatActivity() {
     private lateinit var database: DatabaseReference
     private lateinit var profileImageView: CircleImageView
     private var selectedImageUri: Uri? = null
+    private var selectedBitmap: Bitmap? = null
     private val PICK_IMAGE_REQUEST = 1
-    private val PERMISSION_REQUEST_CODE = 100
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -114,6 +109,18 @@ class SignUp : AppCompatActivity() {
 
             if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
                 emailEt.error = "Enter valid email"
+                emailEt.requestFocus()
+                return@setOnClickListener
+            }
+
+            // Validate FAST NUCES email domain
+            if (!email.endsWith("@isb.nu.edu.pk") && !email.endsWith("@nu.edu.pk")) {
+                Toast.makeText(
+                    this,
+                    "Please use your FAST NUCES email (@isb.nu.edu.pk or @nu.edu.pk)",
+                    Toast.LENGTH_LONG
+                ).show()
+                emailEt.requestFocus()
                 return@setOnClickListener
             }
 
@@ -139,50 +146,86 @@ class SignUp : AppCompatActivity() {
                         // Save user data to Realtime Database and offline DB
                         val user = auth.currentUser
                         if (user != null) {
-                            // Save profile image if selected
-                            val profileImagePath = saveProfileImageLocally(user.uid)
+                            // Process everything in background
+                            CoroutineScope(Dispatchers.IO).launch {
+                                // Convert profile image to Base64 if selected (like a23i project)
+                                val profileImageBase64 = if (selectedBitmap != null) {
+                                    com.example.fastable.utils.ImageUtils.bitmapToBase64(selectedBitmap!!, 60)
+                                } else {
+                                    ""
+                                }
 
-                            val userData = mapOf(
-                                "uid" to user.uid,
-                                "name" to name,
-                                "email" to email,
-                                "batch" to batch,
-                                "degree" to degree,
-                                "section" to section,
-                                "profileImageUrl" to profileImagePath
-                            )
+                                // Save profile image locally if selected
+                                val profileImagePath = if (selectedBitmap != null) {
+                                    saveProfileImageLocally(user.uid)
+                                } else {
+                                    ""
+                                }
 
-                            // Save to Firebase
-                            database.child("users").child(user.uid).setValue(userData)
-                                .addOnSuccessListener {
-                                    Log.d("SignUp", "User data saved to Realtime Database")
+                                val userData = mapOf(
+                                    "uid" to user.uid,
+                                    "name" to name,
+                                    "email" to email,
+                                    "batch" to batch,
+                                    "degree" to degree,
+                                    "section" to section,
+                                    "profileImageUrl" to profileImageBase64  // Store Base64 in Firebase
+                                )
 
-                                    // Also save to offline database
-                                    val userProfile = UserProfile(
-                                        uid = user.uid,
-                                        name = name,
-                                        email = email,
-                                        batch = batch,
-                                        degree = degree,
-                                        section = section,
-                                        profileImageUrl = profileImagePath
-                                    )
+                                // Save to Firebase
+                                database.child("users").child(user.uid).setValue(userData)
+                                    .addOnSuccessListener {
+                                        Log.d("SignUp", "User data saved to Realtime Database")
 
-                                    CoroutineScope(Dispatchers.IO).launch {
-                                        try {
-                                            AppDatabase.getDatabase(this@SignUp).userProfileDao()
-                                                .insertUserProfile(userProfile)
-                                            Log.d("SignUp", "User data saved to offline database")
-                                        } catch (e: Exception) {
-                                            Log.e("SignUp", "Failed to save offline: ${e.message}")
+                                        // Also save to offline database (with local file path)
+                                        val userProfile = UserProfile(
+                                            uid = user.uid,
+                                            name = name,
+                                            email = email,
+                                            batch = batch,
+                                            degree = degree,
+                                            section = section,
+                                            profileImageUrl = profileImagePath  // Store local path in offline DB
+                                        )
+
+                                        CoroutineScope(Dispatchers.IO).launch {
+                                            try {
+                                                // Save to offline database
+                                                AppDatabase.getDatabase(this@SignUp).userProfileDao()
+                                                    .insertUserProfile(userProfile)
+                                                Log.d("SignUp", "User data saved to offline database")
+
+                                                // Upload profile picture to MySQL in background (optional backup)
+                                                if (selectedBitmap != null) {
+                                                    try {
+                                                        val uploadResponse = ProfileApiService.uploadProfilePicture(
+                                                            userId = user.uid,
+                                                            bitmap = selectedBitmap!!
+                                                        )
+
+                                                        if (uploadResponse.success) {
+                                                            Log.d("SignUp", "Profile picture uploaded to MySQL: ${uploadResponse.message}")
+                                                            Log.d("SignUp", "Image URL: ${uploadResponse.data}")
+                                                        } else {
+                                                            Log.e("SignUp", "Profile picture upload to MySQL failed: ${uploadResponse.message}")
+                                                        }
+                                                    } catch (e: Exception) {
+                                                        Log.e("SignUp", "Error uploading profile picture to MySQL: ${e.message}", e)
+                                                    }
+                                                } else {
+                                                    Log.d("SignUp", "No profile picture selected. Skipping MySQL upload.")
+                                                }
+                                            } catch (e: Exception) {
+                                                Log.e("SignUp", "Failed to save offline: ${e.message}")
+                                            }
                                         }
-                                    }
 
-                                    sendVerificationEmail(email)
-                                }
-                                .addOnFailureListener { e ->
-                                    Log.e("SignUp", "Failed to save user data: ${e.message}")
-                                }
+                                        sendVerificationEmail(email)
+                                    }
+                                    .addOnFailureListener { e ->
+                                        Log.e("SignUp", "Failed to save user data: ${e.message}")
+                                    }
+                            }
                         }
 
                         Toast.makeText(
@@ -217,18 +260,8 @@ class SignUp : AppCompatActivity() {
             return
         }
 
-        // Create ActionCodeSettings for proper email link
-        val actionCodeSettings = ActionCodeSettings.newBuilder()
-            .setUrl("https://fastable.page.link/verify?email=$email")
-            .setHandleCodeInApp(false)
-            .setAndroidPackageName(
-                "com.example.fastable",
-                true,  // installIfNotAvailable
-                null   // minimumVersion
-            )
-            .build()
-
-        user.sendEmailVerification(actionCodeSettings)
+        // Send simple verification email (no ActionCodeSettings needed)
+        user.sendEmailVerification()
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
                     Log.d("SignUp", "Verification email sent successfully to $email")
@@ -250,75 +283,43 @@ class SignUp : AppCompatActivity() {
     }
 
     private fun openImagePicker() {
-        if (checkPermission()) {
-            val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
-            startActivityForResult(intent, PICK_IMAGE_REQUEST)
-        } else {
-            requestPermission()
+        // Use ACTION_GET_CONTENT with read permission flag
+        // This works better with Google Photos and other content providers
+        val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+            type = "image/*"
+            addCategory(Intent.CATEGORY_OPENABLE)
+            flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
         }
+        startActivityForResult(intent, PICK_IMAGE_REQUEST)
     }
 
-    private fun checkPermission(): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            ContextCompat.checkSelfPermission(
-                this,
-                android.Manifest.permission.READ_MEDIA_IMAGES
-            ) == PackageManager.PERMISSION_GRANTED
-        } else {
-            ContextCompat.checkSelfPermission(
-                this,
-                android.Manifest.permission.READ_EXTERNAL_STORAGE
-            ) == PackageManager.PERMISSION_GRANTED
-        }
-    }
-
-    private fun requestPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(android.Manifest.permission.READ_MEDIA_IMAGES),
-                PERMISSION_REQUEST_CODE
-            )
-        } else {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE),
-                PERMISSION_REQUEST_CODE
-            )
-        }
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == PERMISSION_REQUEST_CODE) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                openImagePicker()
-            } else {
-                Toast.makeText(this, "Permission denied. Cannot access gallery.", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == PICK_IMAGE_REQUEST && resultCode == RESULT_OK && data != null) {
             selectedImageUri = data.data
             if (selectedImageUri != null) {
+                // Display selected image
                 profileImageView.setImageURI(selectedImageUri)
+
+                // Convert the selected image to bitmap and store it
+                // Use contentResolver to avoid permission issues
+                try {
+                    val inputStream = contentResolver.openInputStream(selectedImageUri!!)
+                    selectedBitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
+                    inputStream?.close()
+                } catch (e: Exception) {
+                    Log.e("SignUp", "Error loading image: ${e.message}", e)
+                    Toast.makeText(this, "Error loading image", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
 
     private fun saveProfileImageLocally(uid: String): String {
-        if (selectedImageUri == null) return ""
+        if (selectedBitmap == null) return ""
 
         return try {
-            val bitmap = MediaStore.Images.Media.getBitmap(contentResolver, selectedImageUri)
-
             val directory = File(filesDir, "profile_images")
             if (!directory.exists()) {
                 directory.mkdirs()
@@ -328,12 +329,13 @@ class SignUp : AppCompatActivity() {
             val file = File(directory, filename)
 
             FileOutputStream(file).use { out ->
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+                // Use 60% quality to match a23i project
+                selectedBitmap!!.compress(Bitmap.CompressFormat.JPEG, 60, out)
             }
 
             file.absolutePath
         } catch (e: Exception) {
-            Log.e("SignUp", "Error saving profile image: ${e.message}")
+            Log.e("SignUp", "Error saving profile image: ${e.message}", e)
             ""
         }
     }

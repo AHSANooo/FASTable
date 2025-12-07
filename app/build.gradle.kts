@@ -117,4 +117,7 @@ dependencies {
     implementation("com.github.bumptech.glide:glide:4.15.1")
     kapt("com.github.bumptech.glide:compiler:4.15.1")
 
+    // Picasso for better image loading/caching
+    implementation("com.squareup.picasso:picasso:2.8")
+
 }
