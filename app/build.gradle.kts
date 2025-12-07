@@ -11,12 +11,13 @@ android {
 
     defaultConfig {
         applicationId = "com.example.fastable"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        multiDexEnabled = true
     }
 
     buildTypes {
@@ -31,9 +32,16 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+        isCoreLibraryDesugaringEnabled = true
     }
     kotlinOptions {
         jvmTarget = "11"
+    }
+
+    sourceSets {
+        getByName("main") {
+            assets.srcDirs("src/main/assets", "src/assets")
+        }
     }
 
     packaging {
@@ -47,7 +55,13 @@ android {
                 "META-INF/NOTICE.txt",
                 "META-INF/notice.txt",
                 "META-INF/ASL2.0",
-                "META-INF/*.kotlin_module"
+                "META-INF/*.kotlin_module",
+                "META-INF/INDEX.LIST",
+                "META-INF/io.netty.versions.properties",
+                "META-INF/MANIFEST.MF"
+            )
+            pickFirsts += setOf(
+                "mozilla/public-suffix-list.txt"
             )
         }
     }
@@ -119,5 +133,19 @@ dependencies {
 
     // Picasso for better image loading/caching
     implementation("com.squareup.picasso:picasso:2.8")
+
+    // Apache POI for Excel reading (optimized for Android)
+    implementation("org.apache.poi:poi:5.2.3")
+    implementation("org.apache.poi:poi-ooxml:5.2.3") {
+        exclude(group = "org.apache.logging.log4j")
+        exclude(group = "xml-apis")
+        exclude(group = "stax")
+    }
+
+    // MultiDex support
+    implementation("androidx.multidex:multidex:2.0.1")
+
+    // Core library desugaring for backward compatibility
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 
 }
