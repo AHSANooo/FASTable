@@ -13,6 +13,9 @@
     <string name="log_out">Log Out</string>
     <string name="back_button">Back</string>
     <string name="faculty_offices">Faculty Offices</string>
+    <string name="back">Back</string>
+    <string name="email">Email</string>
+    <string name="office">Office</string>
 
 
 </resources>

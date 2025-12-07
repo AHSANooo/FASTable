@@ -22,7 +22,6 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
 import com.example.fastable.adapters.DashboardSessionAdapter
 import com.example.fastable.viewmodel.HomeViewModel
-import com.example.fastable.api.ProfileApiService
 import de.hdodenhof.circleimageview.CircleImageView
 import com.example.fastable.data.local.AppDatabase
 import com.example.fastable.data.models.UserProfile
@@ -262,6 +261,13 @@ class Home : AppCompatActivity() {
         btnCustomTimetable.setOnClickListener {
             val intent = Intent(this, Add_Timetable::class.java)
             startActivity(intent)
+            drawerLayout.closeDrawer(GravityCompat.START)
+        }
+
+        // Faculty Offices button
+        val btnFacultyOffices = findViewById<Button>(R.id.btnFacultyOffices)
+        btnFacultyOffices.setOnClickListener {
+            startActivity(Intent(this, com.example.fastable.FacultyOffices::class.java))
             drawerLayout.closeDrawer(GravityCompat.START)
         }
 

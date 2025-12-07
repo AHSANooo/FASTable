@@ -23,6 +23,9 @@
             android:name=".AboutUs"
             android:exported="false" />
         <activity
+            android:name=".FacultyOffices"
+            android:exported="false" />
+        <activity
             android:name=".Profile"
             android:exported="false" />
         <activity
