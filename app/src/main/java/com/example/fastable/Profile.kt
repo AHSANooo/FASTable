@@ -8,7 +8,6 @@ import android.provider.MediaStore
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
-import com.bumptech.glide.Glide
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.DatabaseReference
@@ -23,10 +22,13 @@ import java.io.File
 import java.io.FileOutputStream
 import com.example.fastable.data.local.AppDatabase
 import com.example.fastable.data.models.UserProfile
+import com.example.fastable.api.ProfileApiService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import android.util.Base64
+import android.graphics.BitmapFactory
 
 class Profile : AppCompatActivity() {
 
@@ -106,8 +108,11 @@ class Profile : AppCompatActivity() {
         if (profile.profileImageUrl.isNotEmpty()) {
             val localFile = File(profile.profileImageUrl)
             if (localFile.exists()) {
-                Glide.with(this@Profile).load(localFile)
-                    .placeholder(R.drawable.ic_profile_placeholder).into(profileImage)
+                com.squareup.picasso.Picasso.get()
+                    .load(localFile)
+                    .placeholder(R.drawable.ic_profile_placeholder)
+                    .error(R.drawable.ic_profile_placeholder)
+                    .into(profileImage)
             } else {
                 profileImage.setImageResource(R.drawable.ic_profile_placeholder)
             }
@@ -127,20 +132,28 @@ class Profile : AppCompatActivity() {
                         val batch = snapshot.child("batch").getValue(String::class.java) ?: ""
                         val degree = snapshot.child("degree").getValue(String::class.java) ?: ""
                         val section = snapshot.child("section").getValue(String::class.java) ?: ""
-                        val profileImageUrl = snapshot.child("profileImageUrl").getValue(String::class.java) ?: ""
-
-                        val profile = UserProfile(
-                            uid = uid,
-                            name = name,
-                            email = email,
-                            batch = batch,
-                            degree = degree,
-                            section = section,
-                            profileImageUrl = profileImageUrl
-                        )
+                        // This will be Base64 string from Firebase
+                        val profileImageBase64 = snapshot.child("profileImageUrl").getValue(String::class.java) ?: ""
 
                         // Save to offline database
                         CoroutineScope(Dispatchers.IO).launch {
+                            // Convert Base64 to local file path
+                            val localImagePath = if (profileImageBase64.isNotEmpty()) {
+                                saveBase64ImageLocally(uid, profileImageBase64)
+                            } else {
+                                ""
+                            }
+
+                            val profile = UserProfile(
+                                uid = uid,
+                                name = name,
+                                email = email,
+                                batch = batch,
+                                degree = degree,
+                                section = section,
+                                profileImageUrl = localImagePath  // Store local path
+                            )
+
                             AppDatabase.getDatabase(this@Profile).userProfileDao()
                                 .insertUserProfile(profile)
 
@@ -218,6 +231,9 @@ class Profile : AppCompatActivity() {
                 Toast.makeText(this@Profile, "Profile updated", Toast.LENGTH_SHORT).show()
                 loadUserProfile()
             }
+
+            // Note: User details (batch, degree, section) are stored in Local DB and Firebase only
+            // MySQL stores ONLY profile pictures
         }
 
         // Then sync to Firebase in background
@@ -256,8 +272,18 @@ class Profile : AppCompatActivity() {
         try {
             Toast.makeText(this, "Saving image...", Toast.LENGTH_SHORT).show()
 
-            val bitmap = MediaStore.Images.Media.getBitmap(contentResolver, imageUri)
+            // Use contentResolver.openInputStream instead of getBitmap
+            // to avoid SecurityException with scoped storage
+            val inputStream = contentResolver.openInputStream(imageUri)
+            val bitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
+            inputStream?.close()
 
+            if (bitmap == null) {
+                Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show()
+                return
+            }
+
+            // Save to local storage
             val directory = File(filesDir, "profile_images")
             if (!directory.exists()) {
                 directory.mkdirs()
@@ -267,10 +293,13 @@ class Profile : AppCompatActivity() {
             val file = File(directory, filename)
 
             FileOutputStream(file).use { out ->
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 60, out)
             }
 
             val imagePath = file.absolutePath
+
+            // Convert to Base64 for Firebase storage (like a23i project)
+            val profileImageBase64 = com.example.fastable.utils.ImageUtils.bitmapToBase64(bitmap, 60)
 
             // Update offline database first (instant)
             CoroutineScope(Dispatchers.IO).launch {
@@ -279,20 +308,88 @@ class Profile : AppCompatActivity() {
 
                 withContext(Dispatchers.Main) {
                     Toast.makeText(this@Profile, "Profile image updated", Toast.LENGTH_SHORT).show()
-                    Glide.with(this@Profile).load(file).placeholder(R.drawable.ic_profile_placeholder).into(profileImage)
+                    com.squareup.picasso.Picasso.get()
+                        .load(file)
+                        .placeholder(R.drawable.ic_profile_placeholder)
+                        .error(R.drawable.ic_profile_placeholder)
+                        .into(profileImage)
+                }
+
+                // Upload to MySQL server in background (optional backup)
+                try {
+                    val uploadResponse = ProfileApiService.uploadProfilePicture(
+                        userId = currentUser.uid,
+                        bitmap = bitmap
+                    )
+
+                    if (uploadResponse.success) {
+                        android.util.Log.d("Profile", "Profile picture uploaded to MySQL: ${uploadResponse.message}")
+                        android.util.Log.d("Profile", "Image URL: ${uploadResponse.data}")
+                    } else {
+                        android.util.Log.e("Profile", "MySQL upload failed: ${uploadResponse.message}")
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("Profile", "Error uploading to MySQL: ${e.message}")
                 }
             }
 
-            // Then sync to Firebase in background
-            database.child("users").child(currentUser.uid).child("profileImageUrl").setValue(imagePath)
+            // Sync Base64 to Firebase (primary storage)
+            database.child("users").child(currentUser.uid).child("profileImageUrl").setValue(profileImageBase64)
                 .addOnSuccessListener {
-                    android.util.Log.d("Profile", "Image synced to Firebase")
+                    android.util.Log.d("Profile", "Image Base64 synced to Firebase")
                 }
                 .addOnFailureListener { e ->
-                    android.util.Log.e("Profile", "Image sync failed: ${e.message}")
+                    android.util.Log.e("Profile", "Image sync to Firebase failed: ${e.message}")
                 }
+        } catch (e: SecurityException) {
+            Toast.makeText(this, "Permission denied to access this image", Toast.LENGTH_SHORT).show()
+            android.util.Log.e("Profile", "SecurityException: ${e.message}")
         } catch (e: Exception) {
             Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+            android.util.Log.e("Profile", "Error saving image: ${e.message}")
+        }
+    }
+
+    /**
+     * Convert Base64 string to bitmap and save locally
+     * Returns the local file path
+     */
+    private fun saveBase64ImageLocally(uid: String, base64String: String): String {
+        return try {
+            // Decode Base64 to bitmap
+            val bytes = Base64.decode(base64String, Base64.DEFAULT)
+            val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+
+            if (bitmap == null) {
+                android.util.Log.e("Profile", "Failed to decode Base64 image")
+                return ""
+            }
+
+            // Create directory for profile images
+            val directory = File(filesDir, "profile_images")
+            if (!directory.exists()) {
+                directory.mkdirs()
+            }
+
+            // Save to file
+            val filename = "$uid.jpg"
+            val file = File(directory, filename)
+
+            FileOutputStream(file).use { out ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+            }
+
+            // Verify file was saved
+            if (file.exists() && file.length() > 0) {
+                android.util.Log.d("Profile", "Profile image saved locally: ${file.absolutePath}")
+                file.absolutePath
+            } else {
+                android.util.Log.e("Profile", "Failed to save profile image")
+                ""
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("Profile", "Error saving Base64 image: ${e.message}", e)
+            ""
         }
     }
 }
