@@ -2,7 +2,7 @@ package com.example.fastable.data.remote
 
 object GoogleSheetsConfig {
     // Google Sheets URL
-    const val SHEET_URL = "https://docs.google.com/spreadsheets/d/1VxoUvVW5C6nlpL9ObpSrh58VyzdTyupsKB2VpkkS8lQ/edit?usp=drivesdk"
+    const val SHEET_URL = "https://docs.google.com/spreadsheets/d/1ZQJqdArlwCS965uw4sbJrB6j8rEPfZerMT7X8qkXSzY/edit?gid=1882612924#gid=1882612924"
 
     // Extract spreadsheet ID from URL
     val SPREADSHEET_ID: String
