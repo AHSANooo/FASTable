@@ -279,6 +279,14 @@ class Home : AppCompatActivity() {
             drawerLayout.closeDrawer(GravityCompat.START)
         }
 
+        // User Manual button
+        val btnUserManual = findViewById<Button>(R.id.btnUserManual)
+        btnUserManual.setOnClickListener {
+            val intent = Intent(this, UserManual::class.java)
+            startActivity(intent)
+            drawerLayout.closeDrawer(GravityCompat.START)
+        }
+
         // Logout button
         val btnLogout = findViewById<Button>(R.id.btnLogout)
         btnLogout.setOnClickListener {
