@@ -55,9 +55,11 @@ class CustomTimetableViewModel(application: Application) : AndroidViewModel(appl
         }
 
         viewModelScope.launch {
-            // Load all courses
+            // Load all courses (filter out cancelled courses)
             repository.getAllCourses().collect { courseList ->
-                _courses.value = courseList
+                _courses.value = courseList.filter {
+                    !it.name.contains("Cancelled", ignoreCase = true)
+                }
             }
         }
 
@@ -73,11 +75,15 @@ class CustomTimetableViewModel(application: Application) : AndroidViewModel(appl
         viewModelScope.launch {
             if (query.isEmpty()) {
                 repository.getAllCourses().collect { courseList ->
-                    _courses.value = courseList
+                    _courses.value = courseList.filter {
+                        !it.name.contains("Cancelled", ignoreCase = true)
+                    }
                 }
             } else {
                 repository.searchCourses(query).collect { courseList ->
-                    _courses.value = courseList
+                    _courses.value = courseList.filter {
+                        !it.name.contains("Cancelled", ignoreCase = true)
+                    }
                 }
             }
         }

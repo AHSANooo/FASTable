@@ -205,7 +205,7 @@
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:layout_margin="16dp"
-            android:text="Save to Dashboard"
+            android:text="Add to Dashboard"
             android:textColor="#FFFFFF"
             android:textSize="16sp"
             android:textStyle="bold"

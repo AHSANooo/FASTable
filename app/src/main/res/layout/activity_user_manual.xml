@@ -228,7 +228,7 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="• Need to find your professor? Check Faculty Offices from the menu\n\n• Find office locations and contact info in one place"
+                        android:text="• Need to find your professor? Check Faculty Offices from the menu\n\n• Find office locations and contact info in one place\n• Send an email directly by tapping the email address"
                         android:textSize="14sp"
                         android:textColor="#333333"
                         android:lineSpacingExtra="4dp" />

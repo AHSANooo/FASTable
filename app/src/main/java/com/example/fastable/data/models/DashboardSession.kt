@@ -53,7 +53,14 @@ data class DashboardSession(
                         else -> hour
                     }
                 } else {
-                    hour
+                    // University schedule: 8, 9, 10, 11 are AM; 12, 1, 2, 3, 4, 5, 6, 7 are PM
+                    // Classes start at 8:30 AM and go until evening
+                    when {
+                        hour in 8..11 -> hour  // Morning classes (8:30, 9:00, 10:00, 11:00 are AM)
+                        hour == 12 -> 12       // 12:00 is PM (noon)
+                        hour in 1..7 -> hour + 12  // Afternoon classes (1:00, 2:00, 2:30 etc. are PM)
+                        else -> hour
+                    }
                 }
 
                 (hour24 * 60 + minute).toLong()
