@@ -2,10 +2,13 @@ package com.example.fastable
 
 import android.os.Bundle
 import android.view.GestureDetector
+import android.view.Menu
+import android.view.MenuItem
 import android.view.MotionEvent
 import android.view.View
 import android.widget.ProgressBar
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -21,7 +24,8 @@ class FreeRooms : AppCompatActivity() {
     private lateinit var viewModel: FreeRoomsViewModel
     private lateinit var adapter: FreeRoomAdapter
     private lateinit var recyclerView: RecyclerView
-    private lateinit var tabLayout: TabLayout
+    private lateinit var tabLayoutDays: TabLayout
+    private lateinit var tabLayoutRoomType: TabLayout
     private lateinit var progressBar: ProgressBar
     private lateinit var tvEmptyState: TextView
 
@@ -36,7 +40,8 @@ class FreeRooms : AppCompatActivity() {
         initViews()
         setupViewModel()
         setupRecyclerView()
-        setupTabLayout()
+        setupDayTabs()
+        setupRoomTypeTabs()
 
         // Load data for first day
         viewModel.loadFreeRoomsForDay(currentSelectedDay)
@@ -50,9 +55,26 @@ class FreeRooms : AppCompatActivity() {
         toolbar.setNavigationOnClickListener { finish() }
     }
 
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.menu_free_rooms, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_refresh -> {
+                Toast.makeText(this, "Refreshing data...", Toast.LENGTH_SHORT).show()
+                viewModel.refreshData()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+
     private fun initViews() {
         recyclerView = findViewById(R.id.rvFreeRooms)
-        tabLayout = findViewById(R.id.tabLayoutDays)
+        tabLayoutDays = findViewById(R.id.tabLayoutDays)
+        tabLayoutRoomType = findViewById(R.id.tabLayoutRoomType)
         progressBar = findViewById(R.id.progressBar)
         tvEmptyState = findViewById(R.id.tvEmptyState)
     }
@@ -60,8 +82,8 @@ class FreeRooms : AppCompatActivity() {
     private fun setupViewModel() {
         viewModel = ViewModelProvider(this)[FreeRoomsViewModel::class.java]
 
-        // Observe free rooms
-        viewModel.freeRooms.observe(this) { rooms ->
+        // Observe filtered rooms (based on Labs/Rooms selection)
+        viewModel.filteredRooms.observe(this) { rooms ->
             adapter.submitList(rooms)
 
             if (rooms.isEmpty()) {
@@ -96,10 +118,10 @@ class FreeRooms : AppCompatActivity() {
         recyclerView.adapter = adapter
     }
 
-    private fun setupTabLayout() {
+    private fun setupDayTabs() {
         // Add day tabs
         days.forEach { day ->
-            tabLayout.addTab(tabLayout.newTab().setText(day))
+            tabLayoutDays.addTab(tabLayoutDays.newTab().setText(day))
         }
 
         // Add swipe gesture to navigate between days
@@ -123,12 +145,12 @@ class FreeRooms : AppCompatActivity() {
                     if (diffX < 0) {
                         // Swipe left - go to next day
                         if (currentIndex < days.size - 1) {
-                            tabLayout.getTabAt(currentIndex + 1)?.select()
+                            tabLayoutDays.getTabAt(currentIndex + 1)?.select()
                         }
                     } else {
                         // Swipe right - go to previous day
                         if (currentIndex > 0) {
-                            tabLayout.getTabAt(currentIndex - 1)?.select()
+                            tabLayoutDays.getTabAt(currentIndex - 1)?.select()
                         }
                     }
                     return true
@@ -143,7 +165,7 @@ class FreeRooms : AppCompatActivity() {
         }
 
         // Tab selection listener
-        tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+        tabLayoutDays.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) {
                 tab?.let {
                     currentSelectedDay = days[it.position]
@@ -155,5 +177,23 @@ class FreeRooms : AppCompatActivity() {
             override fun onTabReselected(tab: TabLayout.Tab?) {}
         })
     }
-}
 
+    private fun setupRoomTypeTabs() {
+        // Add Rooms and Labs tabs
+        tabLayoutRoomType.addTab(tabLayoutRoomType.newTab().setText("Rooms"))
+        tabLayoutRoomType.addTab(tabLayoutRoomType.newTab().setText("Labs"))
+
+        // Tab selection listener
+        tabLayoutRoomType.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab?) {
+                tab?.let {
+                    // false = Rooms (position 0), true = Labs (position 1)
+                    viewModel.setRoomTypeFilter(it.position == 1)
+                }
+            }
+
+            override fun onTabUnselected(tab: TabLayout.Tab?) {}
+            override fun onTabReselected(tab: TabLayout.Tab?) {}
+        })
+    }
+}

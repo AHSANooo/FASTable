@@ -25,12 +25,10 @@ class FreeRoomAdapter : ListAdapter<FreeRoom, FreeRoomAdapter.FreeRoomViewHolder
     class FreeRoomViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val tvRoomName: TextView = itemView.findViewById(R.id.tvRoomName)
         private val tvFreeSlots: TextView = itemView.findViewById(R.id.tvFreeSlots)
-        private val tvRoomType: TextView = itemView.findViewById(R.id.tvRoomType)
 
         fun bind(freeRoom: FreeRoom) {
             tvRoomName.text = freeRoom.roomName
-            tvFreeSlots.text = "Free: ${freeRoom.getFreeSlotsText()}"
-            tvRoomType.text = freeRoom.getRoomType()
+            tvFreeSlots.text = freeRoom.getFreeSlotsSimple()
         }
     }
 

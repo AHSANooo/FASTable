@@ -21,6 +21,9 @@ class FreeRoomsViewModel(application: Application) : AndroidViewModel(applicatio
     private val _freeRooms = MutableLiveData<List<FreeRoom>>()
     val freeRooms: LiveData<List<FreeRoom>> = _freeRooms
 
+    private val _filteredRooms = MutableLiveData<List<FreeRoom>>()
+    val filteredRooms: LiveData<List<FreeRoom>> = _filteredRooms
+
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> = _isLoading
 
@@ -32,15 +35,24 @@ class FreeRoomsViewModel(application: Application) : AndroidViewModel(applicatio
     private var cacheTime: Long = 0
     private val CACHE_DURATION = 30 * 60 * 1000L // 30 minutes
 
-    // Cache free rooms per day
+    // Cache free rooms per day (all rooms, unfiltered)
     private val freeRoomsCache = mutableMapOf<String, List<FreeRoom>>()
 
-    fun loadFreeRoomsForDay(day: String) {
-        // Check cache first
-        freeRoomsCache[day]?.let { cached ->
-            Log.d(TAG, "Using cached free rooms for $day")
-            _freeRooms.value = cached
-            return
+    // Current filter state
+    private var currentDay: String = "Monday"
+    private var showLabs: Boolean = false  // false = Rooms, true = Labs
+
+    fun loadFreeRoomsForDay(day: String, forceRefresh: Boolean = false) {
+        currentDay = day
+
+        // Check cache first (unless force refresh)
+        if (!forceRefresh) {
+            freeRoomsCache[day]?.let { cached ->
+                Log.d(TAG, "Using cached free rooms for $day")
+                _freeRooms.value = cached
+                applyFilter()
+                return
+            }
         }
 
         _isLoading.value = true
@@ -49,7 +61,7 @@ class FreeRoomsViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             try {
                 val rooms = withContext(Dispatchers.IO) {
-                    val spreadsheet = getSpreadsheet()
+                    val spreadsheet = getSpreadsheet(forceRefresh)
                     if (spreadsheet == null) {
                         throw Exception("Failed to load timetable data")
                     }
@@ -60,6 +72,7 @@ class FreeRoomsViewModel(application: Application) : AndroidViewModel(applicatio
                 freeRoomsCache[day] = rooms
 
                 _freeRooms.value = rooms
+                applyFilter()
                 _isLoading.value = false
 
                 if (rooms.isEmpty()) {
@@ -72,15 +85,46 @@ class FreeRoomsViewModel(application: Application) : AndroidViewModel(applicatio
                 _errorMessage.value = "Failed to load free rooms: ${e.message}"
                 _isLoading.value = false
                 _freeRooms.value = emptyList()
+                _filteredRooms.value = emptyList()
             }
         }
     }
 
-    private suspend fun getSpreadsheet(): com.google.api.services.sheets.v4.model.Spreadsheet? {
+    /**
+     * Refresh data - clears cache and reloads
+     */
+    fun refreshData() {
+        // Clear all caches
+        freeRoomsCache.clear()
+        cachedSpreadsheet = null
+        cacheTime = 0
+
+        // Reload current day
+        loadFreeRoomsForDay(currentDay, forceRefresh = true)
+    }
+
+    /**
+     * Set filter to show Labs or Rooms
+     */
+    fun setRoomTypeFilter(showLabsFilter: Boolean) {
+        showLabs = showLabsFilter
+        applyFilter()
+    }
+
+    /**
+     * Apply the current filter (Labs or Rooms)
+     */
+    private fun applyFilter() {
+        val allRooms = _freeRooms.value ?: emptyList()
+        val filtered = allRooms.filter { it.isLab == showLabs }
+        _filteredRooms.value = filtered
+    }
+
+    private suspend fun getSpreadsheet(forceRefresh: Boolean = false): com.google.api.services.sheets.v4.model.Spreadsheet? {
         val currentTime = System.currentTimeMillis()
 
-        // Return cached if still valid
-        if (cachedSpreadsheet != null && (currentTime - cacheTime) < CACHE_DURATION) {
+        // Return cached if still valid and not forcing refresh
+        if (!forceRefresh && cachedSpreadsheet != null && (currentTime - cacheTime) < CACHE_DURATION) {
             Log.d(TAG, "Using cached spreadsheet")
             return cachedSpreadsheet
         }
@@ -101,4 +145,3 @@ class FreeRoomsViewModel(application: Application) : AndroidViewModel(applicatio
         _errorMessage.value = null
     }
 }
-

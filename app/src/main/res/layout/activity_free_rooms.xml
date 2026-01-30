@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@color/white">
+    android:background="#F5F7FA">
 
     <!-- Toolbar -->
     <androidx.appcompat.widget.Toolbar
@@ -22,10 +22,24 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="#FFFFFF"
+        android:elevation="2dp"
         app:tabTextColor="#666"
         app:tabSelectedTextColor="#0A2E5D"
         app:tabIndicatorColor="#0A2E5D"
         app:tabMode="scrollable" />
+
+    <!-- Room Type Tabs (Rooms / Labs) -->
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/tabLayoutRoomType"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:background="#FAFAFA"
+        app:tabTextColor="#888"
+        app:tabSelectedTextColor="#0A2E5D"
+        app:tabIndicatorColor="#0A2E5D"
+        app:tabIndicatorHeight="2dp"
+        app:tabMode="fixed"
+        app:tabGravity="fill" />
 
     <!-- Loading Progress -->
     <ProgressBar
@@ -42,7 +56,7 @@
         android:id="@+id/tvEmptyState"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="No free rooms found for this day"
+        android:text="No free rooms found"
         android:textSize="16sp"
         android:textColor="#666"
         android:textAlignment="center"
