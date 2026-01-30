@@ -351,6 +351,14 @@ class Home : AppCompatActivity() {
             drawerLayout.closeDrawer(GravityCompat.START)
         }
 
+        // Free Rooms button
+        val btnFreeRooms = findViewById<Button>(R.id.btnFreeRooms)
+        btnFreeRooms.setOnClickListener {
+            val intent = Intent(this, FreeRooms::class.java)
+            startActivity(intent)
+            drawerLayout.closeDrawer(GravityCompat.START)
+        }
+
         // Logout button
         val btnLogout = findViewById<Button>(R.id.btnLogout)
         btnLogout.setOnClickListener {

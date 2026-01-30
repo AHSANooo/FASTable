@@ -23,6 +23,9 @@
             android:name=".AboutUs"
             android:exported="false" />
         <activity
+            android:name=".FreeRooms"
+            android:exported="false" />
+        <activity
             android:name=".UserManual"
             android:exported="false" />
         <activity

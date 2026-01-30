@@ -134,12 +134,12 @@ class TimetableRepository(context: Context) {
                 // Preserve selection state from existing courses
                 val existingSelections = courseDao.getAllCoursesOnce()
                     .filter { it.isSelected }
-                    .map { it.name to it.section }
+                    .map { it.getCourseKey() }  // Use full key: name + department + section + batch
                     .toSet()
 
                 // Mark courses as selected if they were previously selected
                 val coursesWithSelections = courses.map { course ->
-                    val wasSelected = existingSelections.contains(course.name to course.section)
+                    val wasSelected = existingSelections.contains(course.getCourseKey())
                     if (wasSelected) course.copy(isSelected = true) else course
                 }
 
