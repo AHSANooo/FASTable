@@ -2,6 +2,8 @@ package com.example.fastable
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.GestureDetector
+import android.view.MotionEvent
 import android.view.View
 import android.widget.*
 import androidx.activity.addCallback
@@ -14,6 +16,7 @@ import com.example.fastable.adapters.CourseAdapter
 import com.example.fastable.adapters.TimetableAdapter
 import com.example.fastable.viewmodel.CustomTimetableViewModel
 import com.google.android.material.tabs.TabLayout
+import kotlin.math.abs
 
 class Add_Timetable : AppCompatActivity() {
 
@@ -204,6 +207,46 @@ class Add_Timetable : AppCompatActivity() {
         tabLayout.removeAllTabs()
         days.forEach { day ->
             tabLayout.addTab(tabLayout.newTab().setText(day))
+        }
+
+        // Add swipe gesture to navigate between days
+        val gestureDetector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
+            private val SWIPE_THRESHOLD = 100
+            private val SWIPE_VELOCITY_THRESHOLD = 100
+
+            override fun onFling(
+                e1: MotionEvent?,
+                e2: MotionEvent,
+                velocityX: Float,
+                velocityY: Float
+            ): Boolean {
+                if (e1 == null) return false
+
+                val diffX = e2.x - e1.x
+                val diffY = e2.y - e1.y
+
+                if (abs(diffX) > abs(diffY) && abs(diffX) > SWIPE_THRESHOLD && abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+                    val currentIndex = tabLayout.selectedTabPosition
+                    if (diffX < 0) {
+                        // Swipe left - go to next day
+                        if (currentIndex < days.size - 1) {
+                            tabLayout.getTabAt(currentIndex + 1)?.select()
+                        }
+                    } else {
+                        // Swipe right - go to previous day
+                        if (currentIndex > 0) {
+                            tabLayout.getTabAt(currentIndex - 1)?.select()
+                        }
+                    }
+                    return true
+                }
+                return false
+            }
+        })
+
+        rvTimetable.setOnTouchListener { v, event ->
+            gestureDetector.onTouchEvent(event)
+            false // Allow RecyclerView to handle scrolling
         }
 
         tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {

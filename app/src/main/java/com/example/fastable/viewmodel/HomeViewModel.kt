@@ -1,6 +1,9 @@
 package com.example.fastable.viewmodel
 
 import android.app.Application
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
@@ -33,10 +36,14 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> = _isLoading
 
+    private val _isRefreshing = MutableLiveData<Boolean>()
+    val isRefreshing: LiveData<Boolean> = _isRefreshing
+
     private val _errorMessage = MutableLiveData<String?>()
     val errorMessage: LiveData<String?> = _errorMessage
 
     private var currentViewingDay: String? = null
+    private var hasRefreshedOnStart = false
 
     init {
         updateCurrentDay()
@@ -129,6 +136,79 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 loadDashboardSessions()
             }.onFailure { exception ->
                 _errorMessage.value = "Sync failed: ${exception.message}"
+            }
+        }
+    }
+
+    /**
+     * Check if device is online
+     */
+    private fun isOnline(): Boolean {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = connectivityManager.activeNetwork ?: return false
+        val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }
+
+    /**
+     * Refresh dashboard sessions on app start to detect cancelled classes
+     * Only runs once per app launch and only if online
+     */
+    fun refreshDashboardOnStart() {
+        if (hasRefreshedOnStart) {
+            Log.d(TAG, "refreshDashboardOnStart: Already refreshed this session, skipping")
+            return
+        }
+
+        if (!isOnline()) {
+            Log.d(TAG, "refreshDashboardOnStart: Offline, skipping refresh")
+            return
+        }
+
+        hasRefreshedOnStart = true
+        _isRefreshing.value = true
+
+        viewModelScope.launch {
+            try {
+                Log.d(TAG, "refreshDashboardOnStart: Starting refresh for cancelled classes")
+
+                // Get current dashboard sessions
+                val currentSessions = _dashboardSessions.value ?: emptyList()
+                if (currentSessions.isEmpty()) {
+                    Log.d(TAG, "refreshDashboardOnStart: No sessions to refresh")
+                    _isRefreshing.value = false
+                    return@launch
+                }
+
+                // Get unique course names from dashboard
+                val courseNames = currentSessions.map { it.courseName }.distinct()
+                Log.d(TAG, "refreshDashboardOnStart: Refreshing ${courseNames.size} courses: $courseNames")
+
+                // Refresh dashboard sessions from spreadsheet
+                val result: Result<List<DashboardSession>> = repository.refreshDashboardSessions(currentSessions)
+
+                result.onSuccess { refreshedSessions: List<DashboardSession> ->
+                    Log.d(TAG, "refreshDashboardOnStart: Got ${refreshedSessions.size} refreshed sessions")
+
+                    // Update LiveData - this will trigger UI update
+                    _dashboardSessions.value = refreshedSessions
+                    filterTodaysSessions(refreshedSessions)
+
+                    // Update all-day sessions if viewing
+                    currentViewingDay?.let { day ->
+                        loadAllSessionsForDay(day)
+                    }
+
+                    // Schedule notifications for updated sessions
+                    NotificationScheduler.scheduleNotificationsForSessions(context, refreshedSessions)
+                }.onFailure { exception: Throwable ->
+                    Log.e(TAG, "refreshDashboardOnStart: Failed - ${exception.message}")
+                    // Don't show error to user, just keep existing data
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "refreshDashboardOnStart: Exception - ${e.message}", e)
+            } finally {
+                _isRefreshing.value = false
             }
         }
     }

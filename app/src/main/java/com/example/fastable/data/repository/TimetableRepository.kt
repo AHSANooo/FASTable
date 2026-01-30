@@ -130,9 +130,22 @@ class TimetableRepository(context: Context) {
                 // Extract and save courses
                 Log.d(TAG, "Extracting courses from spreadsheet...")
                 val courses = CourseExtractor.extractAllCourses(spreadsheet)
+
+                // Preserve selection state from existing courses
+                val existingSelections = courseDao.getAllCoursesOnce()
+                    .filter { it.isSelected }
+                    .map { it.name to it.section }
+                    .toSet()
+
+                // Mark courses as selected if they were previously selected
+                val coursesWithSelections = courses.map { course ->
+                    val wasSelected = existingSelections.contains(course.name to course.section)
+                    if (wasSelected) course.copy(isSelected = true) else course
+                }
+
                 courseDao.deleteAllCourses()
-                courseDao.insertCourses(courses)
-                Log.d(TAG, "Saved ${courses.size} courses to database")
+                courseDao.insertCourses(coursesWithSelections)
+                Log.d(TAG, "Saved ${courses.size} courses to database (preserved ${existingSelections.size} selections)")
 
                 lastSyncTime = currentTime
                 Result.success(true)
@@ -396,6 +409,97 @@ class TimetableRepository(context: Context) {
                 Log.d(TAG, "addCustomCoursesToDashboard: Added ${dashboardSessions.size} new sessions (${sessions.size - dashboardSessions.size} duplicates skipped)")
             } else {
                 Log.d(TAG, "addCustomCoursesToDashboard: All sessions already exist in dashboard")
+            }
+        }
+    }
+
+    /**
+     * Refresh dashboard sessions to detect cancelled classes
+     * Fetches fresh data from spreadsheet for existing courses in dashboard
+     * Returns updated sessions atomically (old sessions are replaced only after new are ready)
+     */
+    suspend fun refreshDashboardSessions(currentSessions: List<com.example.fastable.data.models.DashboardSession>): Result<List<com.example.fastable.data.models.DashboardSession>> {
+        return withContext(Dispatchers.IO) {
+            try {
+                if (currentSessions.isEmpty()) {
+                    return@withContext Result.success(currentSessions)
+                }
+
+                // Fetch fresh spreadsheet data
+                val spreadsheet = getSpreadsheet()
+                    ?: return@withContext Result.failure(Exception("Failed to fetch spreadsheet"))
+
+                Log.d(TAG, "refreshDashboardSessions: Fetched spreadsheet, processing ${currentSessions.size} sessions")
+
+                // Get unique course names (base names without "Cancelled" suffix)
+                val courseBaseNames = currentSessions.map { session ->
+                    session.courseName.replace(" Cancelled", "", ignoreCase = true).trim()
+                }.distinct()
+
+                Log.d(TAG, "refreshDashboardSessions: Looking for courses: $courseBaseNames")
+
+                // Create Course objects for lookup
+                val coursesToLookup = courseBaseNames.map { courseName ->
+                    Course(
+                        id = 0,
+                        name = courseName,
+                        section = "",
+                        batch = "",
+                        department = "",
+                        colorCode = "",
+                        fullEntry = courseName
+                    )
+                }
+
+                // Get fresh sessions from spreadsheet
+                val freshSessions = TimetableExtractor.getCustomTimetable(spreadsheet, coursesToLookup)
+                Log.d(TAG, "refreshDashboardSessions: Found ${freshSessions.size} sessions from spreadsheet")
+
+                // Build a map of existing sessions for quick lookup
+                val existingSessionsMap = currentSessions.associateBy { session ->
+                    "${session.courseName.replace(" Cancelled", "", ignoreCase = true).trim()}_${session.day}_${session.section}"
+                }
+
+                // Process fresh sessions - detect cancelled ones
+                val refreshedSessions = mutableListOf<com.example.fastable.data.models.DashboardSession>()
+                val processedKeys = mutableSetOf<String>()
+
+                freshSessions.forEach { freshSession ->
+                    val baseName = freshSession.courseName.replace(" Cancelled", "", ignoreCase = true).trim()
+                    val key = "${baseName}_${freshSession.day}_${freshSession.section}"
+
+
+                    val dashboardSession = com.example.fastable.data.models.DashboardSession(
+                        day = freshSession.day,
+                        timeSlot = freshSession.timeSlot,
+                        room = freshSession.room,
+                        sessionType = freshSession.sessionType,
+                        courseName = freshSession.courseName, // Keep as-is (may include "Cancelled")
+                        section = freshSession.section,
+                        batch = freshSession.batch,
+                        department = freshSession.department,
+                        rank = freshSession.rank,
+                        colorCode = freshSession.colorCode,
+                        isCustom = existingSessionsMap[key]?.isCustom ?: true
+                    )
+
+                    refreshedSessions.add(dashboardSession)
+                    processedKeys.add(key)
+                }
+
+                Log.d(TAG, "refreshDashboardSessions: Processed ${refreshedSessions.size} sessions, ${processedKeys.size} unique keys")
+
+                // Atomically replace all sessions in database
+                // This ensures no empty state and no duplicates
+                database.dashboardDao().clearAllSessions()
+                database.dashboardDao().insertDashboardSessions(refreshedSessions)
+
+                Log.d(TAG, "refreshDashboardSessions: Database updated successfully")
+
+                Result.success(refreshedSessions)
+            } catch (e: Exception) {
+                Log.e(TAG, "refreshDashboardSessions: Failed", e)
+                Result.failure(e)
             }
         }
     }
