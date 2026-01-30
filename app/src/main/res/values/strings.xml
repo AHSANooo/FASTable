@@ -17,6 +17,8 @@
     <string name="email">Email</string>
     <string name="office">Office</string>
     <string name="user_manual">User Manual</string>
+    <string name="clash_detector">Clash Detector</string>
+    <string name="free_rooms">Free Rooms</string>
 
 
 </resources>

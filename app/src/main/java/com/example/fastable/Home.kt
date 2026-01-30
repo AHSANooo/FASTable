@@ -34,6 +34,10 @@ import java.io.FileOutputStream
 import android.util.Base64
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.widget.FrameLayout
+import android.view.GestureDetector
+import android.view.MotionEvent
+import kotlin.math.abs
 
 class Home : AppCompatActivity() {
 
@@ -41,6 +45,7 @@ class Home : AppCompatActivity() {
     private lateinit var adapter: DashboardSessionAdapter
     private lateinit var allTimetableAdapter: DashboardSessionAdapter
     private lateinit var database: DatabaseReference
+    private lateinit var loadingOverlay: FrameLayout
     private val days = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
     private var currentSelectedDay = "Monday"
 
@@ -67,12 +72,18 @@ class Home : AppCompatActivity() {
         // Get reference to the drawer layout
         val drawerLayout = findViewById<DrawerLayout>(R.id.drawerLayout)
 
+        // Initialize loading overlay
+        loadingOverlay = findViewById(R.id.loadingOverlay)
+
         setupDrawer(drawerLayout)
         setupFab()
 
 
         // Load user profile
         loadUserProfile()
+
+        // Refresh dashboard on app start to detect cancelled classes
+        viewModel.refreshDashboardOnStart()
     }
 
     override fun onResume() {
@@ -155,6 +166,46 @@ class Home : AppCompatActivity() {
             tabLayoutDays.addTab(tabLayoutDays.newTab().setText(day))
         }
 
+        // Add swipe gesture to navigate between days
+        val gestureDetector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
+            private val SWIPE_THRESHOLD = 100
+            private val SWIPE_VELOCITY_THRESHOLD = 100
+
+            override fun onFling(
+                e1: MotionEvent?,
+                e2: MotionEvent,
+                velocityX: Float,
+                velocityY: Float
+            ): Boolean {
+                if (e1 == null) return false
+
+                val diffX = e2.x - e1.x
+                val diffY = e2.y - e1.y
+
+                if (abs(diffX) > abs(diffY) && abs(diffX) > SWIPE_THRESHOLD && abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+                    val currentIndex = days.indexOf(currentSelectedDay)
+                    if (diffX < 0) {
+                        // Swipe left - go to next day
+                        if (currentIndex < days.size - 1) {
+                            tabLayoutDays.getTabAt(currentIndex + 1)?.select()
+                        }
+                    } else {
+                        // Swipe right - go to previous day
+                        if (currentIndex > 0) {
+                            tabLayoutDays.getTabAt(currentIndex - 1)?.select()
+                        }
+                    }
+                    return true
+                }
+                return false
+            }
+        })
+
+        rvAllTimetable.setOnTouchListener { v, event ->
+            gestureDetector.onTouchEvent(event)
+            false // Allow RecyclerView to handle scrolling
+        }
+
         tabLayoutDays.addOnTabSelectedListener(object : com.google.android.material.tabs.TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: com.google.android.material.tabs.TabLayout.Tab?) {
                 tab?.let {
@@ -220,6 +271,11 @@ class Home : AppCompatActivity() {
                 viewModel.clearError()
             }
         }
+
+        // Observe refresh state for loading overlay
+        viewModel.isRefreshing.observe(this) { isRefreshing ->
+            loadingOverlay.visibility = if (isRefreshing) android.view.View.VISIBLE else android.view.View.GONE
+        }
     }
 
     private fun setupDrawer(drawerLayout: DrawerLayout) {
@@ -283,6 +339,22 @@ class Home : AppCompatActivity() {
         val btnUserManual = findViewById<Button>(R.id.btnUserManual)
         btnUserManual.setOnClickListener {
             val intent = Intent(this, UserManual::class.java)
+            startActivity(intent)
+            drawerLayout.closeDrawer(GravityCompat.START)
+        }
+
+        // Clash Detector button - opens external link
+        val btnClashDetector = findViewById<Button>(R.id.btnClashDetector)
+        btnClashDetector.setOnClickListener {
+            val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://clashes-detector-dvam.vercel.app/"))
+            startActivity(intent)
+            drawerLayout.closeDrawer(GravityCompat.START)
+        }
+
+        // Free Rooms button
+        val btnFreeRooms = findViewById<Button>(R.id.btnFreeRooms)
+        btnFreeRooms.setOnClickListener {
+            val intent = Intent(this, FreeRooms::class.java)
             startActivity(intent)
             drawerLayout.closeDrawer(GravityCompat.START)
         }

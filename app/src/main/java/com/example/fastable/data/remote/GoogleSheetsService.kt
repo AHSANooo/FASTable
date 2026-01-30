@@ -62,10 +62,15 @@ class GoogleSheetsService(private val context: Context) {
     /**
      * Fetch spreadsheet data with grid data (includes formatting and colors)
      * Optimized: Only fetch the 5 timetable sheets to reduce payload size
+     * Now uses dynamic spreadsheet ID from SpreadsheetConfigManager
      */
     suspend fun fetchSpreadsheet(): com.google.api.services.sheets.v4.model.Spreadsheet? {
         return withContext(Dispatchers.IO) {
             try {
+                // Get the spreadsheet ID (from cache or Firebase)
+                val spreadsheetId = SpreadsheetConfigManager.getSpreadsheetId(context)
+                Log.d(TAG, "Using spreadsheet ID: $spreadsheetId")
+
                 // 10-second timeout for better UX
                 val result = withTimeout(TimeUnit.SECONDS.toMillis(10)) {
                     val service = getSheetsService()
@@ -76,7 +81,7 @@ class GoogleSheetsService(private val context: Context) {
 
                     // Fetch spreadsheet with includeGridData for only the timetable sheets
                     val request = service.spreadsheets()
-                        .get(GoogleSheetsConfig.SPREADSHEET_ID)
+                        .get(spreadsheetId)
                         .setIncludeGridData(true)
                         .setRanges(ranges)
 
