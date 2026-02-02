@@ -11,6 +11,51 @@ object TimetableExtractor {
 
     private const val TAG = "TimetableExtractor"
 
+    /**
+     * FAST: Extract only batch names from header spreadsheet (first 5 rows)
+     * Returns list of batch names (e.g., ["BS(CS)-2021", "BS(CS)-2022", ...])
+     */
+    fun extractBatchNamesOnly(spreadsheet: Spreadsheet): List<String> {
+        val batchSet = mutableSetOf<String>()
+
+        spreadsheet.sheets?.forEach { sheet ->
+            val gridData = sheet.data?.getOrNull(0)?.rowData ?: return@forEach
+
+            for (rowIdx in 0 until minOf(5, gridData.size)) {
+                val rowData = gridData[rowIdx].values ?: continue
+                val cellList = rowData.toList()
+
+                cellList.forEach { cellElement ->
+                    if (cellElement is ArrayList<*>) {
+                        cellElement.forEach { cell ->
+                            val value = SheetsHelper.getFormattedValue(cell)
+                            val cellColor = SheetsHelper.getBackgroundColor(cell)
+
+                            if (value != null && value.contains("BS", ignoreCase = true)) {
+                                if (cellColor.isNotEmpty() && cellColor != "1.001.001.00") {
+                                    batchSet.add(value.trim())
+                                }
+                            }
+                        }
+                    } else {
+                        val value = SheetsHelper.getFormattedValue(cellElement)
+                        val cellColor = SheetsHelper.getBackgroundColor(cellElement)
+
+                        if (value != null && value.contains("BS", ignoreCase = true)) {
+                            if (cellColor.isNotEmpty() && cellColor != "1.001.001.00") {
+                                batchSet.add(value.trim())
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        val batches = batchSet.sorted()
+        Log.d(TAG, "Extracted ${batches.size} batch names: $batches")
+        return batches
+    }
+
     fun extractBatchColors(spreadsheet: Spreadsheet): Map<String, String> {
         val batchColors = mutableMapOf<String, String>()
         val timetableSheets = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")

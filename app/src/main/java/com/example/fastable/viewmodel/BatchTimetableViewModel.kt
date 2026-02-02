@@ -34,6 +34,11 @@ class BatchTimetableViewModel(application: Application) : AndroidViewModel(appli
     private var currentSection: String = ""
 
     init {
+        // Use FAST batch sync instead of full data sync for instant batch dropdown
+        viewModelScope.launch {
+            Log.d(TAG, "Initializing with FAST batch sync...")
+            repository.syncBatchesOnly()
+        }
         loadBatches()
     }
 

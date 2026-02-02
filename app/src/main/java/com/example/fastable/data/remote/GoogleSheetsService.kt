@@ -108,6 +108,39 @@ class GoogleSheetsService(private val context: Context) {
     }
 
     /**
+     * Fetch ONLY batch header rows (first 5 rows) from one day - SUPER FAST
+     * This is used to extract available batches without fetching the entire spreadsheet
+     */
+    suspend fun fetchBatchHeaders(): com.google.api.services.sheets.v4.model.Spreadsheet? {
+        return withContext(Dispatchers.IO) {
+            try {
+                val spreadsheetId = SpreadsheetConfigManager.getSpreadsheetId(context)
+                Log.d(TAG, "Fetching batch headers (fast mode)")
+
+                val result = withTimeout(TimeUnit.SECONDS.toMillis(5)) {
+                    val service = getSheetsService()
+
+                    // Only fetch first 5 rows from Monday (enough to get batch colors)
+                    val ranges = listOf("Monday!A1:AN5")
+
+                    val request = service.spreadsheets()
+                        .get(spreadsheetId)
+                        .setIncludeGridData(true)
+                        .setRanges(ranges)
+
+                    request.execute()
+                }
+
+                Log.d(TAG, "Batch headers fetched successfully")
+                result
+            } catch (e: Exception) {
+                Log.e(TAG, "Error fetching batch headers: ${e.message}")
+                null
+            }
+        }
+    }
+
+    /**
      * Fetch specific sheet by name
      */
     suspend fun fetchSheet(sheetName: String): com.google.api.services.sheets.v4.model.Sheet? {

@@ -8,6 +8,7 @@ import com.example.fastable.data.models.TimetableSession
 import com.example.fastable.data.remote.CourseExtractor
 import com.example.fastable.data.remote.GoogleSheetsService
 import com.example.fastable.data.remote.TimetableExtractor
+import com.example.fastable.utils.TimeParser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
@@ -105,6 +106,65 @@ class TimetableRepository(context: Context) {
             return spreadsheet
         } finally {
             isFetching = false
+        }
+    }
+
+    /**
+     * FAST: Sync only batches (fetch just header rows, not full spreadsheet)
+     * This is much faster than syncData() and should be called when user opens batch selection
+     */
+    suspend fun syncBatchesOnly(): Result<Boolean> {
+        return withContext(Dispatchers.IO) {
+            try {
+                Log.d(TAG, "FAST SYNC: Fetching batches only...")
+                val startTime = System.currentTimeMillis()
+
+                // Fetch only header rows (5 rows from Monday) - SUPER FAST
+                val headerSpreadsheet = sheetsService.fetchBatchHeaders()
+                if (headerSpreadsheet == null) {
+                    Log.e(TAG, "Failed to fetch batch headers")
+                    return@withContext Result.failure(Exception("Cannot fetch batch data"))
+                }
+
+                // Extract batch names only
+                val batchNames = TimetableExtractor.extractBatchNamesOnly(headerSpreadsheet)
+
+                if (batchNames.isEmpty()) {
+                    Log.w(TAG, "No batches found in headers")
+                    return@withContext Result.failure(Exception("No batches found"))
+                }
+
+                // Create minimal course entries just for batch display
+                // This allows the batch spinner to populate without full course sync
+                val minimalCourses = batchNames.map { batch ->
+                    Course(
+                        name = "Placeholder",  // Placeholder course name
+                        department = TimeParser.extractDepartmentFromBatch(batch),
+                        section = "A",  // Default section
+                        batch = batch,
+                        colorCode = "",
+                        fullEntry = batch,
+                        isSelected = false
+                    )
+                }
+
+                // Only insert if we don't have courses already
+                val existingCourses = courseDao.getAllCoursesOnce()
+                if (existingCourses.isEmpty()) {
+                    courseDao.insertCourses(minimalCourses)
+                    Log.d(TAG, "FAST SYNC: Inserted ${minimalCourses.size} minimal batch entries")
+                } else {
+                    Log.d(TAG, "FAST SYNC: Courses already exist, skipping insertion")
+                }
+
+                val fetchTime = System.currentTimeMillis() - startTime
+                Log.d(TAG, "FAST SYNC: Completed in ${fetchTime}ms - ${batchNames.size} batches")
+
+                Result.success(true)
+            } catch (e: Exception) {
+                Log.e(TAG, "FAST SYNC failed: ${e.message}")
+                Result.failure(e)
+            }
         }
     }
 

@@ -44,7 +44,7 @@ class CustomTimetable : AppCompatActivity() {
         setupTabLayout()
         setupListeners()
 
-        viewModel.syncData()
+        // Fast batch sync is now done automatically in BatchTimetableViewModel
     }
 
     private fun initViews() {
