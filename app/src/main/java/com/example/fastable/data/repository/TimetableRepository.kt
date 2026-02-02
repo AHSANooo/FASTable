@@ -48,6 +48,15 @@ class TimetableRepository(context: Context) {
     }
 
     /**
+     * Clear the cached spreadsheet (forces a fresh fetch on next use)
+     */
+    fun clearSpreadsheetCache() {
+        Log.d(TAG, "Clearing spreadsheet cache")
+        cachedSpreadsheet = null
+        cacheTime = 0
+    }
+
+    /**
      * Get spreadsheet from cache or fetch new
      */
     private suspend fun getSpreadsheet(): com.google.api.services.sheets.v4.model.Spreadsheet? {
@@ -174,10 +183,18 @@ class TimetableRepository(context: Context) {
 
     /**
      * Get batch timetable (with caching for speed)
+     * @param forceFresh if true, clears the spreadsheet cache and fetches fresh data
      */
-    suspend fun getBatchTimetable(batch: String, section: String): Result<List<TimetableSession>> {
+    suspend fun getBatchTimetable(batch: String, section: String, forceFresh: Boolean = false): Result<List<TimetableSession>> {
         return withContext(Dispatchers.IO) {
             try {
+                // Clear cache if force refresh requested
+                if (forceFresh) {
+                    Log.d(TAG, "getBatchTimetable: Force refresh - clearing spreadsheet cache")
+                    cachedSpreadsheet = null
+                    cacheTime = 0
+                }
+
                 // Use cached spreadsheet - INSTANT instead of 40 seconds!
                 val spreadsheet = getSpreadsheet()
                 if (spreadsheet == null) {
@@ -316,9 +333,12 @@ class TimetableRepository(context: Context) {
                 database.dashboardDao().deleteBatchSessions()
                 Log.d(TAG, "setDefaultBatch: Deleted old batch sessions")
 
-                // Get sessions for this batch
+                // Clear spreadsheet cache to ensure we use the latest link
+                clearSpreadsheetCache()
+
+                // Get sessions for this batch (fetch fresh from updated spreadsheet)
                 Log.d(TAG, "setDefaultBatch: Calling getBatchTimetable...")
-                val sessions = getBatchTimetable(batch, section).getOrNull() ?: emptyList()
+                val sessions = getBatchTimetable(batch, section, forceFresh = true).getOrNull() ?: emptyList()
                 Log.d(TAG, "setDefaultBatch: Retrieved ${sessions.size} sessions from getBatchTimetable")
 
                 if (sessions.isEmpty()) {

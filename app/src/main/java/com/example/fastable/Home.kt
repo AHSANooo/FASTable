@@ -25,6 +25,7 @@ import com.example.fastable.viewmodel.HomeViewModel
 import de.hdodenhof.circleimageview.CircleImageView
 import com.example.fastable.data.local.AppDatabase
 import com.example.fastable.data.models.UserProfile
+import com.example.fastable.utils.PermissionManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -37,6 +38,7 @@ import android.graphics.BitmapFactory
 import android.widget.FrameLayout
 import android.view.GestureDetector
 import android.view.MotionEvent
+import androidx.activity.result.ActivityResultLauncher
 import kotlin.math.abs
 
 class Home : AppCompatActivity() {
@@ -49,9 +51,28 @@ class Home : AppCompatActivity() {
     private val days = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
     private var currentSelectedDay = "Monday"
 
+    // Permission launcher
+    private lateinit var notificationPermissionLauncher: ActivityResultLauncher<String>
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
+
+        // Initialize notification permission launcher
+        notificationPermissionLauncher = PermissionManager.createNotificationPermissionLauncher(
+            activity = this,
+            onGranted = {
+                // Permission granted - notifications will work
+            },
+            onDenied = {
+                // Show a gentle reminder that notifications are useful
+                Snackbar.make(
+                    findViewById(android.R.id.content),
+                    "Enable notifications in settings to get class reminders",
+                    Snackbar.LENGTH_LONG
+                ).show()
+            }
+        )
 
         // Initialize Realtime Database
         database = FirebaseDatabase.getInstance().reference
@@ -78,12 +99,31 @@ class Home : AppCompatActivity() {
         setupDrawer(drawerLayout)
         setupFab()
 
-
         // Load user profile
         loadUserProfile()
 
         // Refresh dashboard on app start to detect cancelled classes
         viewModel.refreshDashboardOnStart()
+
+        // Request notification permission if not granted
+        requestNotificationPermissionIfNeeded()
+    }
+
+    /**
+     * Request notification permission (Android 13+) on first use
+     */
+    private fun requestNotificationPermissionIfNeeded() {
+        if (!PermissionManager.hasNotificationPermission(this)) {
+            // Check if we should show rationale
+            val shouldShowRationale = PermissionManager.shouldShowNotificationRationale(this)
+
+            // Request with or without rationale
+            PermissionManager.requestNotificationPermission(
+                activity = this,
+                launcher = notificationPermissionLauncher,
+                showRationale = shouldShowRationale
+            )
+        }
     }
 
     override fun onResume() {

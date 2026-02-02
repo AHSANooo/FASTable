@@ -47,7 +47,31 @@ object SpreadsheetConfigManager {
         return withContext(Dispatchers.IO) {
             val prefs = getPrefs(context)
 
-            // Check if we have a valid cached ID
+            // ALWAYS check Firebase first to see if the link has changed
+            try {
+                val newLinkOrId = fetchFromFirebase()
+                if (newLinkOrId != null && newLinkOrId.isNotEmpty()) {
+                    val newId = extractSpreadsheetId(newLinkOrId)
+
+                    // Check if this is different from cached ID
+                    val cachedId = prefs.getString(KEY_SPREADSHEET_ID, null)
+                    if (cachedId != newId) {
+                        Log.d(TAG, "Spreadsheet ID changed! Old: $cachedId, New: $newId")
+                        // Save new ID to cache
+                        saveToCache(prefs, newId)
+                    } else {
+                        Log.d(TAG, "Spreadsheet ID unchanged, refreshing cache timestamp")
+                        // Same ID, just refresh the timestamp
+                        saveToCache(prefs, newId)
+                    }
+
+                    return@withContext newId
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to fetch from Firebase: ${e.message}")
+            }
+
+            // If Firebase fetch failed, use cached ID if available
             val cachedId = prefs.getString(KEY_SPREADSHEET_ID, null)
             val lastFetchTime = prefs.getLong(KEY_LAST_FETCH_TIME, 0)
             val currentTime = System.currentTimeMillis()
@@ -56,33 +80,11 @@ object SpreadsheetConfigManager {
                                cachedId.isNotEmpty() &&
                                (currentTime - lastFetchTime) < CACHE_EXPIRATION_MS
 
-            if (isCacheValid) {
-                Log.d(TAG, "Using cached spreadsheet ID (expires in ${(CACHE_EXPIRATION_MS - (currentTime - lastFetchTime)) / (1000 * 60 * 60)} hours)")
+            if (isCacheValid || cachedId != null) {
+                Log.d(TAG, "Using cached spreadsheet ID (Firebase unavailable)")
                 return@withContext cachedId!!
             }
 
-            // Cache expired or missing - fetch from Firebase
-            Log.d(TAG, "Cache expired or missing, fetching from Firebase...")
-
-            try {
-                val linkOrId = fetchFromFirebase()
-                if (linkOrId != null && linkOrId.isNotEmpty()) {
-                    // Extract ID from URL if a full link was provided
-                    val newId = extractSpreadsheetId(linkOrId)
-                    // Save to cache
-                    saveToCache(prefs, newId)
-                    Log.d(TAG, "Fetched and cached new spreadsheet ID from Firebase: $newId")
-                    return@withContext newId
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to fetch from Firebase: ${e.message}")
-            }
-
-            // If Firebase fetch failed but we have an old cached ID, use it
-            if (cachedId != null && cachedId.isNotEmpty()) {
-                Log.d(TAG, "Using expired cached ID as fallback")
-                return@withContext cachedId
-            }
 
             // Last resort: use the hardcoded fallback
             Log.d(TAG, "Using hardcoded fallback spreadsheet ID")

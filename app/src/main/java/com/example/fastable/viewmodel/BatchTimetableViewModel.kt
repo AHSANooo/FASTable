@@ -52,15 +52,11 @@ class BatchTimetableViewModel(application: Application) : AndroidViewModel(appli
         _isLoading.value = true
 
         viewModelScope.launch {
-            // STEP 1: Load from database IMMEDIATELY (no waiting)
-            val cachedSessions = repository.getSessionsFromDatabaseOnce(batch, section)
-            if (cachedSessions.isNotEmpty()) {
-                _timetableSessions.value = cachedSessions
-                _isLoading.value = false
-            }
+            // Clear the spreadsheet cache to ensure we fetch from the updated Firebase link
+            repository.clearSpreadsheetCache()
 
-            // STEP 2: Fetch from API and update
-            val result = repository.getBatchTimetable(batch, section)
+            // Fetch fresh data from Google Sheets (using updated spreadsheet link)
+            val result = repository.getBatchTimetable(batch, section, forceFresh = true)
             _isLoading.value = false
 
             result.onSuccess { sessions ->
@@ -71,9 +67,7 @@ class BatchTimetableViewModel(application: Application) : AndroidViewModel(appli
                     _errorMessage.value = null
                 }
             }.onFailure { exception ->
-                if (_timetableSessions.value.isNullOrEmpty()) {
-                    _errorMessage.value = exception.message ?: "Failed to load timetable"
-                }
+                _errorMessage.value = exception.message ?: "Failed to load timetable"
             }
         }
     }
