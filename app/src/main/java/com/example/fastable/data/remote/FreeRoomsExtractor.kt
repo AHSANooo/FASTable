@@ -447,9 +447,10 @@ object FreeRoomsExtractor {
      */
     private fun isHeaderRow(value: String): Boolean {
         val headerKeywords = listOf("lab", "room", "rooms", "time", "slot", "venue", "location", "unknown", "map", "classrooms", "classrooms/labs")
-        val lowerValue = value.lowercase()
+        val lowerValue = value.lowercase().trim()
         return headerKeywords.any { lowerValue == it } ||
                lowerValue.contains("classrooms") ||
+               lowerValue.contains("unknown") ||
                (value.contains(":") && !value.any { it.isLetter() })
     }
 
@@ -460,8 +461,9 @@ object FreeRoomsExtractor {
         val invalidNames = listOf("unknown", "map", "classrooms", "classrooms/labs", "location", "rooms", "labs")
         val lowerName = roomName.lowercase().trim()
         return lowerName.isEmpty() ||
-               invalidNames.any { lowerName == it } ||
+               invalidNames.any { lowerName == it || lowerName.contains(it) } ||
                lowerName.contains("classrooms") ||
+               lowerName.contains("unknown") ||
                lowerName.startsWith("map")
     }
 

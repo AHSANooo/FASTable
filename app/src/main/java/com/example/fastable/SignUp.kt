@@ -44,9 +44,6 @@ class SignUp : AppCompatActivity() {
         profileImageView = findViewById(R.id.profile_image)
         val nameEt = findViewById<EditText>(R.id.name)
         val emailEt = findViewById<EditText>(R.id.email)
-        val batchEt = findViewById<EditText>(R.id.batch)
-        val degreeEt = findViewById<EditText>(R.id.degree)
-        val sectionEt = findViewById<EditText>(R.id.section)
         val passwordEt = findViewById<EditText>(R.id.password)
         val confirmPasswordEt = findViewById<EditText>(R.id.confirm_password)
         val signUpBtn = findViewById<Button>(R.id.btn_signup)
@@ -59,17 +56,11 @@ class SignUp : AppCompatActivity() {
         signUpBtn.setOnClickListener {
             val name = nameEt.text.toString().trim()
             val email = emailEt.text.toString().trim()
-            val batch = batchEt.text.toString().trim()
-            val degree = degreeEt.text.toString().trim()
-            val section = sectionEt.text.toString().trim()
             val password = passwordEt.text.toString().trim()
             val confirmPassword = confirmPasswordEt.text.toString().trim()
 
             Log.d("SignUp", "Name: '$name' (isEmpty: ${name.isEmpty()})")
             Log.d("SignUp", "Email: '$email' (isEmpty: ${email.isEmpty()})")
-            Log.d("SignUp", "Batch: '$batch' (isEmpty: ${batch.isEmpty()})")
-            Log.d("SignUp", "Degree: '$degree' (isEmpty: ${degree.isEmpty()})")
-            Log.d("SignUp", "Section: '$section' (isEmpty: ${section.isEmpty()})")
 
             if (name.isEmpty()) {
                 Toast.makeText(this, "Please enter your full name", Toast.LENGTH_SHORT).show()
@@ -79,21 +70,6 @@ class SignUp : AppCompatActivity() {
             if (email.isEmpty()) {
                 Toast.makeText(this, "Please enter your email", Toast.LENGTH_SHORT).show()
                 emailEt.requestFocus()
-                return@setOnClickListener
-            }
-            if (batch.isEmpty()) {
-                Toast.makeText(this, "Please enter your batch", Toast.LENGTH_SHORT).show()
-                batchEt.requestFocus()
-                return@setOnClickListener
-            }
-            if (degree.isEmpty()) {
-                Toast.makeText(this, "Please enter your degree", Toast.LENGTH_SHORT).show()
-                degreeEt.requestFocus()
-                return@setOnClickListener
-            }
-            if (section.isEmpty()) {
-                Toast.makeText(this, "Please enter your section", Toast.LENGTH_SHORT).show()
-                sectionEt.requestFocus()
                 return@setOnClickListener
             }
             if (password.isEmpty()) {
@@ -166,9 +142,9 @@ class SignUp : AppCompatActivity() {
                                     "uid" to user.uid,
                                     "name" to name,
                                     "email" to email,
-                                    "batch" to batch,
-                                    "degree" to degree,
-                                    "section" to section,
+                                    "batch" to "",
+                                    "degree" to "",
+                                    "section" to "",
                                     "profileImageUrl" to profileImageBase64  // Store Base64 in Firebase
                                 )
 
@@ -182,9 +158,9 @@ class SignUp : AppCompatActivity() {
                                             uid = user.uid,
                                             name = name,
                                             email = email,
-                                            batch = batch,
-                                            degree = degree,
-                                            section = section,
+                                            batch = "",
+                                            degree = "",
+                                            section = "",
                                             profileImageUrl = profileImagePath  // Store local path in offline DB
                                         )
 
