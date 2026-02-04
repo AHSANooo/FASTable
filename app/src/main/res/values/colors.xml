@@ -6,4 +6,24 @@
     <color name="lab_color">#FF6B6B</color>
     <color name="class_color">#4ECDC4</color>
     <color name="notification_unread">#E8F4FD</color>
+
+    <!-- Text colors -->
+    <color name="text_primary">#333333</color>
+    <color name="text_secondary">#666666</color>
+
+    <!-- Status colors -->
+    <color name="green_primary">#4CAF50</color>
+    <color name="orange_primary">#FF9800</color>
+
+    <!-- Divider -->
+    <color name="divider_color">#E0E0E0</color>
+
+    <!-- Campus Map Block Colors -->
+    <color name="block_c">#92D050</color>
+    <color name="block_d">#00B0F0</color>
+    <color name="block_b">#FFC000</color>
+    <color name="block_a">#FF66FF</color>
+    <color name="block_call_lab">#FF0000</color>
+    <color name="block_khyber">#FFFF00</color>
+    <color name="block_auditorium">#00B050</color>
 </resources>

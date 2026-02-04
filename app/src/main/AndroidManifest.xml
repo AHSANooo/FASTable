@@ -24,6 +24,9 @@
             android:name=".AboutUs"
             android:exported="false" />
         <activity
+            android:name=".CampusMap"
+            android:exported="false" />
+        <activity
             android:name=".FreeRooms"
             android:exported="false" />
         <activity

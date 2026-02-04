@@ -2,10 +2,12 @@ package com.example.fastable.data.remote
 
 import android.util.Log
 import com.example.fastable.data.models.FreeRoom
+import com.example.fastable.data.models.SlotWithFreeRooms
 import com.example.fastable.utils.SheetsHelper
 import com.example.fastable.utils.TimeParser
 import com.google.api.services.sheets.v4.model.Spreadsheet
 import com.google.api.services.sheets.v4.model.RowData
+import java.util.Calendar
 
 /**
  * Extracts free rooms/labs from the timetable spreadsheet
@@ -171,7 +173,166 @@ object FreeRoomsExtractor {
         Log.d(TAG, "Found ${freeRooms.size} rooms with free slots for $day")
 
         // Sort rooms: Classrooms first, then Labs, alphabetically within each group
-        return freeRooms.sortedWith(compareBy({ it.isLab }, { it.roomName }))
+        // Also filter out any invalid room names that slipped through
+        return freeRooms
+            .filter { !isInvalidRoomName(it.roomName) }
+            .sortedWith(compareBy({ it.isLab }, { it.roomName }))
+    }
+
+    /**
+     * Get free rooms organized by time slots for a specific day
+     * This is more efficient as it groups rooms by slot rather than listing slots per room
+     * @param spreadsheet The Google Sheets spreadsheet
+     * @param day The day to check (Monday, Tuesday, etc.)
+     * @return List of SlotWithFreeRooms, sorted by start time
+     */
+    fun getSlotWiseFreeRoomsForDay(spreadsheet: Spreadsheet, day: String): List<SlotWithFreeRooms> {
+        val sheet = spreadsheet.sheets?.find {
+            it.properties?.title?.equals(day, ignoreCase = true) == true
+        }
+
+        if (sheet == null) {
+            Log.e(TAG, "Sheet not found for day: $day")
+            return emptyList()
+        }
+
+        val gridData = sheet.data?.getOrNull(0)?.rowData ?: return emptyList()
+        if (gridData.size < 6) return emptyList()
+
+        // Build time slot ranges
+        val timeSlotRanges = buildTimeSlotRanges(gridData)
+        if (timeSlotRanges.isEmpty()) {
+            Log.e(TAG, "No time slots found for $day")
+            return emptyList()
+        }
+
+        // Find lab section start
+        var labSectionStartRow = -1
+        var labTimeSlotRanges: List<TimeSlotRange> = emptyList()
+
+        gridData.forEachIndexed { idx, row ->
+            val values = row.values ?: return@forEachIndexed
+            val firstCellValue = getFirstCellValue(values)
+            if (firstCellValue.equals("Lab", ignoreCase = true)) {
+                labSectionStartRow = idx
+                labTimeSlotRanges = buildTimeSlotRangesFromRow(row)
+            }
+        }
+
+        // Map: slotIndex -> set of rooms occupied during ANY part of this slot
+        val slotOccupiedRooms = mutableMapOf<Int, MutableSet<String>>()
+        val slotOccupiedLabs = mutableMapOf<Int, MutableSet<String>>()
+
+        // Track all rooms/labs that exist
+        val allRooms = mutableSetOf<String>()
+        val allLabs = mutableSetOf<String>()
+
+        // Initialize slots
+        timeSlotRanges.forEachIndexed { idx, _ ->
+            slotOccupiedRooms[idx] = mutableSetOf()
+            slotOccupiedLabs[idx] = mutableSetOf()
+        }
+
+        // Also initialize for lab time slots if different
+        if (labTimeSlotRanges.isNotEmpty()) {
+            labTimeSlotRanges.forEachIndexed { idx, _ ->
+                if (!slotOccupiedLabs.containsKey(idx)) {
+                    slotOccupiedLabs[idx] = mutableSetOf()
+                }
+            }
+        }
+
+        // Process all data rows
+        gridData.forEachIndexed { rowIdx, row ->
+            if (rowIdx < 5) return@forEachIndexed
+
+            val rowValues = row.values ?: return@forEachIndexed
+            val isLabSection = labSectionStartRow > 0 && rowIdx > labSectionStartRow
+            val room = getRoomName(rowValues)
+
+            if (room.isEmpty() || isHeaderRow(room)) return@forEachIndexed
+
+            val isLab = isLabSection || room.lowercase().contains("lab")
+            if (isLab) allLabs.add(room) else allRooms.add(room)
+
+            val relevantRanges = if (isLabSection && labTimeSlotRanges.isNotEmpty()) {
+                labTimeSlotRanges
+            } else {
+                timeSlotRanges
+            }
+
+            val cellValues = getAllCellValues(rowValues)
+
+            relevantRanges.forEachIndexed { slotIdx, range ->
+                for (col in range.startCol until range.endCol) {
+                    val cellValue = cellValues.getOrNull(col) ?: ""
+                    if (hasCourseContent(cellValue)) {
+                        // Room is occupied in this slot
+                        if (isLab) {
+                            slotOccupiedLabs[slotIdx]?.add(room)
+                        } else {
+                            slotOccupiedRooms[slotIdx]?.add(room)
+                        }
+                        break
+                    }
+                }
+            }
+        }
+
+        // Get current time for highlighting current/next slot
+        val now = Calendar.getInstance()
+        val currentMinutes = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
+
+        // Build result list
+        val result = mutableListOf<SlotWithFreeRooms>()
+
+        timeSlotRanges.forEachIndexed { slotIdx, range ->
+            val cleanedSlot = cleanTimeSlot(range.timeSlot)
+            val times = extractStartEndTimes(cleanedSlot)
+            val startMinutes = times?.let { timeToMinutes(it.first) } ?: 0
+            val endMinutes = times?.let { timeToMinutes(it.second) } ?: 0
+
+            val freeRooms = allRooms.filter { room ->
+                !(slotOccupiedRooms[slotIdx]?.contains(room) ?: false) && !isInvalidRoomName(room)
+            }.sorted()
+
+            val freeLabs = allLabs.filter { lab ->
+                !(slotOccupiedLabs[slotIdx]?.contains(lab) ?: false) && !isInvalidRoomName(lab)
+            }.sorted()
+
+            result.add(
+                SlotWithFreeRooms(
+                    timeSlot = cleanedSlot,
+                    startMinutes = startMinutes,
+                    endMinutes = endMinutes,
+                    freeRooms = freeRooms,
+                    freeLabs = freeLabs,
+                    isCurrentSlot = currentMinutes in startMinutes until endMinutes,
+                    isNextSlot = false // Will be set later
+                )
+            )
+        }
+
+        // Sort by start time and mark next slot
+        val sortedResult = result.sortedBy { it.startMinutes }
+        val currentSlotIdx = sortedResult.indexOfFirst { it.isCurrentSlot }
+
+        return sortedResult.mapIndexed { idx, slot ->
+            slot.copy(isNextSlot = (currentSlotIdx >= 0 && idx == currentSlotIdx + 1) ||
+                    (currentSlotIdx < 0 && slot.startMinutes > currentMinutes &&
+                     sortedResult.none { it.startMinutes > currentMinutes && it.startMinutes < slot.startMinutes }))
+        }
+    }
+
+    /**
+     * Get currently available rooms (current slot + next slot only)
+     * Efficient method that returns only the relevant slots
+     */
+    fun getCurrentlyAvailableRooms(spreadsheet: Spreadsheet, day: String): List<SlotWithFreeRooms> {
+        val allSlots = getSlotWiseFreeRoomsForDay(spreadsheet, day)
+
+        // Filter to only current and next slots
+        return allSlots.filter { it.isCurrentSlot || it.isNextSlot }
     }
 
     /**
@@ -285,10 +446,23 @@ object FreeRoomsExtractor {
      * Check if this is a header row (not a room)
      */
     private fun isHeaderRow(value: String): Boolean {
-        val headerKeywords = listOf("lab", "room", "rooms", "time", "slot", "venue", "location")
+        val headerKeywords = listOf("lab", "room", "rooms", "time", "slot", "venue", "location", "unknown", "map", "classrooms", "classrooms/labs")
         val lowerValue = value.lowercase()
         return headerKeywords.any { lowerValue == it } ||
+               lowerValue.contains("classrooms") ||
                (value.contains(":") && !value.any { it.isLetter() })
+    }
+
+    /**
+     * Check if room name is invalid and should be filtered out
+     */
+    private fun isInvalidRoomName(roomName: String): Boolean {
+        val invalidNames = listOf("unknown", "map", "classrooms", "classrooms/labs", "location", "rooms", "labs")
+        val lowerName = roomName.lowercase().trim()
+        return lowerName.isEmpty() ||
+               invalidNames.any { lowerName == it } ||
+               lowerName.contains("classrooms") ||
+               lowerName.startsWith("map")
     }
 
     /**

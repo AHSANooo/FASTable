@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/cardSlot"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="8dp"
+    android:layout_marginVertical="4dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="2dp"
+    app:strokeColor="@color/divider_color"
+    app:strokeWidth="1dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="12dp"
+        android:background="@android:color/white">
+
+        <!-- Header with time slot and status -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <!-- Time Slot -->
+            <TextView
+                android:id="@+id/tvTimeSlot"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="8:30 - 10:00"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/navy" />
+
+            <!-- Status Badge (NOW/NEXT) -->
+            <TextView
+                android:id="@+id/tvSlotStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="4dp"
+                android:text="NOW"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:textColor="@android:color/white"
+                android:visibility="gone" />
+
+        </LinearLayout>
+
+        <!-- Room count -->
+        <TextView
+            android:id="@+id/tvRoomCount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="5 Free Rooms"
+            android:textSize="13sp"
+            android:textColor="@color/text_secondary" />
+
+        <!-- Divider -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginVertical="8dp"
+            android:background="@color/divider_color" />
+
+        <!-- Rooms list -->
+        <TextView
+            android:id="@+id/tvRoomsList"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Room 101  •  Room 102  •  Room 103"
+            android:textSize="13sp"
+            android:textColor="@color/text_primary"
+            android:lineSpacingExtra="4dp" />
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>
+

@@ -7,6 +7,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.example.fastable.data.models.FreeRoom
+import com.example.fastable.data.models.SlotWithFreeRooms
 import com.example.fastable.data.remote.FreeRoomsExtractor
 import com.example.fastable.data.remote.GoogleSheetsService
 import kotlinx.coroutines.Dispatchers
@@ -24,6 +25,22 @@ class FreeRoomsViewModel(application: Application) : AndroidViewModel(applicatio
     private val _filteredRooms = MutableLiveData<List<FreeRoom>>()
     val filteredRooms: LiveData<List<FreeRoom>> = _filteredRooms
 
+    // Slot-wise data for "By Slots" tab
+    private val _slotWiseFreeRooms = MutableLiveData<List<SlotWithFreeRooms>>()
+    val slotWiseFreeRooms: LiveData<List<SlotWithFreeRooms>> = _slotWiseFreeRooms
+
+    // Filtered slot-wise data (rooms or labs)
+    private val _filteredSlotWiseRooms = MutableLiveData<List<SlotWithFreeRooms>>()
+    val filteredSlotWiseRooms: LiveData<List<SlotWithFreeRooms>> = _filteredSlotWiseRooms
+
+    // Currently available rooms (current + next slot)
+    private val _currentlyAvailable = MutableLiveData<List<SlotWithFreeRooms>>()
+    val currentlyAvailable: LiveData<List<SlotWithFreeRooms>> = _currentlyAvailable
+
+    // Filtered currently available (rooms or labs)
+    private val _filteredCurrentlyAvailable = MutableLiveData<List<SlotWithFreeRooms>>()
+    val filteredCurrentlyAvailable: LiveData<List<SlotWithFreeRooms>> = _filteredCurrentlyAvailable
+
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> = _isLoading
 
@@ -35,22 +52,26 @@ class FreeRoomsViewModel(application: Application) : AndroidViewModel(applicatio
     private var cacheTime: Long = 0
     private val CACHE_DURATION = 30 * 60 * 1000L // 30 minutes
 
-    // Cache free rooms per day (all rooms, unfiltered)
-    private val freeRoomsCache = mutableMapOf<String, List<FreeRoom>>()
+    // Cache slot-wise free rooms per day
+    private val slotWiseCache = mutableMapOf<String, List<SlotWithFreeRooms>>()
 
     // Current filter state
     private var currentDay: String = "Monday"
     private var showLabs: Boolean = false  // false = Rooms, true = Labs
 
-    fun loadFreeRoomsForDay(day: String, forceRefresh: Boolean = false) {
+    /**
+     * Load slot-wise free rooms for a day (new efficient method)
+     */
+    fun loadSlotWiseFreeRooms(day: String, forceRefresh: Boolean = false) {
         currentDay = day
 
-        // Check cache first (unless force refresh)
+        // Check cache first
         if (!forceRefresh) {
-            freeRoomsCache[day]?.let { cached ->
-                Log.d(TAG, "Using cached free rooms for $day")
-                _freeRooms.value = cached
-                applyFilter()
+            slotWiseCache[day]?.let { cached ->
+                Log.d(TAG, "Using cached slot-wise free rooms for $day")
+                _slotWiseFreeRooms.value = cached
+                applySlotWiseFilter()
+                updateCurrentlyAvailable(cached)
                 return
             }
         }
@@ -60,34 +81,57 @@ class FreeRoomsViewModel(application: Application) : AndroidViewModel(applicatio
 
         viewModelScope.launch {
             try {
-                val rooms = withContext(Dispatchers.IO) {
+                val slots = withContext(Dispatchers.IO) {
                     val spreadsheet = getSpreadsheet(forceRefresh)
-                    if (spreadsheet == null) {
-                        throw Exception("Failed to load timetable data")
-                    }
-                    FreeRoomsExtractor.getFreeRoomsForDay(spreadsheet, day)
+                        ?: throw Exception("Failed to load timetable data")
+                    FreeRoomsExtractor.getSlotWiseFreeRoomsForDay(spreadsheet, day)
                 }
 
                 // Cache the result
-                freeRoomsCache[day] = rooms
+                slotWiseCache[day] = slots
 
-                _freeRooms.value = rooms
-                applyFilter()
+                _slotWiseFreeRooms.value = slots
+                applySlotWiseFilter()
+                updateCurrentlyAvailable(slots)
                 _isLoading.value = false
 
-                if (rooms.isEmpty()) {
-                    Log.d(TAG, "No free rooms found for $day")
-                } else {
-                    Log.d(TAG, "Found ${rooms.size} rooms with free slots for $day")
-                }
+                Log.d(TAG, "Found ${slots.size} time slots for $day")
             } catch (e: Exception) {
-                Log.e(TAG, "Error loading free rooms", e)
+                Log.e(TAG, "Error loading slot-wise free rooms", e)
                 _errorMessage.value = "Failed to load free rooms: ${e.message}"
                 _isLoading.value = false
-                _freeRooms.value = emptyList()
-                _filteredRooms.value = emptyList()
+                _slotWiseFreeRooms.value = emptyList()
+                _filteredSlotWiseRooms.value = emptyList()
+                _currentlyAvailable.value = emptyList()
+                _filteredCurrentlyAvailable.value = emptyList()
             }
         }
+    }
+
+    /**
+     * Update currently available rooms from the slot data
+     */
+    private fun updateCurrentlyAvailable(allSlots: List<SlotWithFreeRooms>) {
+        val available = allSlots.filter { it.isCurrentSlot || it.isNextSlot }
+        _currentlyAvailable.value = available
+        applyCurrentlyAvailableFilter()
+    }
+
+    /**
+     * Apply filter for slot-wise view (show only rooms or labs count)
+     */
+    private fun applySlotWiseFilter() {
+        val allSlots = _slotWiseFreeRooms.value ?: emptyList()
+        // For slot-wise, we keep all slots but filter will affect what's shown in each slot
+        _filteredSlotWiseRooms.value = allSlots
+    }
+
+    /**
+     * Apply filter for currently available view
+     */
+    private fun applyCurrentlyAvailableFilter() {
+        val available = _currentlyAvailable.value ?: emptyList()
+        _filteredCurrentlyAvailable.value = available
     }
 
     /**
@@ -95,12 +139,12 @@ class FreeRoomsViewModel(application: Application) : AndroidViewModel(applicatio
      */
     fun refreshData() {
         // Clear all caches
-        freeRoomsCache.clear()
+        slotWiseCache.clear()
         cachedSpreadsheet = null
         cacheTime = 0
 
         // Reload current day
-        loadFreeRoomsForDay(currentDay, forceRefresh = true)
+        loadSlotWiseFreeRooms(currentDay, forceRefresh = true)
     }
 
     /**
@@ -108,17 +152,14 @@ class FreeRoomsViewModel(application: Application) : AndroidViewModel(applicatio
      */
     fun setRoomTypeFilter(showLabsFilter: Boolean) {
         showLabs = showLabsFilter
-        applyFilter()
+        applySlotWiseFilter()
+        applyCurrentlyAvailableFilter()
     }
 
     /**
-     * Apply the current filter (Labs or Rooms)
+     * Check if labs filter is active
      */
-    private fun applyFilter() {
-        val allRooms = _freeRooms.value ?: emptyList()
-        val filtered = allRooms.filter { it.isLab == showLabs }
-        _filteredRooms.value = filtered
-    }
+    fun isLabsFilterActive(): Boolean = showLabs
 
     private suspend fun getSpreadsheet(forceRefresh: Boolean = false): com.google.api.services.sheets.v4.model.Spreadsheet? {
         val currentTime = System.currentTimeMillis()
@@ -143,5 +184,10 @@ class FreeRoomsViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun clearError() {
         _errorMessage.value = null
+    }
+
+    // Legacy methods for backward compatibility
+    fun loadFreeRoomsForDay(day: String, forceRefresh: Boolean = false) {
+        loadSlotWiseFreeRooms(day, forceRefresh)
     }
 }

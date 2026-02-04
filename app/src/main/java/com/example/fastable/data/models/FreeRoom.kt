@@ -35,3 +35,19 @@ data class FreeRoom(
     }
 }
 
+/**
+ * Data class representing a time slot with rooms free during that entire slot
+ */
+data class SlotWithFreeRooms(
+    val timeSlot: String,           // e.g., "8:30 - 10:00"
+    val startMinutes: Int,          // For sorting
+    val endMinutes: Int,            // For current slot detection
+    val freeRooms: List<String>,    // Rooms free for the entire slot
+    val freeLabs: List<String>,     // Labs free for the entire slot
+    val isCurrentSlot: Boolean = false,  // Highlight if current
+    val isNextSlot: Boolean = false      // Highlight if next
+) {
+    fun getRoomCount(): Int = freeRooms.size
+    fun getLabCount(): Int = freeLabs.size
+    fun getTotalCount(): Int = freeRooms.size + freeLabs.size
+}

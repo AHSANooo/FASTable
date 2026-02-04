@@ -16,7 +16,44 @@
         app:titleTextColor="@android:color/white"
         app:navigationIcon="?attr/homeAsUpIndicator" />
 
-    <!-- Day Tabs -->
+    <!-- Main View Tabs (By Slots / Currently Available) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@android:color/white"
+        android:padding="8dp"
+        android:elevation="2dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnTabBySlots"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:text="By Slots"
+            android:textSize="13sp"
+            android:textAllCaps="false"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            app:cornerRadius="8dp"
+            style="@style/Widget.MaterialComponents.Button.TextButton" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnTabCurrentlyAvailable"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:text="Currently Available"
+            android:textSize="13sp"
+            android:textAllCaps="false"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            app:cornerRadius="8dp"
+            style="@style/Widget.MaterialComponents.Button.TextButton" />
+
+    </LinearLayout>
+
+    <!-- Day Tabs (only shown in By Slots view) -->
     <com.google.android.material.tabs.TabLayout
         android:id="@+id/tabLayoutDays"
         android:layout_width="match_parent"
@@ -41,37 +78,119 @@
         app:tabMode="fixed"
         app:tabGravity="fill" />
 
-    <!-- Loading Progress -->
-    <ProgressBar
-        android:id="@+id/progressBar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:layout_marginTop="32dp"
-        android:visibility="gone"
-        android:indeterminateTint="#0D2A5C" />
-
-    <!-- Empty State -->
-    <TextView
-        android:id="@+id/tvEmptyState"
+    <!-- Content Container -->
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="No free rooms found"
-        android:textSize="16sp"
-        android:textColor="#666"
-        android:textAlignment="center"
-        android:padding="32dp"
-        android:visibility="gone"
-        android:lineSpacingExtra="4dp" />
+        android:layout_height="0dp"
+        android:layout_weight="1">
 
-    <!-- RecyclerView for Free Rooms -->
+        <!-- Loading Progress -->
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:visibility="gone"
+            android:indeterminateTint="#0D2A5C" />
+
+        <!-- Empty State -->
+        <TextView
+            android:id="@+id/tvEmptyState"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="No free rooms found"
+            android:textSize="16sp"
+            android:textColor="#666"
+            android:textAlignment="center"
+            android:padding="32dp"
+            android:visibility="gone"
+            android:layout_gravity="center"
+            android:lineSpacingExtra="4dp" />
+
+        <!-- By Slots View -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvSlotWise"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="8dp"
+            android:clipToPadding="false" />
+
+        <!-- Currently Available View wrapped in ScrollView -->
+        <ScrollView
+            android:id="@+id/scrollCurrentlyAvailable"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone"
+            android:fillViewport="true">
+
+            <LinearLayout
+                android:id="@+id/containerCurrentlyAvailable"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="8dp">
+
+            <!-- Current Slot Section -->
+            <TextView
+                android:id="@+id/tvCurrentSlotHeader"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="🟢 Available Now"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:textColor="@color/green_primary"
+                android:paddingVertical="8dp"
+                android:paddingHorizontal="4dp" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvCurrentSlot"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false" />
+
+            <!-- Next Slot Section -->
+            <TextView
+                android:id="@+id/tvNextSlotHeader"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="🟠 Available Next"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:textColor="@color/orange_primary"
+                android:paddingVertical="8dp"
+                android:paddingHorizontal="4dp"
+                android:layout_marginTop="16dp" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvNextSlot"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false" />
+
+            <!-- No classes message for non-class days/times -->
+            <TextView
+                android:id="@+id/tvNoClassesNow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="No active class slots right now"
+                android:textSize="14sp"
+                android:textColor="#666"
+                android:textAlignment="center"
+                android:padding="24dp"
+                android:visibility="gone" />
+
+        </LinearLayout>
+
+        </ScrollView>
+
+    </FrameLayout>
+
+    <!-- Legacy RecyclerView (hidden, for backward compatibility) -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvFreeRooms"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:padding="8dp"
-        android:clipToPadding="false" />
+        android:visibility="gone" />
 
 </LinearLayout>
 

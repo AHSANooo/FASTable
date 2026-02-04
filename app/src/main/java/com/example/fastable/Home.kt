@@ -391,6 +391,14 @@ class Home : AppCompatActivity() {
             drawerLayout.closeDrawer(GravityCompat.START)
         }
 
+        // Campus Map button
+        val btnMap = findViewById<Button>(R.id.btnMap)
+        btnMap.setOnClickListener {
+            val intent = Intent(this, CampusMap::class.java)
+            startActivity(intent)
+            drawerLayout.closeDrawer(GravityCompat.START)
+        }
+
         // Free Rooms button
         val btnFreeRooms = findViewById<Button>(R.id.btnFreeRooms)
         btnFreeRooms.setOnClickListener {

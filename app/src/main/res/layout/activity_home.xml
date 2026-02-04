@@ -421,6 +421,21 @@
                 app:strokeWidth="1dp" />
 
             <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnMap"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="14dp"
+                android:text="@string/campus_map"
+                android:textAllCaps="false"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:textColor="#0A2E5D"
+                app:cornerRadius="10dp"
+                app:backgroundTint="#FFFFFF"
+                app:strokeColor="#0A2E5D"
+                app:strokeWidth="1dp" />
+
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnUserManual"
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
