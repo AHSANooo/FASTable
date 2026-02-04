@@ -100,6 +100,21 @@ object NotificationScheduler {
         Log.d(TAG, "Scheduled notification for ${session.courseName} - $minutesBefore min before")
     }
 
+    // Valid notification hours (7:00 AM to 5:15 PM)
+    private const val MIN_NOTIFICATION_HOUR = 7
+    private const val MAX_NOTIFICATION_HOUR = 17
+    private const val MAX_NOTIFICATION_MINUTE = 15
+
+    /**
+     * Check if a given hour and minute is within valid notification time range (7:00 AM - 5:15 PM)
+     */
+    private fun isWithinValidNotificationTime(hour: Int, minute: Int): Boolean {
+        if (hour < MIN_NOTIFICATION_HOUR) return false
+        if (hour > MAX_NOTIFICATION_HOUR) return false
+        if (hour == MAX_NOTIFICATION_HOUR && minute > MAX_NOTIFICATION_MINUTE) return false
+        return true
+    }
+
     /**
      * Get session time in milliseconds from day and timeSlot
      */
@@ -111,6 +126,13 @@ object NotificationScheduler {
 
             val hour = timeMatch.groupValues[1].toInt()
             val minute = timeMatch.groupValues[2].toInt()
+
+            // Skip notifications for times outside valid range (7:00 AM - 5:15 PM)
+            // This prevents notifications at 1 AM when user enters "1:00" instead of "13:00"
+            if (!isWithinValidNotificationTime(hour, minute)) {
+                Log.d(TAG, "Skipping notification for $timeSlot - outside valid hours (7:00 AM - 5:15 PM)")
+                return null
+            }
 
             // Get current calendar
             val calendar = Calendar.getInstance()
