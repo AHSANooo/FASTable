@@ -152,7 +152,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     /**
      * Refresh dashboard sessions on app start to detect cancelled classes
-     * Only runs once per app launch and only if online
+     * Uses cached data for faster startup - background worker handles fresh network fetch
+     * Only runs once per ViewModel lifecycle
      */
     fun refreshDashboardOnStart() {
         if (hasRefreshedOnStart) {
@@ -166,17 +167,17 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         hasRefreshedOnStart = true
-        _isRefreshing.value = true
+        // Don't show loading indicator - background sync will update silently
+        // _isRefreshing.value = true
 
         viewModelScope.launch {
             try {
-                Log.d(TAG, "refreshDashboardOnStart: Starting refresh for cancelled classes")
+                Log.d(TAG, "refreshDashboardOnStart: Starting quick refresh with cache")
 
                 // Get current dashboard sessions
                 val currentSessions = _dashboardSessions.value ?: emptyList()
                 if (currentSessions.isEmpty()) {
                     Log.d(TAG, "refreshDashboardOnStart: No sessions to refresh")
-                    _isRefreshing.value = false
                     return@launch
                 }
 
@@ -184,8 +185,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 val courseNames = currentSessions.map { it.courseName }.distinct()
                 Log.d(TAG, "refreshDashboardOnStart: Refreshing ${courseNames.size} courses: $courseNames")
 
-                // Refresh dashboard sessions from spreadsheet
-                val result: Result<List<DashboardSession>> = repository.refreshDashboardSessions(currentSessions)
+                // Refresh dashboard sessions from spreadsheet (use cache if available for faster startup)
+                val result: Result<List<DashboardSession>> = repository.refreshDashboardSessions(currentSessions, forceRefresh = false)
 
                 result.onSuccess { refreshedSessions: List<DashboardSession> ->
                     Log.d(TAG, "refreshDashboardOnStart: Got ${refreshedSessions.size} refreshed sessions")
@@ -207,14 +208,78 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "refreshDashboardOnStart: Exception - ${e.message}", e)
-            } finally {
-                _isRefreshing.value = false
             }
+            // No finally block needed - background sync happens silently
         }
     }
 
     fun clearError() {
         _errorMessage.value = null
+    }
+
+    /**
+     * Manual refresh triggered by user (via refresh button)
+     * This refreshes dashboard sessions to detect cancelled, shifted, or removed classes
+     */
+    fun manualRefresh() {
+        if (!isOnline()) {
+            _errorMessage.value = "No internet connection"
+            return
+        }
+
+        _isRefreshing.value = true
+
+        viewModelScope.launch {
+            try {
+                Log.d(TAG, "manualRefresh: User triggered refresh")
+
+                // Get current dashboard sessions
+                val currentSessions = _dashboardSessions.value ?: emptyList()
+                if (currentSessions.isEmpty()) {
+                    Log.d(TAG, "manualRefresh: No sessions to refresh")
+                    _errorMessage.value = "No courses in your timetable to refresh"
+                    _isRefreshing.value = false
+                    return@launch
+                }
+
+                Log.d(TAG, "manualRefresh: Refreshing ${currentSessions.size} sessions")
+
+                // Refresh dashboard sessions from spreadsheet (force fresh fetch for manual refresh)
+                val result = repository.refreshDashboardSessions(currentSessions, forceRefresh = true)
+
+                result.onSuccess { refreshedSessions ->
+                    Log.d(TAG, "manualRefresh: Got ${refreshedSessions.size} refreshed sessions")
+
+                    // Update LiveData - this will trigger UI update
+                    _dashboardSessions.value = refreshedSessions
+                    filterTodaysSessions(refreshedSessions)
+
+                    // Update all-day sessions if viewing
+                    currentViewingDay?.let { day ->
+                        loadAllSessionsForDay(day)
+                    }
+
+                    // Schedule notifications for updated sessions
+                    NotificationScheduler.scheduleNotificationsForSessions(context, refreshedSessions)
+
+                    // Provide feedback to user
+                    val cancelledCount = refreshedSessions.count { it.courseName.contains("Cancelled", ignoreCase = true) }
+                    if (cancelledCount > 0) {
+                        _errorMessage.value = "Timetable updated! $cancelledCount class(es) cancelled"
+                    } else {
+                        _errorMessage.value = "Timetable is up to date"
+                    }
+                }.onFailure { exception ->
+                    Log.e(TAG, "manualRefresh: Failed - ${exception.message}")
+                    _errorMessage.value = "Failed to refresh: ${exception.message}"
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "manualRefresh: Exception - ${e.message}", e)
+                _errorMessage.value = "Refresh failed: ${e.message}"
+            } finally {
+                _isRefreshing.value = false
+            }
+        }
     }
 }
 

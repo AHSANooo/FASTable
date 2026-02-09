@@ -1,6 +1,7 @@
 package com.example.fastable.adapters
 
 import android.graphics.Color
+import android.graphics.Paint
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -37,33 +38,57 @@ class DashboardSessionAdapter(
         private val colorIndicator: View = itemView.findViewById(R.id.colorIndicator)
 
         fun bind(session: DashboardSession) {
+            // Check if class is cancelled
+            val isCancelled = session.courseName.contains("Cancelled", ignoreCase = true)
+
             tvCourseName.text = session.courseName
-            tvSessionType.text = session.sessionType
+            tvSessionType.text = if (isCancelled) "Cancelled" else session.sessionType
             tvRoom.text = session.room
             tvTimeSlot.text = session.timeSlot
 
-            // Set color on the indicator bar - convert from Google Sheets RGB format to Android Color
-            // Color format from Sheets is like "0.900.900.90" (concatenated "%.2f%.2f%.2f")
-            if (session.colorCode.isNotEmpty() && session.colorCode != "1.001.001.00") {
-                try {
-                    // Parse color code - it's a concatenated string of 3 floats with 2 decimal places each
-                    // Format: "0.900.900.90" means R=0.90, G=0.90, B=0.90
-                    val colorStr = session.colorCode
-                    if (colorStr.length >= 12) {
-                        val r = (colorStr.substring(0, 4).toFloat() * 255).toInt()
-                        val g = (colorStr.substring(4, 8).toFloat() * 255).toInt()
-                        val b = (colorStr.substring(8, 12).toFloat() * 255).toInt()
-                        colorIndicator.setBackgroundColor(Color.rgb(r, g, b))
-                    } else {
-                        // Fallback to default color
+            // Apply cancelled styling
+            if (isCancelled) {
+                // Strikethrough effect on course name
+                tvCourseName.paintFlags = tvCourseName.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
+                tvCourseName.setTextColor(Color.parseColor("#999999"))
+
+                // Gray out other text
+                tvRoom.setTextColor(Color.parseColor("#AAAAAA"))
+                tvTimeSlot.setTextColor(Color.parseColor("#AAAAAA"))
+
+                // Red indicator for cancelled
+                colorIndicator.setBackgroundColor(Color.parseColor("#FF4444"))
+
+                // Red background for session type badge
+                tvSessionType.setBackgroundColor(Color.parseColor("#FF4444"))
+            } else {
+                // Reset to normal styling
+                tvCourseName.paintFlags = tvCourseName.paintFlags and Paint.STRIKE_THRU_TEXT_FLAG.inv()
+                tvCourseName.setTextColor(Color.parseColor("#0D2A5C"))
+                tvRoom.setTextColor(Color.parseColor("#666666"))
+                tvTimeSlot.setTextColor(Color.parseColor("#666666"))
+
+                // Set session type background based on type
+                tvSessionType.setBackgroundResource(R.drawable.session_type_bg)
+
+                // Set color on the indicator bar - convert from Google Sheets RGB format to Android Color
+                if (session.colorCode.isNotEmpty() && session.colorCode != "1.001.001.00") {
+                    try {
+                        val colorStr = session.colorCode
+                        if (colorStr.length >= 12) {
+                            val r = (colorStr.substring(0, 4).toFloat() * 255).toInt()
+                            val g = (colorStr.substring(4, 8).toFloat() * 255).toInt()
+                            val b = (colorStr.substring(8, 12).toFloat() * 255).toInt()
+                            colorIndicator.setBackgroundColor(Color.rgb(r, g, b))
+                        } else {
+                            colorIndicator.setBackgroundColor(Color.parseColor("#0D2A5C"))
+                        }
+                    } catch (e: Exception) {
                         colorIndicator.setBackgroundColor(Color.parseColor("#0D2A5C"))
                     }
-                } catch (e: Exception) {
-                    // Use default color
+                } else {
                     colorIndicator.setBackgroundColor(Color.parseColor("#0D2A5C"))
                 }
-            } else {
-                colorIndicator.setBackgroundColor(Color.parseColor("#0D2A5C"))
             }
 
             // Long click to delete

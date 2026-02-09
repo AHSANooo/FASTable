@@ -100,37 +100,56 @@ object NotificationScheduler {
         Log.d(TAG, "Scheduled notification for ${session.courseName} - $minutesBefore min before")
     }
 
-    // Valid notification hours (7:00 AM to 5:15 PM)
+    // Valid notification hours (7:00 AM to 5:15 PM in 24-hour format)
     private const val MIN_NOTIFICATION_HOUR = 7
     private const val MAX_NOTIFICATION_HOUR = 17
     private const val MAX_NOTIFICATION_MINUTE = 15
-
-    /**
-     * Check if a given hour and minute is within valid notification time range (7:00 AM - 5:15 PM)
-     */
-    private fun isWithinValidNotificationTime(hour: Int, minute: Int): Boolean {
-        if (hour < MIN_NOTIFICATION_HOUR) return false
-        if (hour > MAX_NOTIFICATION_HOUR) return false
-        if (hour == MAX_NOTIFICATION_HOUR && minute > MAX_NOTIFICATION_MINUTE) return false
-        return true
-    }
 
     /**
      * Get session time in milliseconds from day and timeSlot
      */
     private fun getSessionTimeInMillis(day: String, timeSlot: String): Long? {
         try {
-            // Parse timeSlot like "8:30-9:50" or "8:30am-9:50am"
+            // Parse timeSlot like "8:30-9:50" or "8:30am-9:50am" or "01:00-02:20"
             val timeRegex = Regex("(\\d{1,2}):(\\d{2})")
             val timeMatch = timeRegex.find(timeSlot) ?: return null
 
-            val hour = timeMatch.groupValues[1].toInt()
+            var hour = timeMatch.groupValues[1].toInt()
             val minute = timeMatch.groupValues[2].toInt()
 
-            // Skip notifications for times outside valid range (7:00 AM - 5:15 PM)
-            // This prevents notifications at 1 AM when user enters "1:00" instead of "13:00"
-            if (!isWithinValidNotificationTime(hour, minute)) {
-                Log.d(TAG, "Skipping notification for $timeSlot - outside valid hours (7:00 AM - 5:15 PM)")
+            // Check for explicit AM/PM markers
+            val hasAmPm = timeSlot.lowercase().contains("am") || timeSlot.lowercase().contains("pm")
+            val isPm = timeSlot.lowercase().contains("pm")
+            val isAm = timeSlot.lowercase().contains("am")
+
+            // Convert to 24-hour format
+            if (hasAmPm) {
+                // Explicit AM/PM marker
+                if (isPm && hour != 12) {
+                    hour += 12
+                } else if (isAm && hour == 12) {
+                    hour = 0
+                }
+            } else {
+                // University schedule convention (no AM/PM marker):
+                // 8, 9, 10, 11 are AM (morning classes start at 8:30)
+                // 12 is noon (PM)
+                // 1, 2, 3, 4, 5, 6, 7 are PM (afternoon classes)
+                if (hour in 1..7) {
+                    hour += 12  // 1:00 -> 13:00, 2:00 -> 14:00, etc.
+                }
+                // 8-11 remain as is (AM)
+                // 12 remains as is (noon/PM)
+            }
+
+            // Final validation: skip notifications for times outside university hours (7:00 AM - 5:15 PM)
+            // After conversion, valid hours are 7-17
+            if (hour < MIN_NOTIFICATION_HOUR || hour > MAX_NOTIFICATION_HOUR) {
+                Log.d(TAG, "Skipping notification for $timeSlot (hour=$hour) - outside valid hours")
+                return null
+            }
+            if (hour == MAX_NOTIFICATION_HOUR && minute > MAX_NOTIFICATION_MINUTE) {
+                Log.d(TAG, "Skipping notification for $timeSlot - after 5:15 PM")
                 return null
             }
 

@@ -184,7 +184,21 @@
             android:lineSpacingExtra="4dp" />
     </LinearLayout>
 
-    <!-- Floating Action Button -->
+    <!-- Refresh Floating Action Button -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabRefresh"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:contentDescription="Refresh timetable"
+        android:src="@drawable/ic_refresh"
+        app:backgroundTint="#0D2A5C"
+        app:tint="@android:color/white"
+        app:fabSize="mini"
+        app:layout_constraintBottom_toTopOf="@id/fabAddTimetable"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Add Timetable Floating Action Button -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabAddTimetable"
         android:layout_width="wrap_content"

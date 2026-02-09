@@ -477,17 +477,24 @@ object TimetableExtractor {
                                     }
 
                                     val courseName = if (hasEmbeddedTime) cleanEntry else selectedCourse.name
+                                    // Append "Cancelled" if present in the original cell entry
+                                    val finalCourseName = if (classEntry.contains("Cancelled", ignoreCase = true) &&
+                                        !courseName.contains("Cancelled", ignoreCase = true)) {
+                                        "$courseName Cancelled"
+                                    } else {
+                                        courseName
+                                    }
                                     val rank = colRank[colIdx] ?: 999
 
                                     // Determine session type: check if course name contains "Lab" or if it's in lab section
-                                    val sessionType = if (isLab || courseName.contains("Lab", ignoreCase = true)) "Lab" else "Class"
+                                    val sessionType = if (isLab || finalCourseName.contains("Lab", ignoreCase = true)) "Lab" else "Class"
 
                                     val session = TimetableSession(
                                         day = sheetName,
                                         timeSlot = timeSlot,
                                         room = room,
                                         sessionType = sessionType,
-                                        courseName = courseName,
+                                        courseName = finalCourseName,
                                         section = selectedCourse.section,
                                         batch = selectedCourse.batch,
                                         department = selectedCourse.department,
@@ -529,17 +536,24 @@ object TimetableExtractor {
                                     }
 
                                     val courseName = if (hasEmbeddedTime) cleanEntry else selectedCourse.name
+                                    // Append "Cancelled" if present in the original cell entry
+                                    val finalCourseName = if (classEntry.contains("Cancelled", ignoreCase = true) &&
+                                        !courseName.contains("Cancelled", ignoreCase = true)) {
+                                        "$courseName Cancelled"
+                                    } else {
+                                        courseName
+                                    }
                                     val rank = colRank[colIdx] ?: 999
 
                                     // Determine session type: check if course name contains "Lab" or if it's in lab section
-                                    val sessionType = if (isLab || courseName.contains("Lab", ignoreCase = true)) "Lab" else "Class"
+                                    val sessionType = if (isLab || finalCourseName.contains("Lab", ignoreCase = true)) "Lab" else "Class"
 
                                     val session = TimetableSession(
                                         day = sheetName,
                                         timeSlot = timeSlot,
                                         room = room,
                                         sessionType = sessionType,
-                                        courseName = courseName,
+                                        courseName = finalCourseName,
                                         section = selectedCourse.section,
                                         batch = selectedCourse.batch,
                                         department = selectedCourse.department,

@@ -22,6 +22,7 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
 import com.example.fastable.adapters.DashboardSessionAdapter
 import com.example.fastable.viewmodel.HomeViewModel
+import com.example.fastable.services.TimetableSyncWorker
 import de.hdodenhof.circleimageview.CircleImageView
 import com.example.fastable.data.local.AppDatabase
 import com.example.fastable.data.models.UserProfile
@@ -132,6 +133,8 @@ class Home : AppCompatActivity() {
         viewModel.loadDashboardSessions()
         // Reload user profile to get latest data
         loadUserProfile()
+        // Trigger background sync to fetch fresh data from spreadsheet
+        TimetableSyncWorker.runImmediateSync(this)
     }
 
     private fun setupFab() {
@@ -139,6 +142,12 @@ class Home : AppCompatActivity() {
         fab.setOnClickListener {
             val intent = Intent(this, CustomTimetable::class.java)
             startActivity(intent)
+        }
+
+        // Setup refresh button
+        val fabRefresh = findViewById<com.google.android.material.floatingactionbutton.FloatingActionButton>(R.id.fabRefresh)
+        fabRefresh.setOnClickListener {
+            viewModel.manualRefresh()
         }
     }
 

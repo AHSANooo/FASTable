@@ -494,83 +494,138 @@ class TimetableRepository(context: Context) {
     }
 
     /**
-     * Refresh dashboard sessions to detect cancelled classes
-     * Fetches fresh data from spreadsheet for existing courses in dashboard
-     * Returns updated sessions atomically (old sessions are replaced only after new are ready)
+     * Refresh dashboard sessions to detect cancelled, shifted, or removed classes
+     * Fetches fresh data from spreadsheet ONLY for courses currently in dashboard
+     *
+     * Handles three scenarios:
+     * 1. CANCELLED: Cell contains "OS (CS-A) Cancelled" - display as cancelled
+     * 2. SHIFTED: Class moved to different room - update with new room
+     * 3. REMOVED: Cell cleared - class no longer appears in fresh data
+     *
+     * @param forceRefresh If true, clears cache and fetches fresh data. If false, uses cached data if available.
+     * Returns updated sessions atomically (old sessions replaced only after new ones are ready)
      */
-    suspend fun refreshDashboardSessions(currentSessions: List<com.example.fastable.data.models.DashboardSession>): Result<List<com.example.fastable.data.models.DashboardSession>> {
+    suspend fun refreshDashboardSessions(
+        currentSessions: List<com.example.fastable.data.models.DashboardSession>,
+        forceRefresh: Boolean = true
+    ): Result<List<com.example.fastable.data.models.DashboardSession>> {
         return withContext(Dispatchers.IO) {
             try {
                 if (currentSessions.isEmpty()) {
                     return@withContext Result.success(currentSessions)
                 }
 
-                // Fetch fresh spreadsheet data
+                // Clear spreadsheet cache only if force refresh is requested
+                if (forceRefresh) {
+                    clearSpreadsheetCache()
+                }
+
+                // Fetch spreadsheet data (from cache or network)
                 val spreadsheet = getSpreadsheet()
                     ?: return@withContext Result.failure(Exception("Failed to fetch spreadsheet"))
 
-                Log.d(TAG, "refreshDashboardSessions: Fetched spreadsheet, processing ${currentSessions.size} sessions")
+                Log.d(TAG, "refreshDashboardSessions: Fetched spreadsheet (forceRefresh=$forceRefresh), processing ${currentSessions.size} sessions")
 
-                // Get unique course names (base names without "Cancelled" suffix)
+                // Get unique course base names (without "Cancelled" suffix) from dashboard
                 val courseBaseNames = currentSessions.map { session ->
-                    session.courseName.replace(" Cancelled", "", ignoreCase = true).trim()
+                    session.courseName
+                        .replace(" Cancelled", "", ignoreCase = true)
+                        .replace("Cancelled", "", ignoreCase = true)
+                        .trim()
                 }.distinct()
 
-                Log.d(TAG, "refreshDashboardSessions: Looking for courses: $courseBaseNames")
+                Log.d(TAG, "refreshDashboardSessions: Looking for ${courseBaseNames.size} unique courses: $courseBaseNames")
 
-                // Create Course objects for lookup
-                val coursesToLookup = courseBaseNames.map { courseName ->
+                // Create Course objects for lookup - include section info for better matching
+                val coursesToLookup = currentSessions.map { session ->
+                    val baseName = session.courseName
+                        .replace(" Cancelled", "", ignoreCase = true)
+                        .replace("Cancelled", "", ignoreCase = true)
+                        .trim()
                     Course(
                         id = 0,
-                        name = courseName,
-                        section = "",
-                        batch = "",
-                        department = "",
-                        colorCode = "",
-                        fullEntry = courseName
+                        name = baseName,
+                        section = session.section,
+                        batch = session.batch,
+                        department = session.department,
+                        colorCode = session.colorCode,
+                        fullEntry = baseName
                     )
-                }
+                }.distinctBy { "${it.name}_${it.section}_${it.batch}" }
 
                 // Get fresh sessions from spreadsheet
                 val freshSessions = TimetableExtractor.getCustomTimetable(spreadsheet, coursesToLookup)
                 Log.d(TAG, "refreshDashboardSessions: Found ${freshSessions.size} sessions from spreadsheet")
 
-                // Build a map of existing sessions for quick lookup
-                val existingSessionsMap = currentSessions.associateBy { session ->
-                    "${session.courseName.replace(" Cancelled", "", ignoreCase = true).trim()}_${session.day}_${session.section}"
+                // Build lookup map for old sessions: key -> session
+                // Key format: "baseName_day_timeSlot_section" for precise matching
+                val oldSessionsMap = currentSessions.associateBy { session ->
+                    val baseName = session.courseName
+                        .replace(" Cancelled", "", ignoreCase = true)
+                        .replace("Cancelled", "", ignoreCase = true)
+                        .trim()
+                    "${baseName}_${session.day}_${session.timeSlot}_${session.section}"
                 }
 
-                // Process fresh sessions - detect cancelled ones
+
                 val refreshedSessions = mutableListOf<com.example.fastable.data.models.DashboardSession>()
                 val processedKeys = mutableSetOf<String>()
 
+                // First, process all fresh sessions from spreadsheet
                 freshSessions.forEach { freshSession ->
-                    val baseName = freshSession.courseName.replace(" Cancelled", "", ignoreCase = true).trim()
-                    val key = "${baseName}_${freshSession.day}_${freshSession.section}"
+                    val baseName = freshSession.courseName
+                        .replace(" Cancelled", "", ignoreCase = true)
+                        .replace("Cancelled", "", ignoreCase = true)
+                        .trim()
+                    val key = "${baseName}_${freshSession.day}_${freshSession.timeSlot}_${freshSession.section}"
 
+                    // Check if this was an existing session
+                    val existingSession = oldSessionsMap[key]
 
                     val dashboardSession = com.example.fastable.data.models.DashboardSession(
                         day = freshSession.day,
                         timeSlot = freshSession.timeSlot,
-                        room = freshSession.room,
+                        room = freshSession.room,  // May be different if shifted
                         sessionType = freshSession.sessionType,
-                        courseName = freshSession.courseName, // Keep as-is (may include "Cancelled")
+                        courseName = freshSession.courseName,  // May include "Cancelled"
                         section = freshSession.section,
                         batch = freshSession.batch,
                         department = freshSession.department,
                         rank = freshSession.rank,
                         colorCode = freshSession.colorCode,
-                        isCustom = existingSessionsMap[key]?.isCustom ?: true
+                        isCustom = existingSession?.isCustom ?: true,
+                        lastUpdated = System.currentTimeMillis()
                     )
 
                     refreshedSessions.add(dashboardSession)
                     processedKeys.add(key)
+
+                    // Log changes detected
+                    if (freshSession.courseName.contains("Cancelled", ignoreCase = true)) {
+                        Log.d(TAG, "refreshDashboardSessions: CANCELLED detected - ${freshSession.courseName} on ${freshSession.day}")
+                    } else if (existingSession != null && existingSession.room != freshSession.room) {
+                        Log.d(TAG, "refreshDashboardSessions: SHIFTED detected - ${freshSession.courseName} moved from ${existingSession.room} to ${freshSession.room}")
+                    }
                 }
 
-                Log.d(TAG, "refreshDashboardSessions: Processed ${refreshedSessions.size} sessions, ${processedKeys.size} unique keys")
+                // Check for sessions that were in old data but not in fresh data (REMOVED)
+                currentSessions.forEach { oldSession ->
+                    val baseName = oldSession.courseName
+                        .replace(" Cancelled", "", ignoreCase = true)
+                        .replace("Cancelled", "", ignoreCase = true)
+                        .trim()
+                    val key = "${baseName}_${oldSession.day}_${oldSession.timeSlot}_${oldSession.section}"
+
+                    if (!processedKeys.contains(key)) {
+                        // This session is no longer in the spreadsheet - it was REMOVED
+                        Log.d(TAG, "refreshDashboardSessions: REMOVED detected - ${oldSession.courseName} on ${oldSession.day} at ${oldSession.timeSlot} no longer exists")
+                        // We intentionally DON'T add it to refreshedSessions - it's been removed
+                    }
+                }
+
+                Log.d(TAG, "refreshDashboardSessions: Processed ${refreshedSessions.size} sessions (was ${currentSessions.size})")
 
                 // Atomically replace all sessions in database
-                // This ensures no empty state and no duplicates
                 database.dashboardDao().clearAllSessions()
                 database.dashboardDao().insertDashboardSessions(refreshedSessions)
 
