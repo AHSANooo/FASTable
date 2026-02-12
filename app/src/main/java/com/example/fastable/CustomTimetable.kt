@@ -30,7 +30,7 @@ class CustomTimetable : AppCompatActivity() {
     private lateinit var progressBar: ProgressBar
     private var progressDialog: android.app.ProgressDialog? = null
 
-    private val days = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
+    private val days = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
     private var currentBatch: String = ""
     private var currentSection: String = ""
 

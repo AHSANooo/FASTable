@@ -58,11 +58,13 @@ object TimetableExtractor {
 
     fun extractBatchColors(spreadsheet: Spreadsheet): Map<String, String> {
         val batchColors = mutableMapOf<String, String>()
-        val timetableSheets = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
+        val dayKeywords = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
 
         spreadsheet.sheets?.forEach { sheet ->
             val sheetName = sheet.properties?.title ?: return@forEach
-            if (sheetName !in timetableSheets) return@forEach
+            // Use partial matching - sheet name must contain one of the day keywords
+            val isTimeTableSheet = dayKeywords.any { day -> sheetName.contains(day, ignoreCase = true) }
+            if (!isTimeTableSheet) return@forEach
 
             val gridData = sheet.data?.getOrNull(0)?.rowData ?: return@forEach
 
@@ -190,11 +192,16 @@ object TimetableExtractor {
         }
 
         val sessions = mutableListOf<TimetableSession>()
-        val timetableSheets = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
+        val dayKeywords = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
 
         spreadsheet.sheets?.forEach { sheet ->
             val sheetName = sheet.properties?.title ?: return@forEach
-            if (sheetName !in timetableSheets) return@forEach
+            // Use partial matching - sheet name must contain one of the day keywords
+            val matchedDay = dayKeywords.firstOrNull { day -> sheetName.contains(day, ignoreCase = true) }
+            if (matchedDay == null) return@forEach
+
+            // Use the normalized day name (e.g., "Saturday" instead of "Saturday (Feb. 14, 2025)")
+            val normalizedDayName = matchedDay
 
             val gridData = sheet.data?.getOrNull(0)?.rowData ?: return@forEach
             if (gridData.size < 6) return@forEach
@@ -334,7 +341,7 @@ object TimetableExtractor {
 
                                         sessions.add(
                                             TimetableSession(
-                                                day = sheetName,
+                                                day = normalizedDayName,
                                                 timeSlot = timeSlot,
                                                 room = room,
                                                 sessionType = sessionType,
@@ -374,16 +381,35 @@ object TimetableExtractor {
     ): List<TimetableSession> {
         if (selectedCourses.isEmpty()) return emptyList()
 
+        Log.d(TAG, "=== getCustomTimetable START ===")
+        Log.d(TAG, "Selected courses: ${selectedCourses.size}")
+        selectedCourses.forEach { course ->
+            Log.d(TAG, "  - ${course.name} (${course.department}-${course.section}) batch=${course.batch} fullEntry=${course.fullEntry}")
+        }
+
         val sessions = mutableListOf<TimetableSession>()
         val batchColors = extractBatchColors(spreadsheet)
-        val timetableSheets = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
+        val dayKeywords = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
+
+        Log.d(TAG, "Batch colors: ${batchColors.size}")
+        selectedCourses.forEach { course ->
+            val expectedColor = batchColors.entries.firstOrNull { it.value == course.batch }?.key
+            Log.d(TAG, "  Course ${course.name} batch=${course.batch} expectedColor=$expectedColor")
+        }
 
         spreadsheet.sheets?.forEach { sheet ->
             val sheetName = sheet.properties?.title ?: return@forEach
-            if (sheetName !in timetableSheets) return@forEach
+            // Use partial matching - sheet name must contain one of the day keywords
+            val matchedDay = dayKeywords.firstOrNull { day -> sheetName.contains(day, ignoreCase = true) }
+            if (matchedDay == null) return@forEach
+
+            // Use the normalized day name (e.g., "Saturday" instead of "Saturday (Feb. 14, 2025)")
+            val normalizedDayName = matchedDay
 
             val gridData = sheet.data?.getOrNull(0)?.rowData ?: return@forEach
             if (gridData.size < 6) return@forEach
+
+            Log.d(TAG, "Processing sheet: $sheetName (normalized: $normalizedDayName)")
 
             val (timeRow, colRank) = buildTimeColRank(gridData)
 
@@ -490,7 +516,7 @@ object TimetableExtractor {
                                     val sessionType = if (isLab || finalCourseName.contains("Lab", ignoreCase = true)) "Lab" else "Class"
 
                                     val session = TimetableSession(
-                                        day = sheetName,
+                                        day = normalizedDayName,
                                         timeSlot = timeSlot,
                                         room = room,
                                         sessionType = sessionType,
@@ -549,7 +575,7 @@ object TimetableExtractor {
                                     val sessionType = if (isLab || finalCourseName.contains("Lab", ignoreCase = true)) "Lab" else "Class"
 
                                     val session = TimetableSession(
-                                        day = sheetName,
+                                        day = normalizedDayName,
                                         timeSlot = timeSlot,
                                         room = room,
                                         sessionType = sessionType,
@@ -573,6 +599,15 @@ object TimetableExtractor {
             }
         }
 
+        Log.d(TAG, "=== getCustomTimetable END: Found ${sessions.size} sessions ===")
+        if (sessions.isEmpty()) {
+            Log.w(TAG, "No sessions found! Check course matching logic.")
+        } else {
+            sessions.take(5).forEach { session ->
+                Log.d(TAG, "  Session: ${session.courseName} on ${session.day} at ${session.timeSlot}")
+            }
+        }
+
         return sessions.sortedWith(compareBy({ it.day }, { it.rank }, { it.getStartTimeMillis() }))
     }
 
@@ -582,35 +617,101 @@ object TimetableExtractor {
         cellColor: String,
         batchColors: Map<String, String>
     ): Boolean {
-        val (cleanEntry, _, hasEmbeddedTime) = TimeParser.parseEmbeddedTime(classEntry)
-        val entryToMatch = if (hasEmbeddedTime) cleanEntry else classEntry
+        if (classEntry.isBlank()) return false
 
-        if (selectedCourse.name.lowercase() !in entryToMatch.lowercase()) {
+        // First check: batch color must match (most reliable check)
+        val courseBatch = selectedCourse.batch
+        val expectedColor = batchColors.entries.firstOrNull { it.value == courseBatch }?.key
+        if (expectedColor != null && cellColor != expectedColor) {
             return false
         }
 
-        if ("lab" !in selectedCourse.name.lowercase() && "lab" in entryToMatch.lowercase()) {
+        val (cleanEntry, _, hasEmbeddedTime) = TimeParser.parseEmbeddedTime(classEntry)
+        val entryToMatch = if (hasEmbeddedTime) cleanEntry else classEntry
+        val entryLower = entryToMatch.lowercase()
+
+        // Check if fullEntry matches (most reliable for course identification)
+        if (selectedCourse.fullEntry.isNotEmpty()) {
+            // Normalize both for comparison
+            val normalizedFullEntry = selectedCourse.fullEntry.lowercase()
+                .replace(Regex("\\s+"), " ").trim()
+            val normalizedClassEntry = classEntry.lowercase()
+                .replace(Regex("\\s+"), " ").trim()
+
+            // Exact match or close match
+            if (normalizedClassEntry == normalizedFullEntry ||
+                normalizedClassEntry.startsWith(normalizedFullEntry) ||
+                normalizedFullEntry.startsWith(normalizedClassEntry)) {
+                return true
+            }
+        }
+
+        // Normalize course names for comparison
+        val normalizedSelectedName = selectedCourse.name.lowercase()
+            .replace(Regex("[,\\s]+"), " ")
+            .trim()
+        val normalizedEntry = entryLower
+            .replace(Regex("[,\\s]+"), " ")
+            .trim()
+
+        // Extract base course name (before any group/section info in parentheses)
+        val baseSelectedName = normalizedSelectedName.replace(Regex("\\([^)]*\\)"), "").trim()
+
+        // Check if course names match
+        val nameMatches = baseSelectedName.isNotEmpty() && (
+            normalizedEntry.contains(baseSelectedName) ||
+            entryLower.contains(baseSelectedName)
+        )
+
+        if (!nameMatches) {
+            return false
+        }
+
+        // If selected course is not a lab but entry is a lab, skip
+        if ("lab" !in selectedCourse.name.lowercase() && "lab" in entryLower) {
             return false
         }
 
         val dept = selectedCourse.department
         val section = selectedCourse.section
-        val sectionPatterns = listOf(
-            if (dept.isNotEmpty()) "($dept-$section)" else null,
-            "-$section)",
-            "-$section ",
-            "($section)",
-            " $section)"
-        ).filterNotNull()
 
-        if (!sectionPatterns.any { it in classEntry }) {
-            return false
+        // Handle group patterns like "(CS, Gp-II)" or "(CS-A, G-1)" or "(CS,Gp-II)"
+        val hasGroupPattern = entryToMatch.contains(Regex("G[p-]?-?\\d+|Gp-[IVX]+", RegexOption.IGNORE_CASE))
+
+        if (hasGroupPattern) {
+            // For group-based courses, check if the department matches
+            val deptInEntry = dept.isEmpty() || classEntry.contains(dept, ignoreCase = true)
+
+            // Check if group pattern matches
+            val selectedGroupMatch = Regex("G[p-]?-?\\d+|Gp-[IVX]+", RegexOption.IGNORE_CASE).find(selectedCourse.fullEntry)
+            val entryGroupMatch = Regex("G[p-]?-?\\d+|Gp-[IVX]+", RegexOption.IGNORE_CASE).find(classEntry)
+
+            if (selectedGroupMatch != null && entryGroupMatch != null) {
+                // Normalize group format
+                val normalizeGroup = { g: String ->
+                    g.lowercase().replace("-", "").replace("p", "").replace(" ", "")
+                }
+                if (normalizeGroup(selectedGroupMatch.value) == normalizeGroup(entryGroupMatch.value) && deptInEntry) {
+                    return true
+                }
+            } else if (selectedGroupMatch == null && deptInEntry) {
+                // Selected course has no group, but entry does - may still match if batch color matches
+                return true
+            }
         }
 
-        val courseBatch = selectedCourse.batch
-        val expectedColor = batchColors.entries.firstOrNull { it.value == courseBatch }?.key
-        if (expectedColor != null && cellColor != expectedColor) {
-            return false
+        // Standard section matching for non-group courses
+        if (section.isNotEmpty()) {
+            // Check various section patterns
+            val sectionInEntry = classEntry.contains("-$section", ignoreCase = true) ||
+                                 classEntry.contains("($section)", ignoreCase = true) ||
+                                 classEntry.contains(" $section)", ignoreCase = true) ||
+                                 classEntry.contains("$dept-$section", ignoreCase = true) ||
+                                 classEntry.contains(",$section)", ignoreCase = true)
+
+            if (!sectionInEntry) {
+                return false
+            }
         }
 
         return true

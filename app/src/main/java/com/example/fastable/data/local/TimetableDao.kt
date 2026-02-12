@@ -21,7 +21,7 @@ interface TimetableDao {
     @Query("SELECT * FROM timetable_sessions WHERE isCustom = 1 ORDER BY day, rank, timeSlot")
     fun getCustomSessions(): Flow<List<TimetableSession>>
 
-    @Query("SELECT DISTINCT day FROM timetable_sessions WHERE batch = :batch AND section = :section ORDER BY CASE day WHEN 'Monday' THEN 1 WHEN 'Tuesday' THEN 2 WHEN 'Wednesday' THEN 3 WHEN 'Thursday' THEN 4 WHEN 'Friday' THEN 5 END")
+    @Query("SELECT DISTINCT day FROM timetable_sessions WHERE batch = :batch AND section = :section ORDER BY CASE day WHEN 'Monday' THEN 1 WHEN 'Tuesday' THEN 2 WHEN 'Wednesday' THEN 3 WHEN 'Thursday' THEN 4 WHEN 'Friday' THEN 5 WHEN 'Saturday' THEN 6 END")
     fun getDaysForBatchAndSection(batch: String, section: String): Flow<List<String>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

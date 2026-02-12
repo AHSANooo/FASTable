@@ -55,12 +55,13 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
 
         val day = when (dayOfWeek) {
-            Calendar.SATURDAY, Calendar.SUNDAY -> "Monday" // Show Monday on weekends
+            Calendar.SUNDAY -> "Monday" // Show Monday on Sunday
             Calendar.MONDAY -> "Monday"
             Calendar.TUESDAY -> "Tuesday"
             Calendar.WEDNESDAY -> "Wednesday"
             Calendar.THURSDAY -> "Thursday"
             Calendar.FRIDAY -> "Friday"
+            Calendar.SATURDAY -> "Saturday"
             else -> "Monday"
         }
 

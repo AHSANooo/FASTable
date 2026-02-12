@@ -68,8 +68,13 @@ class DashboardSessionAdapter(
                 tvRoom.setTextColor(Color.parseColor("#666666"))
                 tvTimeSlot.setTextColor(Color.parseColor("#666666"))
 
-                // Set session type background based on type
-                tvSessionType.setBackgroundResource(R.drawable.session_type_bg)
+                // Set session type background based on type (match TimetableAdapter colors)
+                val context = itemView.context
+                if (session.sessionType == "Lab") {
+                    tvSessionType.setBackgroundColor(context.getColor(R.color.lab_color))
+                } else {
+                    tvSessionType.setBackgroundColor(context.getColor(R.color.class_color))
+                }
 
                 // Set color on the indicator bar - convert from Google Sheets RGB format to Android Color
                 if (session.colorCode.isNotEmpty() && session.colorCode != "1.001.001.00") {

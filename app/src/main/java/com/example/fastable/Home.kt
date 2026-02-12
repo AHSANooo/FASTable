@@ -49,7 +49,7 @@ class Home : AppCompatActivity() {
     private lateinit var allTimetableAdapter: DashboardSessionAdapter
     private lateinit var database: DatabaseReference
     private lateinit var loadingOverlay: FrameLayout
-    private val days = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
+    private val days = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
     private var currentSelectedDay = "Monday"
 
     // Permission launcher

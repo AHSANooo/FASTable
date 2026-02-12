@@ -38,7 +38,7 @@ class Add_Timetable : AppCompatActivity() {
     private lateinit var btnSaveToDashboard: Button
     private var progressDialog: android.app.ProgressDialog? = null
 
-    private val days = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
+    private val days = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
     private var showingTimetable = false
 
     override fun onCreate(savedInstanceState: Bundle?) {

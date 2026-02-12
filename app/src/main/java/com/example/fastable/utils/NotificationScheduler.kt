@@ -28,7 +28,7 @@ object NotificationScheduler {
     }
 
     /**
-     * Schedule notifications for a single session (10 and 20 minutes before)
+     * Schedule notifications for a single session (15 minutes before only)
      */
     fun scheduleNotificationForSession(context: Context, session: DashboardSession) {
         val sessionTime = getSessionTimeInMillis(session.day, session.timeSlot)
@@ -40,27 +40,15 @@ object NotificationScheduler {
 
         val currentTime = System.currentTimeMillis()
 
-        // Schedule 20-minute reminder
-        val twentyMinBefore = sessionTime - (20 * 60 * 1000)
-        if (twentyMinBefore > currentTime) {
+        // Schedule 15-minute reminder only
+        val fifteenMinBefore = sessionTime - (15 * 60 * 1000)
+        if (fifteenMinBefore > currentTime) {
             scheduleNotification(
                 context,
                 session,
-                twentyMinBefore - currentTime,
-                20,
-                "${session.id}_20"
-            )
-        }
-
-        // Schedule 10-minute reminder
-        val tenMinBefore = sessionTime - (10 * 60 * 1000)
-        if (tenMinBefore > currentTime) {
-            scheduleNotification(
-                context,
-                session,
-                tenMinBefore - currentTime,
-                10,
-                "${session.id}_10"
+                fifteenMinBefore - currentTime,
+                15,
+                "${session.id}_15"
             )
         }
     }
@@ -203,8 +191,7 @@ object NotificationScheduler {
      * Cancel notification for a specific session
      */
     fun cancelNotificationForSession(context: Context, sessionId: Long) {
-        WorkManager.getInstance(context).cancelAllWorkByTag("${WORK_TAG_PREFIX}${sessionId}_10")
-        WorkManager.getInstance(context).cancelAllWorkByTag("${WORK_TAG_PREFIX}${sessionId}_20")
+        WorkManager.getInstance(context).cancelAllWorkByTag("${WORK_TAG_PREFIX}${sessionId}_15")
         Log.d(TAG, "Cancelled notifications for session: $sessionId")
     }
 

@@ -50,6 +50,6 @@ TCFebCl7qM0DA8AujtR9Ag==
     const val UNIVERSE_DOMAIN = "googleapis.com"
 
     // Sheet names
-    val TIMETABLE_SHEETS = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
+    val TIMETABLE_SHEETS = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
 }
 

@@ -71,15 +71,38 @@ class GoogleSheetsService(private val context: Context) {
                 val spreadsheetId = SpreadsheetConfigManager.getSpreadsheetId(context)
                 Log.d(TAG, "Using spreadsheet ID: $spreadsheetId")
 
-                // 10-second timeout for better UX
-                val result = withTimeout(TimeUnit.SECONDS.toMillis(10)) {
-                    val service = getSheetsService()
+                // First, fetch spreadsheet metadata to get all sheet names
+                val service = getSheetsService()
 
-                    // Fetch only the timetable sheets (Monday-Friday) to reduce payload
-                    val timetableSheets = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
-                    val ranges = timetableSheets.map { "$it!A1:AN100" }
+                // Get sheet names first (lightweight call)
+                val metadataRequest = service.spreadsheets()
+                    .get(spreadsheetId)
+                    .setIncludeGridData(false)
 
-                    // Fetch spreadsheet with includeGridData for only the timetable sheets
+                val metadata = withTimeout(TimeUnit.SECONDS.toMillis(5)) {
+                    metadataRequest.execute()
+                }
+
+                val allSheetNames = metadata.sheets?.mapNotNull { it.properties?.title } ?: emptyList()
+                Log.d(TAG, "Available sheets: $allSheetNames")
+
+                // Find sheets that match our day names (partial match for Saturday)
+                val dayKeywords = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
+                val sheetsToFetch = allSheetNames.filter { sheetName ->
+                    dayKeywords.any { day -> sheetName.contains(day, ignoreCase = true) }
+                }
+
+                Log.d(TAG, "Sheets to fetch: $sheetsToFetch")
+
+                if (sheetsToFetch.isEmpty()) {
+                    Log.e(TAG, "No timetable sheets found")
+                    return@withContext null
+                }
+
+                // Fetch the matched sheets with grid data
+                val ranges = sheetsToFetch.map { "$it!A1:AN100" }
+
+                val result = withTimeout(TimeUnit.SECONDS.toMillis(12)) {
                     val request = service.spreadsheets()
                         .get(spreadsheetId)
                         .setIncludeGridData(true)
@@ -106,6 +129,7 @@ class GoogleSheetsService(private val context: Context) {
             }
         }
     }
+
 
     /**
      * Fetch ONLY batch header rows (first 5 rows) from one day - SUPER FAST

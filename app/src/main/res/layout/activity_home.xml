@@ -189,7 +189,8 @@
         android:id="@+id/fabRefresh"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp"
+        android:layout_marginRight="25dp"
+        android:layout_marginBottom="16dp"
         android:contentDescription="Refresh timetable"
         android:src="@drawable/ic_refresh"
         app:backgroundTint="#0D2A5C"
@@ -203,7 +204,7 @@
         android:id="@+id/fabAddTimetable"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp"
+        android:layout_margin="25dp"
         android:contentDescription="@string/add_timetable"
         android:src="@android:drawable/ic_input_add"
         app:backgroundTint="#0D2A5C"
@@ -287,19 +288,25 @@
             app:layout_constraintStart_toStartOf="parent" />
 
         <!-- Content Container (menu area ends at shadow start) -->
-        <LinearLayout
-            android:id="@+id/contentContainer"
+        <ScrollView
             android:layout_width="0dp"
             android:layout_height="0dp"
-            android:orientation="vertical"
-            android:paddingStart="20dp"
-            android:paddingEnd="20dp"
-            android:paddingTop="24dp"
-            android:paddingBottom="24dp"
+            android:scrollbars="none"
+            android:fillViewport="true"
             app:layout_constraintTop_toBottomOf="@id/top_bar_menu"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toStartOf="@id/rightShadow">
+
+        <LinearLayout
+            android:id="@+id/contentContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:paddingTop="24dp"
+            android:paddingBottom="24dp">
 
             <!-- Profile Section -->
             <LinearLayout
@@ -479,18 +486,12 @@
                 app:strokeColor="#0A2E5D"
                 app:strokeWidth="1dp" />
 
-
-
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1" />
-
             <Button
                 android:id="@+id/btnLogout"
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
+                android:layout_marginTop="32dp"
+                android:layout_marginBottom="16dp"
                 android:text="@string/log_out"
                 android:textAllCaps="false"
                 android:textSize="15sp"
@@ -501,6 +502,8 @@
                 app:strokeColor="#0A2E5D"
                 app:strokeWidth="1dp" />
         </LinearLayout>
+
+        </ScrollView>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

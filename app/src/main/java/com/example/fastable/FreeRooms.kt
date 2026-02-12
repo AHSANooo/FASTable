@@ -47,7 +47,7 @@ class FreeRooms : AppCompatActivity() {
     private lateinit var btnTabBySlots: MaterialButton
     private lateinit var btnTabCurrentlyAvailable: MaterialButton
 
-    private val days = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
+    private val days = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
     private var currentSelectedDay = "Monday"
     private var isSlotWiseViewActive = true
 
@@ -79,7 +79,8 @@ class FreeRooms : AppCompatActivity() {
             Calendar.WEDNESDAY -> "Wednesday"
             Calendar.THURSDAY -> "Thursday"
             Calendar.FRIDAY -> "Friday"
-            else -> "Monday" // Default to Monday on weekends
+            Calendar.SATURDAY -> "Saturday"
+            else -> "Monday" // Default to Monday on Sunday
         }
     }
 

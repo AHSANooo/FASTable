@@ -16,7 +16,7 @@ object CourseExtractor {
     fun extractAllCourses(spreadsheet: Spreadsheet): List<Course> {
         Log.d(TAG, "=== extractAllCourses START ===")
         val courses = mutableListOf<Course>()
-        val timetableSheets = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
+        val dayKeywords = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
 
         // Extract batch colors first
         val batchColors = TimetableExtractor.extractBatchColors(spreadsheet)
@@ -33,12 +33,17 @@ object CourseExtractor {
 
         spreadsheet.sheets?.forEach { sheet ->
             val sheetName = sheet.properties?.title ?: return@forEach
-            if (sheetName !in timetableSheets) {
+            // Use partial matching - sheet name must contain one of the day keywords
+            val matchedDay = dayKeywords.firstOrNull { day -> sheetName.contains(day, ignoreCase = true) }
+            if (matchedDay == null) {
                 Log.d(TAG, "Skipping non-timetable sheet: $sheetName")
                 return@forEach
             }
 
-            Log.d(TAG, "Processing timetable sheet: $sheetName")
+            // Use the normalized day name
+            val normalizedDayName = matchedDay
+
+            Log.d(TAG, "Processing timetable sheet: $sheetName (normalized: $normalizedDayName)")
 
             val gridData = sheet.data?.getOrNull(0)?.rowData
             if (gridData == null) {
@@ -70,7 +75,7 @@ object CourseExtractor {
                                     if (courseInfo != null) {
                                         val updatedCourse = courseInfo.copy(
                                             colorCode = cellColor,
-                                            day = sheetName
+                                            day = normalizedDayName
                                         )
 
                                         // Check if course already exists
@@ -95,7 +100,7 @@ object CourseExtractor {
                                 if (courseInfo != null) {
                                     val updatedCourse = courseInfo.copy(
                                         colorCode = cellColor,
-                                        day = sheetName
+                                        day = normalizedDayName
                                     )
 
                                     if (!courses.any { it.getCourseKey() == updatedCourse.getCourseKey() }) {
