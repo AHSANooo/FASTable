@@ -381,35 +381,33 @@ object TimetableExtractor {
     ): List<TimetableSession> {
         if (selectedCourses.isEmpty()) return emptyList()
 
-        Log.d(TAG, "=== getCustomTimetable START ===")
-        Log.d(TAG, "Selected courses: ${selectedCourses.size}")
-        selectedCourses.forEach { course ->
-            Log.d(TAG, "  - ${course.name} (${course.department}-${course.section}) batch=${course.batch} fullEntry=${course.fullEntry}")
-        }
+        Log.d(TAG, "=== getCustomTimetable START: ${selectedCourses.size} courses ===")
 
         val sessions = mutableListOf<TimetableSession>()
         val batchColors = extractBatchColors(spreadsheet)
         val dayKeywords = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
 
-        Log.d(TAG, "Batch colors: ${batchColors.size}")
-        selectedCourses.forEach { course ->
-            val expectedColor = batchColors.entries.firstOrNull { it.value == course.batch }?.key
-            Log.d(TAG, "  Course ${course.name} batch=${course.batch} expectedColor=$expectedColor")
+        // Pre-compute expected colors for selected courses for faster lookup
+        val courseColorMap = selectedCourses.associateWith { course ->
+            batchColors.entries.firstOrNull { it.value == course.batch }?.key
+        }
+
+        // Get set of valid colors for quick filtering
+        val validColors = courseColorMap.values.filterNotNull().toSet()
+
+        // Pre-compute normalized full entries for faster matching
+        val normalizedFullEntries = selectedCourses.associateWith { course ->
+            course.fullEntry.lowercase().replace(Regex("\\s+"), " ").trim()
         }
 
         spreadsheet.sheets?.forEach { sheet ->
             val sheetName = sheet.properties?.title ?: return@forEach
-            // Use partial matching - sheet name must contain one of the day keywords
             val matchedDay = dayKeywords.firstOrNull { day -> sheetName.contains(day, ignoreCase = true) }
             if (matchedDay == null) return@forEach
 
-            // Use the normalized day name (e.g., "Saturday" instead of "Saturday (Feb. 14, 2025)")
             val normalizedDayName = matchedDay
-
             val gridData = sheet.data?.getOrNull(0)?.rowData ?: return@forEach
             if (gridData.size < 6) return@forEach
-
-            Log.d(TAG, "Processing sheet: $sheetName (normalized: $normalizedDayName)")
 
             val (timeRow, colRank) = buildTimeColRank(gridData)
 
@@ -434,18 +432,26 @@ object TimetableExtractor {
                 var room = roomCellValue ?: "Unknown"
                 room = TimeParser.cleanRoomData(room)
 
-                // rowValues is a collection with 1 ArrayList containing all cells
                 rowValues.forEach { cellElement ->
                     if (cellElement is ArrayList<*>) {
-                        // Iterate through ALL cells in the ArrayList
                         cellElement.forEachIndexed { colIdx, cell ->
+                            val cellColor = SheetsHelper.getBackgroundColor(cell)
+
+                            // Quick filter: skip cells that don't match any selected course's batch color
+                            if (cellColor.isEmpty() || cellColor !in validColors) {
+                                return@forEachIndexed
+                            }
+
                             val classEntry = SheetsHelper.getFormattedValue(cell) ?: ""
                             if (classEntry.isEmpty()) return@forEachIndexed
 
-                            val cellColor = SheetsHelper.getBackgroundColor(cell)
+                            // Only check courses that have matching color
+                            val matchingCourses = selectedCourses.filter {
+                                courseColorMap[it] == cellColor
+                            }
 
-                            selectedCourses.forEach { selectedCourse ->
-                                if (matchesSelectedCourse(classEntry, selectedCourse, cellColor, batchColors)) {
+                            matchingCourses.forEach { selectedCourse ->
+                                if (matchesSelectedCourseOptimized(classEntry, selectedCourse, normalizedFullEntries[selectedCourse] ?: "")) {
                                     val (cleanEntry, embeddedTime, hasEmbeddedTime) = TimeParser.parseEmbeddedTime(classEntry)
 
                                     val timeSlot = if (hasEmbeddedTime) {
@@ -600,15 +606,84 @@ object TimetableExtractor {
         }
 
         Log.d(TAG, "=== getCustomTimetable END: Found ${sessions.size} sessions ===")
-        if (sessions.isEmpty()) {
-            Log.w(TAG, "No sessions found! Check course matching logic.")
-        } else {
-            sessions.take(5).forEach { session ->
-                Log.d(TAG, "  Session: ${session.courseName} on ${session.day} at ${session.timeSlot}")
+
+        return sessions.sortedWith(compareBy({ it.day }, { it.rank }, { it.getStartTimeMillis() }))
+    }
+
+    /**
+     * Optimized matching function - color is already verified, just check name and section
+     */
+    private fun matchesSelectedCourseOptimized(
+        classEntry: String,
+        selectedCourse: Course,
+        normalizedFullEntry: String
+    ): Boolean {
+        if (classEntry.isBlank()) return false
+
+        // Normalize class entry for comparison
+        val normalizedClassEntry = classEntry.lowercase().replace(Regex("\\s+"), " ").trim()
+
+        // Check if fullEntry matches exactly (most reliable)
+        if (normalizedFullEntry.isNotEmpty() && normalizedClassEntry == normalizedFullEntry) {
+            return true
+        }
+
+        val dept = selectedCourse.department
+        val section = selectedCourse.section
+
+        // Extract the course name part (without section info)
+        val baseCourseName = selectedCourse.name.lowercase()
+            .replace(Regex("\\([^)]*\\)"), "")
+            .replace(Regex("[,\\s]+"), " ")
+            .trim()
+
+        if (baseCourseName.isEmpty()) return false
+
+        // Check if class entry contains the course name
+        val entryLower = classEntry.lowercase()
+        if (!entryLower.contains(baseCourseName)) {
+            return false
+        }
+
+        // If selected course is not a lab but entry is a lab, skip
+        if ("lab" !in selectedCourse.name.lowercase() && "lab" in entryLower) {
+            return false
+        }
+
+        // Handle group patterns
+        val selectedGroupMatch = Regex("G[p-]?-?\\d+|Gp-[IVX]+", RegexOption.IGNORE_CASE).find(selectedCourse.fullEntry)
+        val entryGroupMatch = Regex("G[p-]?-?\\d+|Gp-[IVX]+", RegexOption.IGNORE_CASE).find(classEntry)
+
+        if (selectedGroupMatch != null && entryGroupMatch != null) {
+            val normalizeGroup = { g: String ->
+                g.lowercase().replace("-", "").replace("p", "").replace(" ", "")
+            }
+            return normalizeGroup(selectedGroupMatch.value) == normalizeGroup(entryGroupMatch.value)
+        } else if (selectedGroupMatch != null && entryGroupMatch == null) {
+            return false
+        } else if (selectedGroupMatch == null && entryGroupMatch != null) {
+            return false
+        }
+
+        // Standard section matching
+        if (section.isNotEmpty()) {
+            val sectionPatterns = listOf(
+                "($dept-$section)",
+                "-$section)",
+                "-$section,",
+                "($section)",
+                " $section)",
+                ",$section)"
+            )
+            val sectionMatches = sectionPatterns.any { pattern ->
+                classEntry.contains(pattern, ignoreCase = true)
+            }
+            if (!sectionMatches) {
+                return false
             }
         }
 
-        return sessions.sortedWith(compareBy({ it.day }, { it.rank }, { it.getStartTimeMillis() }))
+        return true
     }
 
     private fun matchesSelectedCourse(
@@ -626,44 +701,32 @@ object TimetableExtractor {
             return false
         }
 
-        val (cleanEntry, _, hasEmbeddedTime) = TimeParser.parseEmbeddedTime(classEntry)
-        val entryToMatch = if (hasEmbeddedTime) cleanEntry else classEntry
-        val entryLower = entryToMatch.lowercase()
+        // Normalize class entry for comparison
+        val normalizedClassEntry = classEntry.lowercase().replace(Regex("\\s+"), " ").trim()
 
-        // Check if fullEntry matches (most reliable for course identification)
+        // Check if fullEntry matches exactly (most reliable)
         if (selectedCourse.fullEntry.isNotEmpty()) {
-            // Normalize both for comparison
-            val normalizedFullEntry = selectedCourse.fullEntry.lowercase()
-                .replace(Regex("\\s+"), " ").trim()
-            val normalizedClassEntry = classEntry.lowercase()
-                .replace(Regex("\\s+"), " ").trim()
-
-            // Exact match or close match
-            if (normalizedClassEntry == normalizedFullEntry ||
-                normalizedClassEntry.startsWith(normalizedFullEntry) ||
-                normalizedFullEntry.startsWith(normalizedClassEntry)) {
+            val normalizedFullEntry = selectedCourse.fullEntry.lowercase().replace(Regex("\\s+"), " ").trim()
+            if (normalizedClassEntry == normalizedFullEntry) {
                 return true
             }
         }
 
-        // Normalize course names for comparison
-        val normalizedSelectedName = selectedCourse.name.lowercase()
+        // For non-exact matches, we need BOTH name AND section to match
+        val dept = selectedCourse.department
+        val section = selectedCourse.section
+
+        // Extract the course name part (without section info)
+        val baseCourseName = selectedCourse.name.lowercase()
+            .replace(Regex("\\([^)]*\\)"), "")  // Remove parentheses content
             .replace(Regex("[,\\s]+"), " ")
             .trim()
-        val normalizedEntry = entryLower
-            .replace(Regex("[,\\s]+"), " ")
-            .trim()
 
-        // Extract base course name (before any group/section info in parentheses)
-        val baseSelectedName = normalizedSelectedName.replace(Regex("\\([^)]*\\)"), "").trim()
+        if (baseCourseName.isEmpty()) return false
 
-        // Check if course names match
-        val nameMatches = baseSelectedName.isNotEmpty() && (
-            normalizedEntry.contains(baseSelectedName) ||
-            entryLower.contains(baseSelectedName)
-        )
-
-        if (!nameMatches) {
+        // Check if class entry contains the course name
+        val entryLower = classEntry.lowercase()
+        if (!entryLower.contains(baseCourseName)) {
             return false
         }
 
@@ -672,44 +735,38 @@ object TimetableExtractor {
             return false
         }
 
-        val dept = selectedCourse.department
-        val section = selectedCourse.section
+        // Handle group patterns like "(CS, Gp-II)" or "(CS-A, G-1)"
+        val selectedGroupMatch = Regex("G[p-]?-?\\d+|Gp-[IVX]+", RegexOption.IGNORE_CASE).find(selectedCourse.fullEntry)
+        val entryGroupMatch = Regex("G[p-]?-?\\d+|Gp-[IVX]+", RegexOption.IGNORE_CASE).find(classEntry)
 
-        // Handle group patterns like "(CS, Gp-II)" or "(CS-A, G-1)" or "(CS,Gp-II)"
-        val hasGroupPattern = entryToMatch.contains(Regex("G[p-]?-?\\d+|Gp-[IVX]+", RegexOption.IGNORE_CASE))
-
-        if (hasGroupPattern) {
-            // For group-based courses, check if the department matches
-            val deptInEntry = dept.isEmpty() || classEntry.contains(dept, ignoreCase = true)
-
-            // Check if group pattern matches
-            val selectedGroupMatch = Regex("G[p-]?-?\\d+|Gp-[IVX]+", RegexOption.IGNORE_CASE).find(selectedCourse.fullEntry)
-            val entryGroupMatch = Regex("G[p-]?-?\\d+|Gp-[IVX]+", RegexOption.IGNORE_CASE).find(classEntry)
-
-            if (selectedGroupMatch != null && entryGroupMatch != null) {
-                // Normalize group format
-                val normalizeGroup = { g: String ->
-                    g.lowercase().replace("-", "").replace("p", "").replace(" ", "")
-                }
-                if (normalizeGroup(selectedGroupMatch.value) == normalizeGroup(entryGroupMatch.value) && deptInEntry) {
-                    return true
-                }
-            } else if (selectedGroupMatch == null && deptInEntry) {
-                // Selected course has no group, but entry does - may still match if batch color matches
-                return true
+        if (selectedGroupMatch != null && entryGroupMatch != null) {
+            // Both have group patterns - they must match
+            val normalizeGroup = { g: String ->
+                g.lowercase().replace("-", "").replace("p", "").replace(" ", "")
             }
+            return normalizeGroup(selectedGroupMatch.value) == normalizeGroup(entryGroupMatch.value)
+        } else if (selectedGroupMatch != null && entryGroupMatch == null) {
+            // Selected course has group but entry doesn't - no match
+            return false
+        } else if (selectedGroupMatch == null && entryGroupMatch != null) {
+            // Entry has group but selected course doesn't - no match
+            return false
         }
 
-        // Standard section matching for non-group courses
+        // Standard section matching - section MUST be present
         if (section.isNotEmpty()) {
-            // Check various section patterns
-            val sectionInEntry = classEntry.contains("-$section", ignoreCase = true) ||
-                                 classEntry.contains("($section)", ignoreCase = true) ||
-                                 classEntry.contains(" $section)", ignoreCase = true) ||
-                                 classEntry.contains("$dept-$section", ignoreCase = true) ||
-                                 classEntry.contains(",$section)", ignoreCase = true)
-
-            if (!sectionInEntry) {
+            val sectionPatterns = listOf(
+                "($dept-$section)",
+                "-$section)",
+                "-$section,",
+                "($section)",
+                " $section)",
+                ",$section)"
+            )
+            val sectionMatches = sectionPatterns.any { pattern ->
+                classEntry.contains(pattern, ignoreCase = true)
+            }
+            if (!sectionMatches) {
                 return false
             }
         }
