@@ -61,7 +61,7 @@ class GoogleSheetsService(private val context: Context) {
 
     /**
      * Fetch spreadsheet data with grid data (includes formatting and colors)
-     * Optimized: Only fetch the 5 timetable sheets to reduce payload size
+     * Optimized: Single API call to fetch all data
      * Now uses dynamic spreadsheet ID from SpreadsheetConfigManager
      */
     suspend fun fetchSpreadsheet(): com.google.api.services.sheets.v4.model.Spreadsheet? {
@@ -71,49 +71,29 @@ class GoogleSheetsService(private val context: Context) {
                 val spreadsheetId = SpreadsheetConfigManager.getSpreadsheetId(context)
                 Log.d(TAG, "Using spreadsheet ID: $spreadsheetId")
 
-                // First, fetch spreadsheet metadata to get all sheet names
                 val service = getSheetsService()
 
-                // Get sheet names first (lightweight call)
-                val metadataRequest = service.spreadsheets()
-                    .get(spreadsheetId)
-                    .setIncludeGridData(false)
-
-                val metadata = withTimeout(TimeUnit.SECONDS.toMillis(5)) {
-                    metadataRequest.execute()
-                }
-
-                val allSheetNames = metadata.sheets?.mapNotNull { it.properties?.title } ?: emptyList()
-                Log.d(TAG, "Available sheets: $allSheetNames")
-
-                // Find sheets that match our day names (partial match for Saturday)
-                val dayKeywords = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
-                val sheetsToFetch = allSheetNames.filter { sheetName ->
-                    dayKeywords.any { day -> sheetName.contains(day, ignoreCase = true) }
-                }
-
-                Log.d(TAG, "Sheets to fetch: $sheetsToFetch")
-
-                if (sheetsToFetch.isEmpty()) {
-                    Log.e(TAG, "No timetable sheets found")
-                    return@withContext null
-                }
-
-                // Fetch the matched sheets with grid data
-                val ranges = sheetsToFetch.map { "$it!A1:AN100" }
-
-                val result = withTimeout(TimeUnit.SECONDS.toMillis(12)) {
+                // Single API call - fetch entire spreadsheet with grid data
+                // The API will return all sheets, we filter on the client side
+                val result = withTimeout(TimeUnit.SECONDS.toMillis(15)) {
                     val request = service.spreadsheets()
                         .get(spreadsheetId)
                         .setIncludeGridData(true)
-                        .setRanges(ranges)
 
                     request.execute()
                 }
 
+                // Filter to only timetable sheets on client side (fast operation)
+                val dayKeywords = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
+                result.sheets = result.sheets?.filter { sheet ->
+                    val sheetName = sheet.properties?.title ?: ""
+                    dayKeywords.any { day -> sheetName.contains(day, ignoreCase = true) }
+                }
+
+                Log.d(TAG, "Fetched ${result.sheets?.size ?: 0} timetable sheets")
                 result
             } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
-                Log.e(TAG, "Request timeout after 10 seconds")
+                Log.e(TAG, "Request timeout after 15 seconds")
                 null
             } catch (e: java.net.SocketTimeoutException) {
                 Log.e(TAG, "Network timeout")

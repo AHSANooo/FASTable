@@ -11,6 +11,18 @@ object TimetableExtractor {
 
     private const val TAG = "TimetableExtractor"
 
+    // Cache for batch colors to avoid recomputation
+    private var cachedBatchColors: Map<String, String>? = null
+    private var cachedSpreadsheetHashCode: Int? = null
+
+    /**
+     * Clear the batch colors cache (call when spreadsheet is refreshed)
+     */
+    fun clearCache() {
+        cachedBatchColors = null
+        cachedSpreadsheetHashCode = null
+    }
+
     /**
      * FAST: Extract only batch names from header spreadsheet (first 5 rows)
      * Returns list of batch names (e.g., ["BS(CS)-2021", "BS(CS)-2022", ...])
@@ -57,36 +69,32 @@ object TimetableExtractor {
     }
 
     fun extractBatchColors(spreadsheet: Spreadsheet): Map<String, String> {
+        // Check if we have cached batch colors for this spreadsheet
+        val spreadsheetHash = spreadsheet.hashCode()
+        if (cachedBatchColors != null && cachedSpreadsheetHashCode == spreadsheetHash) {
+            return cachedBatchColors!!
+        }
+
         val batchColors = mutableMapOf<String, String>()
         val dayKeywords = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
 
-        spreadsheet.sheets?.forEach { sheet ->
-            val sheetName = sheet.properties?.title ?: return@forEach
-            // Use partial matching - sheet name must contain one of the day keywords
-            val isTimeTableSheet = dayKeywords.any { day -> sheetName.contains(day, ignoreCase = true) }
-            if (!isTimeTableSheet) return@forEach
+        // Only check the first sheet that matches (all sheets have same batch colors)
+        val firstSheet = spreadsheet.sheets?.firstOrNull { sheet ->
+            val sheetName = sheet.properties?.title ?: ""
+            dayKeywords.any { day -> sheetName.contains(day, ignoreCase = true) }
+        } ?: return emptyMap()
 
-            val gridData = sheet.data?.getOrNull(0)?.rowData ?: return@forEach
+        val gridData = firstSheet.data?.getOrNull(0)?.rowData ?: return emptyMap()
 
-            for (rowIdx in 0 until minOf(4, gridData.size)) {
-                val rowData = gridData[rowIdx].values ?: continue
-                val cellList = rowData.toList()
+        for (rowIdx in 0 until minOf(4, gridData.size)) {
+            val rowData = gridData[rowIdx].values ?: continue
+            val cellList = rowData.toList()
 
-                cellList.forEach { cellElement ->
-                    if (cellElement is ArrayList<*>) {
-                        cellElement.forEach { cell ->
-                            val value = SheetsHelper.getFormattedValue(cell)
-                            val cellColor = SheetsHelper.getBackgroundColor(cell)
-
-                            if (value != null && value.contains("BS", ignoreCase = true)) {
-                                if (cellColor.isNotEmpty() && cellColor != "1.001.001.00") {
-                                    batchColors[cellColor] = value.trim()
-                                }
-                            }
-                        }
-                    } else {
-                        val value = SheetsHelper.getFormattedValue(cellElement)
-                        val cellColor = SheetsHelper.getBackgroundColor(cellElement)
+            cellList.forEach { cellElement ->
+                if (cellElement is ArrayList<*>) {
+                    cellElement.forEach { cell ->
+                        val value = SheetsHelper.getFormattedValue(cell)
+                        val cellColor = SheetsHelper.getBackgroundColor(cell)
 
                         if (value != null && value.contains("BS", ignoreCase = true)) {
                             if (cellColor.isNotEmpty() && cellColor != "1.001.001.00") {
@@ -94,11 +102,25 @@ object TimetableExtractor {
                             }
                         }
                     }
+                } else {
+                    val value = SheetsHelper.getFormattedValue(cellElement)
+                    val cellColor = SheetsHelper.getBackgroundColor(cellElement)
+
+                    if (value != null && value.contains("BS", ignoreCase = true)) {
+                        if (cellColor.isNotEmpty() && cellColor != "1.001.001.00") {
+                            batchColors[cellColor] = value.trim()
+                        }
+                    }
                 }
             }
         }
 
         Log.d(TAG, "Extracted ${batchColors.size} batches")
+
+        // Cache the result
+        cachedBatchColors = batchColors
+        cachedSpreadsheetHashCode = spreadsheetHash
+
         return batchColors
     }
 

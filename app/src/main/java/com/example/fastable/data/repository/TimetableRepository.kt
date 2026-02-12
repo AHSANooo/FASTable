@@ -55,6 +55,7 @@ class TimetableRepository(context: Context) {
         Log.d(TAG, "Clearing spreadsheet cache")
         cachedSpreadsheet = null
         cacheTime = 0
+        TimetableExtractor.clearCache()
     }
 
     /**
