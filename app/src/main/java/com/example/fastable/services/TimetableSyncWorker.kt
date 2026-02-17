@@ -7,6 +7,7 @@ import com.example.fastable.data.models.DashboardSession
 import com.example.fastable.data.repository.TimetableRepository
 import com.example.fastable.utils.NotificationScheduler
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
 import java.util.concurrent.TimeUnit
 
 /**
@@ -21,9 +22,18 @@ class TimetableSyncWorker(
     companion object {
         private const val TAG = "TimetableSyncWorker"
         private const val UNIQUE_WORK_NAME = "timetable_sync_work"
+        private const val IMMEDIATE_SYNC_WORK_NAME = "timetable_immediate_sync"
 
         // Sync interval in hours
         private const val SYNC_INTERVAL_HOURS = 1L
+
+        // Mutex to prevent multiple simultaneous syncs within the same process
+        private val syncMutex = Mutex()
+
+        // Track last sync time to debounce rapid sync requests
+        @Volatile
+        private var lastSyncTimeMs: Long = 0
+        private const val MIN_SYNC_INTERVAL_MS = 30_000L // 30 seconds minimum between syncs
 
         /**
          * Schedule periodic background sync
@@ -59,9 +69,19 @@ class TimetableSyncWorker(
 
         /**
          * Run a one-time sync immediately
-         * Used when app opens to get fresh data
+         * Uses unique work name with KEEP policy to prevent multiple simultaneous syncs
          */
         fun runImmediateSync(context: Context) {
+            // Debounce: skip if synced recently
+            val now = System.currentTimeMillis()
+            if (now - lastSyncTimeMs < MIN_SYNC_INTERVAL_MS) {
+                Log.d(
+                    TAG,
+                    "Skipping immediate sync - last sync was ${(now - lastSyncTimeMs) / 1000}s ago"
+                )
+                return
+            }
+
             Log.d(TAG, "Running immediate timetable sync")
 
             val constraints = Constraints.Builder()
@@ -72,8 +92,13 @@ class TimetableSyncWorker(
                 .setConstraints(constraints)
                 .build()
 
+            // Use KEEP policy - if there's already a sync in progress, don't start another
             WorkManager.getInstance(context)
-                .enqueue(syncRequest)
+                .enqueueUniqueWork(
+                    IMMEDIATE_SYNC_WORK_NAME,
+                    ExistingWorkPolicy.KEEP,
+                    syncRequest
+                )
         }
 
         /**
@@ -81,14 +106,22 @@ class TimetableSyncWorker(
          */
         fun cancelSync(context: Context) {
             WorkManager.getInstance(context).cancelUniqueWork(UNIQUE_WORK_NAME)
-            Log.d(TAG, "Cancelled periodic sync")
+            WorkManager.getInstance(context).cancelUniqueWork(IMMEDIATE_SYNC_WORK_NAME)
+            Log.d(TAG, "Cancelled all sync work")
         }
     }
 
     override suspend fun doWork(): Result {
-        Log.d(TAG, "Starting timetable sync work")
+        // Use mutex to ensure only one sync runs at a time within this process
+        if (!syncMutex.tryLock()) {
+            Log.d(TAG, "Another sync is already in progress, skipping")
+            return Result.success()
+        }
 
         return try {
+            Log.d(TAG, "Starting timetable sync work")
+            lastSyncTimeMs = System.currentTimeMillis()
+
             val repository = TimetableRepository(applicationContext)
 
             // Get current dashboard sessions from database
@@ -96,37 +129,42 @@ class TimetableSyncWorker(
 
             if (currentSessions.isEmpty()) {
                 Log.d(TAG, "No sessions to sync, skipping")
-                return Result.success()
-            }
+                Result.success()
+            } else {
+                Log.d(TAG, "Syncing ${currentSessions.size} sessions")
 
-            Log.d(TAG, "Syncing ${currentSessions.size} sessions")
+                // Refresh from spreadsheet (force refresh to get latest data)
+                val refreshResult = repository.refreshDashboardSessions(currentSessions, forceRefresh = true)
 
-            // Refresh from spreadsheet (force refresh to get latest data)
-            val result = repository.refreshDashboardSessions(currentSessions, forceRefresh = true)
+                if (refreshResult.isSuccess) {
+                    val refreshedSessions = refreshResult.getOrNull() ?: emptyList()
+                    Log.d(TAG, "Sync successful - ${refreshedSessions.size} sessions updated")
 
-            result.onSuccess { refreshedSessions ->
-                Log.d(TAG, "Sync successful - ${refreshedSessions.size} sessions updated")
+                    // Reschedule notifications with updated data
+                    NotificationScheduler.scheduleNotificationsForSessions(
+                        applicationContext,
+                        refreshedSessions
+                    )
 
-                // Reschedule notifications with updated data
-                NotificationScheduler.scheduleNotificationsForSessions(applicationContext, refreshedSessions)
-
-                // Check for cancelled classes
-                val cancelledCount = refreshedSessions.count {
-                    it.courseName.contains("Cancelled", ignoreCase = true)
+                    // Check for cancelled classes
+                    val cancelledCount = refreshedSessions.count {
+                        it.courseName.contains("Cancelled", ignoreCase = true)
+                    }
+                    if (cancelledCount > 0) {
+                        Log.d(TAG, "Found $cancelledCount cancelled class(es)")
+                    }
+                    Result.success()
+                } else {
+                    val exception = refreshResult.exceptionOrNull()
+                    Log.e(TAG, "Sync failed: ${exception?.message}")
+                    Result.retry() // Will retry with exponential backoff
                 }
-                if (cancelledCount > 0) {
-                    Log.d(TAG, "Found $cancelledCount cancelled class(es)")
-                }
-            }.onFailure { exception ->
-                Log.e(TAG, "Sync failed: ${exception.message}")
-                return Result.retry() // Will retry with exponential backoff
             }
-
-            Result.success()
         } catch (e: Exception) {
             Log.e(TAG, "Sync worker exception: ${e.message}", e)
             Result.retry()
+        } finally {
+            syncMutex.unlock()
         }
     }
 }
-

@@ -133,7 +133,8 @@ class Home : AppCompatActivity() {
         viewModel.loadDashboardSessions()
         // Reload user profile to get latest data
         loadUserProfile()
-        // Trigger background sync to fetch fresh data from spreadsheet
+        // Background sync is handled by TimetableSyncWorker with debouncing
+        // Only trigger sync on first resume (not every time activity comes to foreground)
         TimetableSyncWorker.runImmediateSync(this)
     }
 

@@ -11,6 +11,8 @@ import com.example.fastable.data.remote.TimetableExtractor
 import com.example.fastable.utils.TimeParser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 class TimetableRepository(context: Context) {
@@ -24,18 +26,35 @@ class TimetableRepository(context: Context) {
     private var lastSyncTime: Long = 0
     private val SYNC_INTERVAL = 30 * 1000 // 30 seconds - very aggressive
 
-    // Cache the spreadsheet to avoid repeated API calls
-    private var cachedSpreadsheet: com.google.api.services.sheets.v4.model.Spreadsheet? = null
-    private var cacheTime: Long = 0
-    private val CACHE_DURATION = 30 * 60 * 1000 // 30 minutes - very long cache
-    private var isFetching = false // Prevent multiple simultaneous fetches
+    companion object {
+        // SHARED cache across all TimetableRepository instances
+        // This prevents multiple simultaneous fetches from different workers/activities
+        @Volatile
+        private var cachedSpreadsheet: com.google.api.services.sheets.v4.model.Spreadsheet? = null
+        @Volatile
+        private var cacheTime: Long = 0
+        private const val CACHE_DURATION = 30 * 60 * 1000L // 30 minutes
+
+        // Mutex to prevent race conditions during fetch
+        private val fetchMutex = Mutex()
+
+        /**
+         * Clear the shared spreadsheet cache (forces a fresh fetch on next use)
+         */
+        fun clearSharedCache() {
+            Log.d("TimetableRepository", "Clearing shared spreadsheet cache")
+            cachedSpreadsheet = null
+            cacheTime = 0
+            TimetableExtractor.clearCache()
+        }
+    }
 
     /**
      * Prefetch spreadsheet in background (call on app start)
      */
     suspend fun prefetchSpreadsheet() {
-        if (cachedSpreadsheet != null || isFetching) {
-            return // Already cached or currently fetching
+        if (cachedSpreadsheet != null) {
+            return // Already cached
         }
 
         withContext(Dispatchers.IO) {
@@ -52,45 +71,33 @@ class TimetableRepository(context: Context) {
      * Clear the cached spreadsheet (forces a fresh fetch on next use)
      */
     fun clearSpreadsheetCache() {
-        Log.d(TAG, "Clearing spreadsheet cache")
-        cachedSpreadsheet = null
-        cacheTime = 0
-        TimetableExtractor.clearCache()
+        clearSharedCache()
     }
 
     /**
      * Get spreadsheet from cache or fetch new
+     * Uses shared cache and mutex to prevent redundant fetches
      */
     private suspend fun getSpreadsheet(): com.google.api.services.sheets.v4.model.Spreadsheet? {
         val currentTime = System.currentTimeMillis()
 
-        // Return cached if still valid
-        if (cachedSpreadsheet != null && (currentTime - cacheTime) < CACHE_DURATION) {
+        // Return cached if still valid (fast path, no lock needed)
+        val cached = cachedSpreadsheet
+        if (cached != null && (currentTime - cacheTime) < CACHE_DURATION) {
             Log.d(TAG, "Using cached spreadsheet (age: ${(currentTime - cacheTime) / 1000}s)")
-            return cachedSpreadsheet
+            return cached
         }
 
-        // Prevent multiple simultaneous fetches - wait for existing fetch
-        if (isFetching) {
-            Log.d(TAG, "Already fetching spreadsheet, waiting...")
-            var waitCount = 0
-            while (isFetching && waitCount < 120) { // Wait up to 12 seconds (10s timeout + 2s buffer)
-                kotlinx.coroutines.delay(100)
-                waitCount++
+        // Acquire lock to fetch (only one fetch at a time across all instances)
+        return fetchMutex.withLock {
+            // Double-check after acquiring lock (another thread might have fetched)
+            val cachedAfterLock = cachedSpreadsheet
+            val timeAfterLock = System.currentTimeMillis()
+            if (cachedAfterLock != null && (timeAfterLock - cacheTime) < CACHE_DURATION) {
+                Log.d(TAG, "Cache was populated while waiting for lock")
+                return@withLock cachedAfterLock
             }
 
-            // After waiting, check if we now have a cached result
-            if (cachedSpreadsheet != null) {
-                Log.d(TAG, "Fetch completed while waiting, using cached result")
-                return cachedSpreadsheet
-            } else {
-                Log.e(TAG, "Wait timed out and no cached spreadsheet available")
-                // If still no cache, try fetching ourselves (the previous fetch might have failed)
-            }
-        }
-
-        isFetching = true
-        try {
             // Fetch new
             Log.d(TAG, "Fetching fresh spreadsheet from Google Sheets...")
             val startTime = System.currentTimeMillis()
@@ -100,13 +107,11 @@ class TimetableRepository(context: Context) {
             if (spreadsheet != null) {
                 Log.d(TAG, "Spreadsheet fetched successfully in ${fetchTime}ms")
                 cachedSpreadsheet = spreadsheet
-                cacheTime = currentTime
+                cacheTime = System.currentTimeMillis()
             } else {
                 Log.e(TAG, "Failed to fetch spreadsheet after ${fetchTime}ms")
             }
-            return spreadsheet
-        } finally {
-            isFetching = false
+            spreadsheet
         }
     }
 
