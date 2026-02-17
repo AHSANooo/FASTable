@@ -33,10 +33,33 @@ class TimetableRepository(context: Context) {
         private var cachedSpreadsheet: com.google.api.services.sheets.v4.model.Spreadsheet? = null
         @Volatile
         private var cacheTime: Long = 0
-        private const val CACHE_DURATION = 30 * 60 * 1000L // 30 minutes
+
+        // Cache duration: 2 hours for normal use
+        // This significantly reduces network calls while still keeping data relatively fresh
+        private const val CACHE_DURATION = 2 * 60 * 60 * 1000L // 2 hours
+
+        // Minimum cache age before allowing force refresh (prevents rapid re-fetches)
+        // 2 minutes - fast enough for quick refreshes but prevents spam
+        private const val MIN_CACHE_AGE_FOR_REFRESH = 2 * 60 * 1000L // 2 minutes
 
         // Mutex to prevent race conditions during fetch
         private val fetchMutex = Mutex()
+
+        /**
+         * Check if cache is fresh enough (less than 5 minutes old)
+         * If so, don't allow force refresh to save bandwidth
+         */
+        fun isCacheFresh(): Boolean {
+            val age = System.currentTimeMillis() - cacheTime
+            return cachedSpreadsheet != null && age < MIN_CACHE_AGE_FOR_REFRESH
+        }
+
+        /**
+         * Get cache age in seconds (for logging)
+         */
+        fun getCacheAgeSeconds(): Long {
+            return (System.currentTimeMillis() - cacheTime) / 1000
+        }
 
         /**
          * Clear the shared spreadsheet cache (forces a fresh fetch on next use)
@@ -508,7 +531,8 @@ class TimetableRepository(context: Context) {
      * 2. SHIFTED: Class moved to different room - update with new room
      * 3. REMOVED: Cell cleared - class no longer appears in fresh data
      *
-     * @param forceRefresh If true, clears cache and fetches fresh data. If false, uses cached data if available.
+     * @param forceRefresh If true, clears cache and fetches fresh data (unless cache is very fresh).
+     *                     If false, uses cached data if available.
      * Returns updated sessions atomically (old sessions replaced only after new ones are ready)
      */
     suspend fun refreshDashboardSessions(
@@ -521,9 +545,13 @@ class TimetableRepository(context: Context) {
                     return@withContext Result.success(currentSessions)
                 }
 
-                // Clear spreadsheet cache only if force refresh is requested
-                if (forceRefresh) {
+                // Smart cache clearing: only clear if force refresh AND cache is not too fresh
+                // This prevents rapid re-fetches when user spams the refresh button
+                if (forceRefresh && !isCacheFresh()) {
                     clearSpreadsheetCache()
+                    Log.d(TAG, "refreshDashboardSessions: Cache cleared (age: ${getCacheAgeSeconds()}s)")
+                } else if (forceRefresh && isCacheFresh()) {
+                    Log.d(TAG, "refreshDashboardSessions: Using fresh cache (age: ${getCacheAgeSeconds()}s) - skipping network fetch")
                 }
 
                 // Fetch spreadsheet data (from cache or network)

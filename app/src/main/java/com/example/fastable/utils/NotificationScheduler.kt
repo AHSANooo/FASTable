@@ -11,9 +11,11 @@ import java.util.concurrent.TimeUnit
 object NotificationScheduler {
     private const val TAG = "NotificationScheduler"
     private const val WORK_TAG_PREFIX = "course_notification_"
+    private const val COMMON_NOTIFICATION_TAG = "fastable_notifications"
 
     /**
      * Schedule notifications for all dashboard sessions
+     * Skips cancelled classes - no notifications for them
      */
     fun scheduleNotificationsForSessions(context: Context, sessions: List<DashboardSession>) {
         Log.d(TAG, "Scheduling notifications for ${sessions.size} sessions")
@@ -21,10 +23,16 @@ object NotificationScheduler {
         // Cancel all existing notifications first
         cancelAllNotifications(context)
 
-        // Schedule new notifications
+        // Schedule new notifications (skip cancelled classes)
+        var scheduledCount = 0
         sessions.forEach { session ->
-            scheduleNotificationForSession(context, session)
+            if (!session.courseName.contains("Cancelled", ignoreCase = true)) {
+                scheduleNotificationForSession(context, session)
+                scheduledCount++
+            }
         }
+
+        Log.d(TAG, "Scheduled $scheduledCount notifications (${sessions.size - scheduledCount} cancelled classes skipped)")
     }
 
     /**
@@ -70,7 +78,8 @@ object NotificationScheduler {
         val workRequest = OneTimeWorkRequestBuilder<NotificationWorker>()
             .setInitialDelay(delayMillis, TimeUnit.MILLISECONDS)
             .setInputData(data)
-            .addTag("$WORK_TAG_PREFIX$uniqueId")
+            .addTag(COMMON_NOTIFICATION_TAG) // Common tag for bulk cancellation
+            .addTag("$WORK_TAG_PREFIX$uniqueId") // Unique tag for individual cancellation
             .setBackoffCriteria(
                 BackoffPolicy.LINEAR,
                 WorkRequest.MIN_BACKOFF_MILLIS,
@@ -181,9 +190,12 @@ object NotificationScheduler {
 
     /**
      * Cancel all scheduled notifications
+     * Uses a common tag for all notifications to enable bulk cancellation
      */
+
     fun cancelAllNotifications(context: Context) {
-        WorkManager.getInstance(context).cancelAllWorkByTag(WORK_TAG_PREFIX)
+        // Cancel by the common tag that all notifications share
+        WorkManager.getInstance(context).cancelAllWorkByTag(COMMON_NOTIFICATION_TAG)
         Log.d(TAG, "Cancelled all scheduled notifications")
     }
 
@@ -191,8 +203,32 @@ object NotificationScheduler {
      * Cancel notification for a specific session
      */
     fun cancelNotificationForSession(context: Context, sessionId: Long) {
-        WorkManager.getInstance(context).cancelAllWorkByTag("${WORK_TAG_PREFIX}${sessionId}_15")
+        WorkManager.getInstance(context).cancelUniqueWork("${WORK_TAG_PREFIX}${sessionId}_15")
         Log.d(TAG, "Cancelled notifications for session: $sessionId")
+    }
+
+    /**
+     * Cancel all notifications for sessions and reschedule only for the provided list
+     * This ensures that removed courses no longer receive notifications
+     *
+     * @param context The application context
+     * @param currentSessions The current list of dashboard sessions that should receive notifications
+     */
+    fun syncNotificationsWithDashboard(context: Context, currentSessions: List<DashboardSession>) {
+        Log.d(TAG, "Syncing notifications with dashboard - ${currentSessions.size} sessions")
+
+        // Cancel ALL existing notifications
+        cancelAllNotifications(context)
+
+        // Schedule new notifications only for current sessions
+        currentSessions.forEach { session ->
+            // Skip cancelled classes
+            if (!session.courseName.contains("Cancelled", ignoreCase = true)) {
+                scheduleNotificationForSession(context, session)
+            }
+        }
+
+        Log.d(TAG, "Notifications synced - scheduled for ${currentSessions.size} sessions")
     }
 
     /**

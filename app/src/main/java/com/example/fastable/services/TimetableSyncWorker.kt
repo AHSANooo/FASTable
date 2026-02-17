@@ -133,8 +133,10 @@ class TimetableSyncWorker(
             } else {
                 Log.d(TAG, "Syncing ${currentSessions.size} sessions")
 
-                // Refresh from spreadsheet (force refresh to get latest data)
-                val refreshResult = repository.refreshDashboardSessions(currentSessions, forceRefresh = true)
+                // Refresh from spreadsheet
+                // Use forceRefresh=false for background sync to use cached data if available
+                // This makes background sync much faster while still detecting changes
+                val refreshResult = repository.refreshDashboardSessions(currentSessions, forceRefresh = false)
 
                 if (refreshResult.isSuccess) {
                     val refreshedSessions = refreshResult.getOrNull() ?: emptyList()

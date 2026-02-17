@@ -107,8 +107,14 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 repository.deleteDashboardSession(session)
-                // Cancel notifications for this session
+                // Cancel notifications for this specific session
                 NotificationScheduler.cancelNotificationForSession(context, session.id)
+
+                // Also reschedule all notifications to ensure consistency
+                // This handles edge cases where session IDs might have changed
+                val remainingSessions = _dashboardSessions.value?.filter { it.id != session.id } ?: emptyList()
+                NotificationScheduler.scheduleNotificationsForSessions(context, remainingSessions)
+
                 _errorMessage.value = "Session removed from dashboard"
             } catch (e: Exception) {
                 _errorMessage.value = "Failed to remove session: ${e.message}"
