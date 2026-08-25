@@ -7,7 +7,7 @@ import java.util.*
 object TimeParser {
 
     /**
-     * Parse time slot and return milliseconds for sorting
+     * Parse time slot and return minutes from midnight for sorting/comparison
      * Handles formats like "9:00 AM", "09:00-10:30", "9:00", etc.
      */
     fun parseTimeSlot(timeSlot: String): Long {
@@ -24,9 +24,11 @@ object TimeParser {
         val hour = parts[0].toIntOrNull() ?: return Long.MAX_VALUE
         val minute = parts[1].toIntOrNull() ?: return Long.MAX_VALUE
 
-        // Check for AM/PM
+        // Improved AM/PM detection: only check the part of the string related to the start time
+        // Example: "10:30-01:00 PM" -> split by '-' and check only "10:30"
+        val startTimePart = timeSlot.split("-").firstOrNull()?.lowercase() ?: timeSlot.lowercase()
         val ampmRegex = Regex("\\b(am|pm|AM|PM)\\b")
-        val ampmMatch = ampmRegex.find(timeSlot)
+        val ampmMatch = ampmRegex.find(startTimePart)
 
         val hour24 = if (ampmMatch != null) {
             val ampm = ampmMatch.value.uppercase()
@@ -36,12 +38,13 @@ object TimeParser {
                 else -> hour
             }
         } else {
-            // University schedule: 8, 9, 10, 11 are AM; 12, 1, 2, 3, 4, 5, 6, 7 are PM
-            // Classes start at 8:30 AM and go until evening
+            // University schedule: 8:30 AM to 8:05 PM
             when {
-                hour in 8..11 -> hour  // Morning classes (8:30, 9:00, 10:00, 11:00 are AM)
-                hour == 12 -> 12       // 12:00 is PM (noon)
-                hour in 1..7 -> hour + 12  // Afternoon classes (1:00, 2:00, 2:30 etc. are PM)
+                hour in 1..7 -> hour + 12       // 1:00 PM to 7:00 PM
+                hour == 8 && minute < 30 -> hour + 12 // 8:05 PM (evening)
+                hour == 8 && minute >= 30 -> hour  // 8:30 AM (morning)
+                hour in 9..11 -> hour           // 9:00 AM to 11:00 AM
+                hour == 12 -> 12                // 12:00 PM (noon)
                 else -> hour
             }
         }

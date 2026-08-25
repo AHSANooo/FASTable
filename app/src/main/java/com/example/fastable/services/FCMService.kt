@@ -18,6 +18,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
+import java.util.Calendar
+
 class FCMService : FirebaseMessagingService() {
 
     companion object {
@@ -40,23 +42,39 @@ class FCMService : FirebaseMessagingService() {
         super.onMessageReceived(message)
         Log.d(TAG, "Message received from: ${message.from}")
 
-        message.data.isNotEmpty().let {
+        if (message.data.isNotEmpty()) {
             val title = message.data["title"] ?: "Course Reminder"
             val body = message.data["body"] ?: ""
             val courseName = message.data["courseName"] ?: ""
             val timeSlot = message.data["timeSlot"] ?: ""
             val room = message.data["room"] ?: ""
 
-            // Save to database
+            // Save to database (always save even during quiet hours)
             saveNotificationToDatabase(title, body, courseName, timeSlot, room)
 
-            // Show notification
-            showNotification(title, body)
+            // Show notification only if it has content AND it's not quiet hours
+            // Background sync messages often have empty title/body
+            if (title.isNotEmpty() && body.isNotEmpty()) {
+                if (!isQuietHours()) {
+                    showNotification(title, body)
+                } else {
+                    Log.d(TAG, "Suppressing notification during quiet hours: $title")
+                }
+            }
         }
 
         message.notification?.let {
-            showNotification(it.title ?: "Course Reminder", it.body ?: "")
+            if (!isQuietHours()) {
+                showNotification(it.title ?: "Course Reminder", it.body ?: "")
+            }
         }
+    }
+
+    private fun isQuietHours(): Boolean {
+        val calendar = Calendar.getInstance()
+        val hour = calendar.get(Calendar.HOUR_OF_DAY)
+        // Quiet hours: 8 PM (20:00) to 7 AM (07:00)
+        return hour >= 20 || hour < 7
     }
 
     private fun saveNotificationToDatabase(
