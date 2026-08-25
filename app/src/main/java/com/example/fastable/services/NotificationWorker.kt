@@ -15,6 +15,8 @@ import com.example.fastable.R
 import com.example.fastable.data.local.AppDatabase
 import com.example.fastable.data.models.NotificationItem
 
+import java.util.Calendar
+
 class NotificationWorker(
     context: Context,
     params: WorkerParameters
@@ -40,10 +42,21 @@ class NotificationWorker(
         // Save to database
         saveNotificationToDatabase(title, message, courseName, timeSlot, room)
 
-        // Show notification
-        showNotification(title, message, courseName)
+        // Show notification only if not in quiet hours
+        if (!isQuietHours()) {
+            showNotification(title, message, courseName)
+        } else {
+            Log.d(TAG, "Suppressing scheduled notification during quiet hours for $courseName")
+        }
 
         return Result.success()
+    }
+
+    private fun isQuietHours(): Boolean {
+        val calendar = Calendar.getInstance()
+        val hour = calendar.get(Calendar.HOUR_OF_DAY)
+        // Quiet hours: 8 PM (20:00) to 7 AM (07:00)
+        return hour >= 20 || hour < 7
     }
 
     private suspend fun saveNotificationToDatabase(
