@@ -97,56 +97,30 @@ object NotificationScheduler {
         Log.d(TAG, "Scheduled notification for ${session.courseName} - $minutesBefore min before")
     }
 
-    // Valid notification hours (7:00 AM to 5:15 PM in 24-hour format)
+    // Valid notification hours (7:00 AM to 8:05 PM in 24-hour format)
     private const val MIN_NOTIFICATION_HOUR = 7
-    private const val MAX_NOTIFICATION_HOUR = 17
-    private const val MAX_NOTIFICATION_MINUTE = 15
+    private const val MAX_NOTIFICATION_HOUR = 20
+    private const val MAX_NOTIFICATION_MINUTE = 5
 
     /**
      * Get session time in milliseconds from day and timeSlot
      */
     private fun getSessionTimeInMillis(day: String, timeSlot: String): Long? {
         try {
-            // Parse timeSlot like "8:30-9:50" or "8:30am-9:50am" or "01:00-02:20"
-            val timeRegex = Regex("(\\d{1,2}):(\\d{2})")
-            val timeMatch = timeRegex.find(timeSlot) ?: return null
+            val totalMinutes = TimeParser.parseTimeSlot(timeSlot)
+            if (totalMinutes == Long.MAX_VALUE) return null
 
-            var hour = timeMatch.groupValues[1].toInt()
-            val minute = timeMatch.groupValues[2].toInt()
+            val hour = (totalMinutes / 60).toInt()
+            val minute = (totalMinutes % 60).toInt()
 
-            // Check for explicit AM/PM markers
-            val hasAmPm = timeSlot.lowercase().contains("am") || timeSlot.lowercase().contains("pm")
-            val isPm = timeSlot.lowercase().contains("pm")
-            val isAm = timeSlot.lowercase().contains("am")
-
-            // Convert to 24-hour format
-            if (hasAmPm) {
-                // Explicit AM/PM marker
-                if (isPm && hour != 12) {
-                    hour += 12
-                } else if (isAm && hour == 12) {
-                    hour = 0
-                }
-            } else {
-                // University schedule convention (no AM/PM marker):
-                // 8, 9, 10, 11 are AM (morning classes start at 8:30)
-                // 12 is noon (PM)
-                // 1, 2, 3, 4, 5, 6, 7 are PM (afternoon classes)
-                if (hour in 1..7) {
-                    hour += 12  // 1:00 -> 13:00, 2:00 -> 14:00, etc.
-                }
-                // 8-11 remain as is (AM)
-                // 12 remains as is (noon/PM)
-            }
-
-            // Final validation: skip notifications for times outside university hours (7:00 AM - 5:15 PM)
-            // After conversion, valid hours are 7-17
+            // Final validation: skip notifications for times outside university hours (7:00 AM - 8:05 PM)
+            // After conversion, valid hours are 7-20
             if (hour < MIN_NOTIFICATION_HOUR || hour > MAX_NOTIFICATION_HOUR) {
                 Log.d(TAG, "Skipping notification for $timeSlot (hour=$hour) - outside valid hours")
                 return null
             }
             if (hour == MAX_NOTIFICATION_HOUR && minute > MAX_NOTIFICATION_MINUTE) {
-                Log.d(TAG, "Skipping notification for $timeSlot - after 5:15 PM")
+                Log.d(TAG, "Skipping notification for $timeSlot - after 8:05 PM")
                 return null
             }
 
