@@ -15,9 +15,9 @@
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
-        android:icon="@drawable/app_logo_white"
+        android:icon="@drawable/fastable"
         android:label="@string/app_name"
-        android:roundIcon="@drawable/app_logo_white"
+        android:roundIcon="@drawable/fastable"
         android:supportsRtl="true"
         android:theme="@style/Theme.FASTable">
         <activity
