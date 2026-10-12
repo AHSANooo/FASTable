@@ -33,8 +33,8 @@ class FacultyAdapter : ListAdapter<FacultyMember, FacultyAdapter.FacultyViewHold
         fun bind(faculty: FacultyMember) {
             tvName.text = faculty.name
             tvDesignation.text = faculty.designation
-            tvOffice.text = "Office: ${faculty.office}"
-            tvEmail.text = faculty.email
+            tvOffice.text = if (faculty.office.isNotEmpty()) "Office: ${faculty.office}" else "Office: N/A"
+            tvEmail.text = faculty.email.ifEmpty { "N/A" }
 
             // Make email clickable
             tvEmail.setOnClickListener {
@@ -50,7 +50,7 @@ class FacultyAdapter : ListAdapter<FacultyMember, FacultyAdapter.FacultyViewHold
 
     private class FacultyDiffCallback : DiffUtil.ItemCallback<FacultyMember>() {
         override fun areItemsTheSame(oldItem: FacultyMember, newItem: FacultyMember): Boolean {
-            return oldItem.email == newItem.email
+            return (oldItem.name == newItem.name) && (oldItem.email == newItem.email)
         }
 
         override fun areContentsTheSame(oldItem: FacultyMember, newItem: FacultyMember): Boolean {

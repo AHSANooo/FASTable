@@ -65,7 +65,6 @@ class FacultyOffices : AppCompatActivity() {
                 val inputStream: InputStream = try {
                     assets.open("Faculty Offices-School of Computing.xlsx")
                 } catch (e: Exception) {
-                    // If not found in main/assets, try from src/assets
                     android.util.Log.e("FacultyOffices", "File not found in assets folder: ${e.message}")
                     throw Exception("Excel file not found. Please ensure 'Faculty Offices-School of Computing.xlsx' is in the assets folder.", e)
                 }
@@ -76,27 +75,42 @@ class FacultyOffices : AppCompatActivity() {
 
                 val facultyMembers = mutableListOf<FacultyMember>()
 
-                // Skip header row (start from row 1)
-                // Column structure: 0=Sr#, 1=Name, 2=Designation, 3=Email, 4=Office
-                for (i in 1..sheet.lastRowNum) {
+                for (i in 0..sheet.lastRowNum) {
                     val row = sheet.getRow(i) ?: continue
 
-                    // Skip column 0 (Sr #) and read from correct columns
-                    val name = row.getCell(1)?.toString()?.trim() ?: ""
-                    val designation = row.getCell(2)?.toString()?.trim() ?: ""
-                    val email = row.getCell(3)?.toString()?.trim() ?: ""
-                    val office = row.getCell(4)?.toString()?.trim() ?: ""
+                    // Read columns
+                    val colA = row.getCell(0)?.toString()?.replace("\t", " ")?.replace("\n", " ")?.trim() ?: ""
+                    val colB = row.getCell(1)?.toString()?.replace("\t", " ")?.replace("\n", " ")?.trim() ?: ""
+                    val designation = row.getCell(2)?.toString()?.replace("\t", " ")?.replace("\n", " ")?.trim() ?: ""
+                    val email = row.getCell(3)?.toString()?.replace("\t", " ")?.replace("\n", " ")?.trim() ?: ""
+                    val office = row.getCell(4)?.toString()?.replace("\t", " ")?.replace("\n", " ")?.trim() ?: ""
 
-                    if (name.isNotEmpty()) {
-                        facultyMembers.add(
-                            FacultyMember(
-                                name = name,
-                                designation = designation,
-                                office = office,
-                                email = email
-                            )
-                        )
+                    // Determine name: prefer colB, fallback to colA if colB is empty
+                    val name = colB.ifEmpty { colA }
+
+                    if (name.isEmpty()) continue
+
+                    // Skip headers, titles, and section dividers
+                    val lowerName = name.lowercase()
+                    if (lowerName.startsWith("faculty offices") ||
+                        lowerName.startsWith("faculty department") ||
+                        lowerName.startsWith("sr #") ||
+                        lowerName == "name"
+                    ) {
+                        continue
                     }
+
+                    // Skip if name is just a serial number (e.g. "1.0")
+                    if (name.toDoubleOrNull() != null) continue
+
+                    facultyMembers.add(
+                        FacultyMember(
+                            name = name,
+                            designation = designation,
+                            office = office,
+                            email = email
+                        )
+                    )
                 }
 
                 workbook.close()
@@ -125,7 +139,10 @@ class FacultyOffices : AppCompatActivity() {
             facultyList
         } else {
             facultyList.filter {
-                it.name.contains(query, ignoreCase = true)
+                it.name.contains(query, ignoreCase = true) ||
+                it.designation.contains(query, ignoreCase = true) ||
+                it.office.contains(query, ignoreCase = true) ||
+                it.email.contains(query, ignoreCase = true)
             }
         }
         adapter.submitList(filtered)
