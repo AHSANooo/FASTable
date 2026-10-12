@@ -9,6 +9,10 @@ android {
     namespace = "com.example.fastable"
     compileSdk = 36
 
+    buildFeatures {
+        buildConfig = true
+    }
+
     defaultConfig {
         applicationId = "com.example.fastable"
         minSdk = 26
@@ -124,6 +128,9 @@ dependencies {
 
     // Firebase Cloud Messaging for push notifications
     implementation("com.google.firebase:firebase-messaging-ktx:23.4.0")
+
+    // Firebase Remote Config for app updates
+    implementation("com.google.firebase:firebase-config-ktx:21.6.0")
 
     // WorkManager for scheduling notifications
     implementation("androidx.work:work-runtime-ktx:2.9.0")
