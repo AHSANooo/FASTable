@@ -5,7 +5,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F5F7FA"
+    android:background="@color/background_light"
     tools:context=".Notification">
 
     <!-- Top App Bar -->
@@ -15,7 +15,7 @@
         android:layout_height="90dp"
         android:paddingTop="30dp"
         android:paddingBottom="8dp"
-        android:background="#0D2A5C"
+        android:background="@color/top_bar_color"
         android:elevation="4dp"
         app:navigationIcon="@drawable/ic_arrow_back"
         app:title="Notifications"
@@ -45,7 +45,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="No notifications yet"
-        android:textColor="#999"
+        android:textColor="?attr/colorOnSurfaceVariant"
         android:textSize="16sp"
         android:visibility="gone"
         app:layout_constraintTop_toTopOf="parent"
