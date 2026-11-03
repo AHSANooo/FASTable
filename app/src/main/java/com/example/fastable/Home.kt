@@ -41,7 +41,11 @@ import android.view.MotionEvent
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.ImageButton
+import android.widget.ImageView
+import android.util.Log
 import androidx.activity.result.ActivityResultLauncher
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import kotlin.math.abs
 
 class Home : AppCompatActivity() {
@@ -80,7 +84,6 @@ class Home : AppCompatActivity() {
         setupRecyclerView()
         setupAllTimetableView()
         setupTabs()
-        setupTipBanner()
         observeViewModel()
 
         val drawerLayout = findViewById<DrawerLayout>(R.id.drawerLayout)
@@ -111,18 +114,6 @@ class Home : AppCompatActivity() {
         TimetableSyncWorker.runImmediateSync(this)
     }
 
-    private fun setupTipBanner() {
-        val cardTipBanner = findViewById<View>(R.id.cardTipBanner)
-        val btnDismissTip = findViewById<ImageButton>(R.id.btnDismissTip)
-        val prefs = getSharedPreferences("fastable_prefs", MODE_PRIVATE)
-        val isDismissed = prefs.getBoolean("tip_banner_dismissed", false)
-
-        cardTipBanner.visibility = if (isDismissed) View.GONE else View.VISIBLE
-        btnDismissTip.setOnClickListener {
-            prefs.edit().putBoolean("tip_banner_dismissed", true).apply()
-            cardTipBanner.visibility = View.GONE
-        }
-    }
 
     private fun setupFab() {
         val fab = findViewById<com.google.android.material.floatingactionbutton.FloatingActionButton>(R.id.fabAddTimetable)
@@ -416,11 +407,22 @@ class Home : AppCompatActivity() {
                 .setMessage("Are you sure you want to log out of FASTable?")
                 .setPositiveButton("Log Out") { _, _ ->
                     FirebaseAuth.getInstance().signOut()
-                    val intent = Intent(this, Login::class.java).apply {
-                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    try {
+                        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN).build()
+                        GoogleSignIn.getClient(this, gso).signOut()
+                    } catch (e: Exception) {
+                        Log.w("Home", "Google signOut error: ${e.message}")
                     }
-                    startActivity(intent)
-                    finish()
+                    CoroutineScope(Dispatchers.IO).launch {
+                        AppDatabase.getDatabase(this@Home).userProfileDao().deleteAllProfiles()
+                        withContext(Dispatchers.Main) {
+                            val intent = Intent(this@Home, Login::class.java).apply {
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                            }
+                            startActivity(intent)
+                            finish()
+                        }
+                    }
                 }
                 .setNegativeButton("Cancel", null)
                 .show()
@@ -434,7 +436,32 @@ class Home : AppCompatActivity() {
 
     private fun loadUserProfile() {
         CoroutineScope(Dispatchers.IO).launch {
-            val offlineProfile = AppDatabase.getDatabase(this@Home).userProfileDao().getAnyUserProfile()
+            val profileDao = AppDatabase.getDatabase(this@Home).userProfileDao()
+            var offlineProfile = profileDao.getAnyUserProfile()
+
+            // Resolve profile picture from Google account if available
+            val lastGoogleAccount = GoogleSignIn.getLastSignedInAccount(this@Home)
+            val googlePhoto = lastGoogleAccount?.photoUrl?.toString() ?: ""
+            if (offlineProfile != null && googlePhoto.isNotEmpty() && (offlineProfile.profileImageUrl.isEmpty() || offlineProfile.profileImageUrl != googlePhoto)) {
+                profileDao.updateProfileImage(offlineProfile.uid, googlePhoto)
+                offlineProfile = offlineProfile.copy(profileImageUrl = googlePhoto)
+            } else if (offlineProfile == null && lastGoogleAccount != null) {
+                val email = lastGoogleAccount.email ?: ""
+                val name = lastGoogleAccount.displayName ?: email.substringBefore("@")
+                val uid = lastGoogleAccount.id ?: email.replace(".", "_")
+                val newProfile = UserProfile(
+                    uid = uid,
+                    name = name,
+                    email = email,
+                    batch = "",
+                    degree = "",
+                    section = "",
+                    profileImageUrl = googlePhoto
+                )
+                profileDao.insertUserProfile(newProfile)
+                offlineProfile = newProfile
+            }
+
             withContext(Dispatchers.Main) {
                 if (offlineProfile != null) {
                     displayUserProfile(offlineProfile)
@@ -442,8 +469,9 @@ class Home : AppCompatActivity() {
             }
 
             val currentUser = FirebaseAuth.getInstance().currentUser
-            if (currentUser != null) {
-                syncProfileFromFirebase(currentUser.uid)
+            val uid = currentUser?.uid ?: offlineProfile?.uid
+            if (uid != null) {
+                syncProfileFromFirebase(uid)
             }
         }
     }
@@ -490,10 +518,13 @@ class Home : AppCompatActivity() {
                         val profileImageUrl = snapshot.child("profileImageUrl").getValue(String::class.java) ?: ""
 
                         CoroutineScope(Dispatchers.IO).launch {
+                            val currentOffline = AppDatabase.getDatabase(this@Home).userProfileDao().getUserProfile(uid)
                             val localImagePath = if (profileImageUrl.isNotEmpty() && !profileImageUrl.startsWith("http")) {
                                 saveBase64ImageLocally(uid, profileImageUrl)
-                            } else {
+                            } else if (profileImageUrl.isNotEmpty()) {
                                 profileImageUrl
+                            } else {
+                                currentOffline?.profileImageUrl ?: ""
                             }
 
                             val profile = UserProfile(

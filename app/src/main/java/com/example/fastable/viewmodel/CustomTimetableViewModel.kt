@@ -59,6 +59,7 @@ class CustomTimetableViewModel(application: Application) : AndroidViewModel(appl
         viewModelScope.launch {
             repository.getAllCourses().collect { courseList ->
                 _courses.value = courseList.filter {
+                    !it.name.equals("Placeholder", ignoreCase = true) &&
                     !it.name.contains("Cancelled", ignoreCase = true)
                 }
             }
@@ -76,12 +77,14 @@ class CustomTimetableViewModel(application: Application) : AndroidViewModel(appl
             if (query.isEmpty()) {
                 repository.getAllCourses().collect { courseList ->
                     _courses.value = courseList.filter {
+                        !it.name.equals("Placeholder", ignoreCase = true) &&
                         !it.name.contains("Cancelled", ignoreCase = true)
                     }
                 }
             } else {
                 repository.searchCourses(query).collect { courseList ->
                     _courses.value = courseList.filter {
+                        !it.name.equals("Placeholder", ignoreCase = true) &&
                         !it.name.contains("Cancelled", ignoreCase = true)
                     }
                 }
@@ -164,7 +167,7 @@ class CustomTimetableViewModel(application: Application) : AndroidViewModel(appl
         }
 
         _isLoading.value = true
-        kotlinx.coroutines.GlobalScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 repository.addCustomCoursesToDashboard(selected)
                 withContext(Dispatchers.Main) {
@@ -180,18 +183,52 @@ class CustomTimetableViewModel(application: Application) : AndroidViewModel(appl
         }
     }
 
-    fun syncData() {
-        _isLoading.value = true
+    /**
+     * Cache-first loading: Query Room database first.
+     * If cached courses exist, emit them immediately and do not perform a network sync.
+     * Only fetch from network if local cache is empty or user requested forceRefresh.
+     */
+    fun loadOrSyncData(forceRefresh: Boolean = false) {
         viewModelScope.launch {
-            val result = repository.syncData(forceRefresh = true)
+            val existingRealCourses = withContext(Dispatchers.IO) {
+                database.courseDao().getAllCoursesOnce().filter {
+                    !it.name.equals("Placeholder", ignoreCase = true)
+                }
+            }
+
+            if (existingRealCourses.isNotEmpty() && !forceRefresh) {
+                // Emit cached courses immediately without network sync
+                _courses.value = existingRealCourses.filter {
+                    !it.name.contains("Cancelled", ignoreCase = true)
+                }
+                _isLoading.value = false
+                return@launch
+            }
+
+            // Fetch from network when cache is empty or forceRefresh requested
+            _isLoading.value = true
+            val result = repository.syncData(forceRefresh = forceRefresh)
             _isLoading.value = false
 
             result.onSuccess {
-                _errorMessage.value = "Data synced successfully"
+                val freshCourses = withContext(Dispatchers.IO) {
+                    database.courseDao().getAllCoursesOnce().filter {
+                        !it.name.equals("Placeholder", ignoreCase = true) &&
+                        !it.name.contains("Cancelled", ignoreCase = true)
+                    }
+                }
+                _courses.value = freshCourses
+                if (forceRefresh) {
+                    _errorMessage.value = "Data synced successfully"
+                }
             }.onFailure { exception ->
                 _errorMessage.value = "Sync failed: ${exception.message}"
             }
         }
+    }
+
+    fun syncData() {
+        loadOrSyncData(forceRefresh = true)
     }
 
     fun getSessionsByDay(day: String): List<TimetableSession> {

@@ -13,7 +13,7 @@
         android:layout_height="80dp"
         android:paddingTop="26dp"
         android:paddingBottom="6dp"
-        android:background="@color/secondary_navy"
+        android:background="@color/top_bar_color"
         android:elevation="4dp"
         app:title="Faculty Offices"
         app:titleTextColor="@color/white"

@@ -53,9 +53,18 @@ class BatchTimetableViewModel(application: Application) : AndroidViewModel(appli
         currentBatch = batch
         currentSection = section
         _errorMessage.value = null
-        _isLoading.value = true
 
         viewModelScope.launch {
+            // Check Room cache first - instant load without waiting for network or showing long spinners
+            val cachedSessions = repository.getSessionsFromDatabaseOnce(batch, section)
+            if (cachedSessions.isNotEmpty()) {
+                _timetableSessions.value = cachedSessions
+                _isLoading.value = false
+                return@launch
+            }
+
+            // Cache miss: fetch from remote network
+            _isLoading.value = true
             val result = repository.getBatchTimetable(batch, section, forceFresh = false)
             _isLoading.value = false
 
@@ -100,7 +109,7 @@ class BatchTimetableViewModel(application: Application) : AndroidViewModel(appli
     }
 
     fun setDefaultBatch(batch: String, section: String) {
-        kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             try {
                 Log.d(TAG, "setDefaultBatch: Calling repository for $batch - Section $section")
                 repository.setDefaultBatch(batch, section)

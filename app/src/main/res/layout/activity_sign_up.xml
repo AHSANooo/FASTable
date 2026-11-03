@@ -65,7 +65,61 @@
             android:textSize="14sp"
             android:textColor="?attr/colorOnSurfaceVariant"
             android:layout_marginTop="4dp"
-            android:layout_marginBottom="24dp" />
+            android:layout_marginBottom="16dp" />
+
+        <!-- 1-Tap Google Sign-Up Card -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_google_signup"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="4dp"
+            android:text="Continue with Google"
+            android:textAllCaps="false"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:textColor="?attr/colorOnSurface"
+            app:icon="@drawable/ic_google"
+            app:iconGravity="textStart"
+            app:iconPadding="12dp"
+            app:iconTint="@null"
+            app:cornerRadius="12dp"
+            app:backgroundTint="?attr/colorSurface"
+            app:strokeColor="?attr/colorOutline"
+            app:strokeWidth="1dp"
+            app:elevation="2dp" />
+
+        <!-- Divider with Text -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="20dp">
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1"
+                android:background="?attr/colorOutline" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="OR SIGN UP WITH EMAIL"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.08"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="12dp" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1"
+                android:background="?attr/colorOutline" />
+        </LinearLayout>
 
         <!-- Name Input -->
         <com.google.android.material.textfield.TextInputLayout
@@ -185,6 +239,15 @@
             android:layout_marginTop="20dp"
             android:clickable="true"
             android:focusable="true" />
+
+        <!-- Loading indicator -->
+        <ProgressBar
+            android:id="@+id/signUpProgress"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:visibility="gone"
+            android:indeterminateTint="@color/primary_orange"
+            android:layout_marginTop="16dp" />
 
     </LinearLayout>
 </ScrollView>

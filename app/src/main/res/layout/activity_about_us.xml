@@ -13,7 +13,7 @@
         android:layout_height="80dp"
         android:paddingTop="26dp"
         android:paddingBottom="6dp"
-        android:background="@color/secondary_navy"
+        android:background="@color/top_bar_color"
         android:elevation="4dp"
         app:title="About FASTable"
         app:titleTextColor="@color/white"
@@ -298,7 +298,7 @@
                         android:textStyle="bold"
                         android:textColor="@color/white"
                         app:cornerRadius="10dp"
-                        app:backgroundTint="@color/secondary_navy" />
+                        app:backgroundTint="@color/top_bar_color" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

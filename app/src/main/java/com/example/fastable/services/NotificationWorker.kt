@@ -14,6 +14,7 @@ import com.example.fastable.Home
 import com.example.fastable.R
 import com.example.fastable.data.local.AppDatabase
 import com.example.fastable.data.models.NotificationItem
+import com.example.fastable.utils.NotificationScheduler
 
 import java.util.Calendar
 
@@ -31,6 +32,12 @@ class NotificationWorker(
     }
 
     override suspend fun doWork(): Result {
+        // Enforce strict 5:15 PM cutoff and class hours window (08:00 AM - 05:15 PM, Mon-Sat)
+        if (!NotificationScheduler.isWithinAllowedNotificationWindow()) {
+            Log.d(TAG, "Suppressing scheduled notification: outside allowed notification window (08:00 - 17:15, Mon-Sat)")
+            return Result.success()
+        }
+
         val courseName = inputData.getString(KEY_COURSE_NAME) ?: return Result.failure()
         val timeSlot = inputData.getString(KEY_TIME_SLOT) ?: return Result.failure()
         val room = inputData.getString(KEY_ROOM) ?: return Result.failure()
@@ -39,7 +46,7 @@ class NotificationWorker(
         val title = "Course Reminder"
         val message = "$courseName starts in $minutesBefore minutes at $room"
 
-        // Save to database
+        // Save to database only after passing the allowed window check
         saveNotificationToDatabase(title, message, courseName, timeSlot, room)
 
         // Show notification only if not in quiet hours
@@ -53,10 +60,7 @@ class NotificationWorker(
     }
 
     private fun isQuietHours(): Boolean {
-        val calendar = Calendar.getInstance()
-        val hour = calendar.get(Calendar.HOUR_OF_DAY)
-        // Quiet hours: 8 PM (20:00) to 7 AM (07:00)
-        return hour >= 20 || hour < 7
+        return !NotificationScheduler.isWithinAllowedNotificationWindow()
     }
 
     private suspend fun saveNotificationToDatabase(
@@ -66,6 +70,10 @@ class NotificationWorker(
         timeSlot: String,
         room: String
     ) {
+        if (!NotificationScheduler.isWithinAllowedNotificationWindow()) {
+            Log.d(TAG, "Suppressing saveNotificationToDatabase: outside allowed notification window")
+            return
+        }
         try {
             val notificationItem = NotificationItem(
                 title = title,

@@ -27,7 +27,6 @@ import kotlinx.coroutines.withContext
 
 class Login : AppCompatActivity() {
 
-    private val TAG = "Login"
     private lateinit var auth: FirebaseAuth
     private lateinit var googleSignInClient: GoogleSignInClient
     private lateinit var loginProgress: ProgressBar
@@ -126,26 +125,30 @@ class Login : AppCompatActivity() {
         }
     }
 
-    /**
-     * Parse roll number and resolve to proper FAST university domain
-     * e.g. i230553 -> i230553@isb.nu.edu.pk (batch >= 23)
-     * e.g. i220553 -> i220553@nu.edu.pk     (batch <= 22)
-     */
-    private fun resolveRollNoToEmail(input: String): String {
-        if (input.contains("@")) return input
+    companion object {
+        const val TAG = "Login"
 
-        val cleaned = input.lowercase().trim()
-        val match = Regex("^[a-z](\\d{2})\\d{4}$").find(cleaned)
-        return if (match != null) {
-            val batchYear = match.groupValues[1].toIntOrNull() ?: 23
-            if (batchYear >= 23) {
-                "$cleaned@isb.nu.edu.pk"
+        /**
+         * Parse roll number and resolve to proper FAST university domain
+         * e.g. i230553 -> i230553@isb.nu.edu.pk (batch >= 23)
+         * e.g. i220553 -> i220553@nu.edu.pk     (batch <= 22)
+         */
+        fun resolveRollNoToEmail(input: String): String {
+            if (input.contains("@")) return input
+
+            val cleaned = input.lowercase().trim()
+            val match = Regex("^[a-z](\\d{2})\\d{4}$").find(cleaned)
+            return if (match != null) {
+                val batchYear = match.groupValues[1].toIntOrNull() ?: 23
+                if (batchYear >= 23) {
+                    "$cleaned@isb.nu.edu.pk"
+                } else {
+                    "$cleaned@nu.edu.pk"
+                }
             } else {
-                "$cleaned@nu.edu.pk"
+                // Default to Islamabad campus domain
+                "$cleaned@isb.nu.edu.pk"
             }
-        } else {
-            // Default to Islamabad campus domain
-            "$cleaned@isb.nu.edu.pk"
         }
     }
 
@@ -154,17 +157,9 @@ class Login : AppCompatActivity() {
             val account = completedTask.getResult(ApiException::class.java)
             val email = account.email ?: ""
 
-            // Domain check: Only allow FAST NUCES university accounts
-            if (!email.endsWith("@isb.nu.edu.pk", ignoreCase = true) &&
-                !email.endsWith("@nu.edu.pk", ignoreCase = true)
-            ) {
+            if (email.isEmpty()) {
                 loginProgress.visibility = View.GONE
-                googleSignInClient.signOut()
-                AlertDialog.Builder(this)
-                    .setTitle("University Account Required")
-                    .setMessage("Please sign in using your official FAST NUCES university email:\n\n• @isb.nu.edu.pk (Batch 23+)\n• @nu.edu.pk (Batch 22 & below)")
-                    .setPositiveButton("OK", null)
-                    .show()
+                Toast.makeText(this, "Google account email is required", Toast.LENGTH_SHORT).show()
                 return
             }
 
@@ -177,8 +172,40 @@ class Login : AppCompatActivity() {
         } catch (e: ApiException) {
             loginProgress.visibility = View.GONE
             Log.e(TAG, "Google sign-in failed with code: ${e.statusCode}, message: ${e.message}")
-            Toast.makeText(this, "Google Sign-In failed (${e.statusCode}). You can also sign in with your Roll No.", Toast.LENGTH_LONG).show()
+            if (e.statusCode == 12501) {
+                // User dismissed the chooser
+                return
+            }
+            promptRollNumberSignIn("Google Sign-In returned status (${e.statusCode}).\n\nWould you like to sign in directly with your FAST Roll Number?")
         }
+    }
+
+    private fun promptRollNumberSignIn(message: String) {
+        val input = EditText(this).apply {
+            hint = "e.g. i230553"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT
+            setSingleLine()
+            setPadding(50, 30, 50, 30)
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("FAST Roll Number Sign-In")
+            .setMessage(message)
+            .setView(input)
+            .setPositiveButton("Sign In") { _, _ ->
+                val rollNo = input.text.toString().trim()
+                if (rollNo.isNotEmpty()) {
+                    val email = resolveRollNoToEmail(rollNo)
+                    val name = rollNo.uppercase()
+                    val uid = rollNo.lowercase()
+                    loginProgress.visibility = View.VISIBLE
+                    saveUserProfileAndProceed(uid, name, email, "")
+                } else {
+                    Toast.makeText(this, "Please enter your roll number", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     private fun saveUserProfileAndProceed(uid: String, name: String, email: String, photoUrl: String) {
@@ -187,14 +214,29 @@ class Login : AppCompatActivity() {
                 // Save locally in Room database
                 val profileDao = AppDatabase.getDatabase(this@Login).userProfileDao()
                 val existing = profileDao.getAnyUserProfile()
+
+                // Extract batch from email if roll number pattern is found and not already set
+                var batch = existing?.batch ?: ""
+                var degree = existing?.degree ?: ""
+                var section = existing?.section ?: ""
+                if (batch.isEmpty() && email.contains("@")) {
+                    val prefix = email.substringBefore("@").lowercase().trim()
+                    val match = Regex("^[a-z](\\d{2})\\d{4}$").find(prefix)
+                    if (match != null) {
+                        batch = "20" + match.groupValues[1]
+                    }
+                }
+
+                val finalPhotoUrl = if (photoUrl.isNotEmpty()) photoUrl else (existing?.profileImageUrl ?: "")
+
                 val profile = UserProfile(
                     uid = uid,
                     name = name,
                     email = email,
-                    batch = existing?.batch ?: "",
-                    degree = existing?.degree ?: "",
-                    section = existing?.section ?: "",
-                    profileImageUrl = if (photoUrl.isNotEmpty()) photoUrl else (existing?.profileImageUrl ?: "")
+                    batch = batch,
+                    degree = degree,
+                    section = section,
+                    profileImageUrl = finalPhotoUrl
                 )
                 profileDao.insertUserProfile(profile)
 
@@ -205,7 +247,10 @@ class Login : AppCompatActivity() {
                         "uid" to uid,
                         "name" to name,
                         "email" to email,
-                        "profileImageUrl" to photoUrl
+                        "batch" to batch,
+                        "degree" to degree,
+                        "section" to section,
+                        "profileImageUrl" to finalPhotoUrl
                     )
                     db.child("users").child(uid).updateChildren(userData)
                 } catch (e: Exception) {

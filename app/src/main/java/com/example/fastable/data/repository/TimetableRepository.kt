@@ -15,7 +15,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
-class TimetableRepository(context: Context) {
+class TimetableRepository(private val context: Context) {
 
     private val TAG = "TimetableRepository"
     private val database = AppDatabase.getDatabase(context)
@@ -26,7 +26,18 @@ class TimetableRepository(context: Context) {
     private var lastSyncTime: Long = 0
     private val SYNC_INTERVAL = 30 * 1000 // 30 seconds - very aggressive
 
+    init {
+        val prefs = context.getSharedPreferences("fastable_timetable_prefs", Context.MODE_PRIVATE)
+        val saved = prefs.getStringSet("cached_batches", null)
+        if (!saved.isNullOrEmpty()) {
+            _cachedBatchesFlow.value = saved.toList().sorted()
+        }
+    }
+
     companion object {
+        // Flow to provide batch names extracted during syncBatchesOnly()
+        private val _cachedBatchesFlow = kotlinx.coroutines.flow.MutableStateFlow<List<String>>(emptyList())
+
         // SHARED cache across all TimetableRepository instances
         // This prevents multiple simultaneous fetches from different workers/activities
         @Volatile
@@ -101,12 +112,15 @@ class TimetableRepository(context: Context) {
      * Get spreadsheet from cache or fetch new
      * Uses shared cache and mutex to prevent redundant fetches
      */
-    private suspend fun getSpreadsheet(): com.google.api.services.sheets.v4.model.Spreadsheet? {
+    suspend fun getSpreadsheet(forceRefresh: Boolean = false): com.google.api.services.sheets.v4.model.Spreadsheet? {
+        if (forceRefresh) {
+            clearSpreadsheetCache()
+        }
         val currentTime = System.currentTimeMillis()
 
         // Return cached if still valid (fast path, no lock needed)
         val cached = cachedSpreadsheet
-        if (cached != null && (currentTime - cacheTime) < CACHE_DURATION) {
+        if (!forceRefresh && cached != null && (currentTime - cacheTime) < CACHE_DURATION) {
             Log.d(TAG, "Using cached spreadsheet (age: ${(currentTime - cacheTime) / 1000}s)")
             return cached
         }
@@ -163,28 +177,14 @@ class TimetableRepository(context: Context) {
                     return@withContext Result.failure(Exception("No batches found"))
                 }
 
-                // Create minimal course entries just for batch display
-                // This allows the batch spinner to populate without full course sync
-                val minimalCourses = batchNames.map { batch ->
-                    Course(
-                        name = "Placeholder",  // Placeholder course name
-                        department = TimeParser.extractDepartmentFromBatch(batch),
-                        section = "A",  // Default section
-                        batch = batch,
-                        colorCode = "",
-                        fullEntry = batch,
-                        isSelected = false
-                    )
-                }
+                // Clean up any legacy placeholder courses from previous app versions
+                courseDao.deletePlaceholderCourses()
 
-                // Only insert if we don't have courses already
-                val existingCourses = courseDao.getAllCoursesOnce()
-                if (existingCourses.isEmpty()) {
-                    courseDao.insertCourses(minimalCourses)
-                    Log.d(TAG, "FAST SYNC: Inserted ${minimalCourses.size} minimal batch entries")
-                } else {
-                    Log.d(TAG, "FAST SYNC: Courses already exist, skipping insertion")
-                }
+                // Cache batch names in memory and persistent preferences without inserting fake courses
+                val prefs = context.getSharedPreferences("fastable_timetable_prefs", Context.MODE_PRIVATE)
+                prefs.edit().putStringSet("cached_batches", batchNames.toSet()).apply()
+                _cachedBatchesFlow.value = batchNames
+                Log.d(TAG, "FAST SYNC: Cached ${batchNames.size} batch names without inserting placeholder courses")
 
                 val fetchTime = System.currentTimeMillis() - startTime
                 Log.d(TAG, "FAST SYNC: Completed in ${fetchTime}ms - ${batchNames.size} batches")
@@ -203,8 +203,8 @@ class TimetableRepository(context: Context) {
     suspend fun syncData(forceRefresh: Boolean = false): Result<Boolean> {
         return withContext(Dispatchers.IO) {
             try {
-                // PERFORMANCE: Check if we have courses first - skip sync if we do
-                val existingCourses = courseDao.getAllCoursesOnce()
+                // PERFORMANCE: Check if we have courses first - skip sync if we do (ignore legacy placeholder rows)
+                val existingCourses = courseDao.getAllCoursesOnce().filter { !it.name.equals("Placeholder", ignoreCase = true) }
                 if (existingCourses.isNotEmpty() && !forceRefresh) {
                     Log.d(TAG, "Using existing ${existingCourses.size} courses - SKIP SYNC")
                     return@withContext Result.success(true)
@@ -229,9 +229,9 @@ class TimetableRepository(context: Context) {
                 Log.d(TAG, "Extracting courses from spreadsheet...")
                 val courses = CourseExtractor.extractAllCourses(spreadsheet)
 
-                // Preserve selection state from existing courses
+                // Preserve selection state from existing courses (ignoring legacy placeholders)
                 val existingSelections = courseDao.getAllCoursesOnce()
-                    .filter { it.isSelected }
+                    .filter { it.isSelected && !it.name.equals("Placeholder", ignoreCase = true) }
                     .map { it.getCourseKey() }  // Use full key: name + department + section + batch
                     .toSet()
 
@@ -377,10 +377,15 @@ class TimetableRepository(context: Context) {
     }
 
     /**
-     * Get batches
+     * Get batches (combines batch names from Room courses and cached batch headers)
      */
     fun getBatches(): Flow<List<String>> {
-        return courseDao.getAllBatches()
+        return kotlinx.coroutines.flow.combine(
+            courseDao.getAllBatches(),
+            _cachedBatchesFlow
+        ) { dbBatches, memBatches ->
+            (dbBatches + memBatches).filter { it.isNotBlank() && !it.equals("Placeholder", ignoreCase = true) }.distinct().sorted()
+        }
     }
 
     /**

@@ -103,6 +103,11 @@ class Add_Timetable : AppCompatActivity() {
         llTimetableView = findViewById(R.id.llTimetableView)
         btnSaveToDashboard = findViewById(R.id.btnSaveToDashboard)
 
+        // Initial loading state: hide courses until real courses are confirmed loaded
+        rvCourses.visibility = View.GONE
+        tvNoData.visibility = View.GONE
+        progressBar.visibility = View.VISIBLE
+
         // Toggle Expandable dock
         btnToggleDock.setOnClickListener {
             val selectedCount = viewModel.selectedCourses.value?.size ?: 0
@@ -118,8 +123,9 @@ class Add_Timetable : AppCompatActivity() {
         viewModel = ViewModelProvider(this)[CustomTimetableViewModel::class.java]
 
         viewModel.courses.observe(this) { courses ->
-            courseAdapter.submitList(courses)
-            tvNoData.visibility = if (courses.isEmpty()) View.VISIBLE else View.GONE
+            val realCourses = courses.filter { !it.name.equals("Placeholder", ignoreCase = true) }
+            courseAdapter.submitList(realCourses)
+            updateCourseVisibility(realCourses, viewModel.isLoading.value ?: false)
         }
 
         viewModel.selectedCourses.observe(this) { selected ->
@@ -147,8 +153,8 @@ class Add_Timetable : AppCompatActivity() {
         }
 
         viewModel.isLoading.observe(this) { isLoading ->
-            progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
             btnGenerate.isEnabled = !isLoading && (viewModel.selectedCourses.value?.isNotEmpty() == true)
+            updateCourseVisibility(viewModel.courses.value, isLoading)
         }
 
         viewModel.errorMessage.observe(this) { error ->
@@ -171,7 +177,26 @@ class Add_Timetable : AppCompatActivity() {
             }
         }
 
-        viewModel.syncData()
+        viewModel.loadOrSyncData(forceRefresh = false)
+    }
+
+    private fun updateCourseVisibility(courses: List<com.example.fastable.data.models.Course>?, isLoading: Boolean) {
+        val realCourses = courses?.filter { !it.name.equals("Placeholder", ignoreCase = true) } ?: emptyList()
+        if (isLoading && realCourses.isEmpty()) {
+            // Keep loading active and courses hidden while courses are being fetched
+            progressBar.visibility = View.VISIBLE
+            rvCourses.visibility = View.GONE
+            tvNoData.visibility = View.GONE
+        } else if (realCourses.isEmpty()) {
+            progressBar.visibility = View.GONE
+            rvCourses.visibility = View.GONE
+            tvNoData.visibility = View.VISIBLE
+        } else {
+            // Content appears once fully fetched and cached
+            progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
+            rvCourses.visibility = View.VISIBLE
+            tvNoData.visibility = View.GONE
+        }
     }
 
     private fun setupRecyclerViews() {

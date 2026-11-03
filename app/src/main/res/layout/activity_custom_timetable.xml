@@ -12,7 +12,7 @@
         android:id="@+id/topBar"
         android:layout_width="match_parent"
         android:layout_height="80dp"
-        android:background="@color/secondary_navy"
+        android:background="@color/top_bar_color"
         android:paddingTop="26dp"
         android:paddingBottom="6dp"
         app:navigationIcon="@drawable/ic_arrow_back"
@@ -25,18 +25,20 @@
     <LinearLayout
         android:id="@+id/tabContainer"
         android:layout_width="match_parent"
-        android:layout_height="44dp"
-        android:layout_marginTop="12dp"
-        android:layout_marginHorizontal="20dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
         android:background="?attr/colorSurface"
         android:elevation="2dp"
-        android:orientation="horizontal"
         app:layout_constraintTop_toBottomOf="@id/topBar">
 
         <TextView
             android:id="@+id/tvBatchTimetable"
             android:layout_width="0dp"
-            android:layout_height="match_parent"
+            android:layout_height="44dp"
             android:layout_weight="1"
             android:gravity="center"
             android:text="Batch Timetable"
@@ -48,11 +50,11 @@
         <TextView
             android:id="@+id/tvCustomTimetable"
             android:layout_width="0dp"
-            android:layout_height="match_parent"
+            android:layout_height="44dp"
             android:layout_weight="1"
             android:gravity="center"
             android:text="Custom Timetable"
-            android:textColor="@color/secondary_navy"
+            android:textColor="?attr/colorOnSurfaceVariant"
             android:textSize="14sp"
             android:textStyle="bold"
             android:background="@drawable/unselected_tab_right" />
@@ -78,14 +80,6 @@
             android:orientation="vertical"
             android:padding="16dp">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Select Batch &amp; Section"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:textColor="?attr/colorOnSurface"
-                android:layout_marginBottom="10dp" />
 
             <!-- Batch Spinner Container -->
             <FrameLayout

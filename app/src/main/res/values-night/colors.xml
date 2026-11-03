@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark Mode Specific Color Overrides -->
+    <color name="top_bar_color">#923400</color>
+    <color name="top_bar_orange">#923400</color>
+    <color name="top_bar_orange_dark">#782900</color>
+
+    <color name="background_light">#0A111C</color>
+    <color name="surface_light">#16202E</color>
+    <color name="divider_light">#2E3D52</color>
+
+    <color name="background_dark">#0A111C</color>
+    <color name="surface_dark">#16202E</color>
+    <color name="surface_dark_elevated">#1E2C3F</color>
+    <color name="text_primary_dark">#F8FAFC</color>
+    <color name="text_secondary_dark">#94A3B8</color>
+    <color name="divider_dark">#2E3D52</color>
+    <color name="divider_color">#2E3D52</color>
+</resources>
+

@@ -1,5 +1,6 @@
 package com.example.fastable
 
+import android.app.Activity
 import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
@@ -8,31 +9,56 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.util.Patterns
+import android.view.View
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ProgressBar
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.database.DatabaseReference
+import androidx.lifecycle.lifecycleScope
 import com.example.fastable.data.local.AppDatabase
 import com.example.fastable.data.models.UserProfile
 import com.example.fastable.api.ProfileApiService
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.tasks.Task
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.DatabaseReference
 import de.hdodenhof.circleimageview.CircleImageView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 
 class SignUp : AppCompatActivity() {
 
+    private val TAG = "SignUp"
     private lateinit var auth: FirebaseAuth
     private lateinit var database: DatabaseReference
+    private lateinit var googleSignInClient: GoogleSignInClient
+    private lateinit var signUpProgress: ProgressBar
     private lateinit var profileImageView: CircleImageView
     private var selectedImageUri: Uri? = null
     private var selectedBitmap: Bitmap? = null
     private val PICK_IMAGE_REQUEST = 1
+
+    private val googleSignInLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+                handleGoogleSignInResult(task)
+            } else {
+                signUpProgress.visibility = View.GONE
+                Log.d(TAG, "Google Sign-Up cancelled or failed, code: ${result.resultCode}")
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,12 +67,29 @@ class SignUp : AppCompatActivity() {
         auth = FirebaseAuth.getInstance()
         database = FirebaseDatabase.getInstance().reference
 
+        // Configure Google Sign-In with email and profile
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestEmail()
+            .requestProfile()
+            .build()
+        googleSignInClient = GoogleSignIn.getClient(this, gso)
+
         profileImageView = findViewById(R.id.profile_image)
         val nameEt = findViewById<EditText>(R.id.name)
         val emailEt = findViewById<EditText>(R.id.email)
         val passwordEt = findViewById<EditText>(R.id.password)
         val confirmPasswordEt = findViewById<EditText>(R.id.confirm_password)
         val signUpBtn = findViewById<Button>(R.id.btn_signup)
+        val googleSignUpBtn = findViewById<Button>(R.id.btn_google_signup)
+        signUpProgress = findViewById(R.id.signUpProgress)
+
+        googleSignUpBtn.setOnClickListener {
+            signUpProgress.visibility = View.VISIBLE
+            googleSignInClient.signOut().addOnCompleteListener {
+                val signInIntent = googleSignInClient.signInIntent
+                googleSignInLauncher.launch(signInIntent)
+            }
+        }
 
         // Set click listener for profile image
         profileImageView.setOnClickListener {
@@ -327,6 +370,126 @@ class SignUp : AppCompatActivity() {
         } catch (e: Exception) {
             Log.e("SignUp", "Error saving profile image: ${e.message}", e)
             ""
+        }
+    }
+
+    private fun handleGoogleSignInResult(completedTask: Task<GoogleSignInAccount>) {
+        try {
+            val account = completedTask.getResult(ApiException::class.java)
+            val email = account.email ?: ""
+
+            if (email.isEmpty()) {
+                signUpProgress.visibility = View.GONE
+                Toast.makeText(this, "Google account email is required", Toast.LENGTH_SHORT).show()
+                return
+            }
+
+            val name = account.displayName ?: email.substringBefore("@")
+            val photoUrl = account.photoUrl?.toString() ?: ""
+            val uid = account.id ?: email.replace(".", "_")
+
+            saveGoogleUserProfileAndProceed(uid, name, email, photoUrl)
+
+        } catch (e: ApiException) {
+            signUpProgress.visibility = View.GONE
+            Log.e(TAG, "Google sign-up failed with code: ${e.statusCode}, message: ${e.message}")
+            if (e.statusCode == 12501) {
+                // User dismissed the chooser
+                return
+            }
+            promptRollNumberSignUp("Google Sign-Up returned status (${e.statusCode}).\n\nWould you like to register directly with your FAST Roll Number?")
+        }
+    }
+
+    private fun promptRollNumberSignUp(message: String) {
+        val input = EditText(this).apply {
+            hint = "e.g. i230553"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT
+            setSingleLine()
+            setPadding(50, 30, 50, 30)
+        }
+
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("FAST Roll Number Registration")
+            .setMessage(message)
+            .setView(input)
+            .setPositiveButton("Continue") { _, _ ->
+                val rollNo = input.text.toString().trim()
+                if (rollNo.isNotEmpty()) {
+                    val email = Login.resolveRollNoToEmail(rollNo)
+                    val name = rollNo.uppercase()
+                    val uid = rollNo.lowercase()
+                    signUpProgress.visibility = View.VISIBLE
+                    saveGoogleUserProfileAndProceed(uid, name, email, "")
+                } else {
+                    Toast.makeText(this, "Please enter your roll number", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun saveGoogleUserProfileAndProceed(uid: String, name: String, email: String, photoUrl: String) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                // Save locally in Room database
+                val profileDao = AppDatabase.getDatabase(this@SignUp).userProfileDao()
+                val existing = profileDao.getAnyUserProfile()
+
+                // Extract batch from email if roll number pattern is found and not already set
+                var batch = existing?.batch ?: ""
+                var degree = existing?.degree ?: ""
+                var section = existing?.section ?: ""
+                if (batch.isEmpty() && email.contains("@")) {
+                    val prefix = email.substringBefore("@").lowercase().trim()
+                    val match = Regex("^[a-z](\\d{2})\\d{4}$").find(prefix)
+                    if (match != null) {
+                        batch = "20" + match.groupValues[1]
+                    }
+                }
+
+                val finalPhotoUrl = if (photoUrl.isNotEmpty()) photoUrl else (existing?.profileImageUrl ?: "")
+
+                val profile = UserProfile(
+                    uid = uid,
+                    name = name,
+                    email = email,
+                    batch = batch,
+                    degree = degree,
+                    section = section,
+                    profileImageUrl = finalPhotoUrl
+                )
+                profileDao.insertUserProfile(profile)
+
+                // Also backup to Firebase Realtime Database
+                try {
+                    val db = FirebaseDatabase.getInstance().reference
+                    val userData = mapOf(
+                        "uid" to uid,
+                        "name" to name,
+                        "email" to email,
+                        "batch" to batch,
+                        "degree" to degree,
+                        "section" to section,
+                        "profileImageUrl" to finalPhotoUrl
+                    )
+                    db.child("users").child(uid).updateChildren(userData)
+                } catch (e: Exception) {
+                    Log.w(TAG, "Firebase backup skipped: ${e.message}")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error saving Google profile: ${e.message}")
+            }
+
+            withContext(Dispatchers.Main) {
+                signUpProgress.visibility = View.GONE
+                Toast.makeText(this@SignUp, "Welcome, $name!", Toast.LENGTH_SHORT).show()
+                val intent = Intent(this@SignUp, Home::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                }
+                startActivity(intent)
+                finish()
+            }
         }
     }
 }

@@ -1,6 +1,8 @@
 package com.example.fastable.data.remote
 
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.util.Log
 import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.gson.GsonFactory
@@ -162,14 +164,14 @@ class GoogleSheetsService(private val context: Context) {
     }
 
     /**
-     * Check if online
+     * Check if online using standard Android ConnectivityManager
      */
     fun isOnline(): Boolean {
         return try {
-            val runtime = Runtime.getRuntime()
-            val process = runtime.exec("/system/bin/ping -c 1 8.8.8.8")
-            val exitValue = process.waitFor()
-            exitValue == 0
+            val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+            val network = connectivityManager?.activeNetwork ?: return false
+            val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
         } catch (e: Exception) {
             false
         }

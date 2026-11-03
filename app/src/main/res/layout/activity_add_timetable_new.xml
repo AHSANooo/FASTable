@@ -16,7 +16,7 @@
             android:id="@+id/topBar"
             android:layout_width="match_parent"
             android:layout_height="80dp"
-            android:background="@color/secondary_navy"
+            android:background="@color/top_bar_color"
             android:paddingTop="26dp"
             android:paddingBottom="6dp"
             app:navigationIcon="@drawable/ic_arrow_back"
@@ -29,22 +29,24 @@
         <LinearLayout
             android:id="@+id/tabContainer"
             android:layout_width="match_parent"
-            android:layout_height="44dp"
-            android:layout_marginTop="12dp"
-            android:layout_marginHorizontal="20dp"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
             android:background="?attr/colorSurface"
             android:elevation="2dp"
-            android:orientation="horizontal"
             app:layout_constraintTop_toBottomOf="@id/topBar">
 
             <TextView
                 android:id="@+id/tvBatchTimetable"
                 android:layout_width="0dp"
-                android:layout_height="match_parent"
+                android:layout_height="44dp"
                 android:layout_weight="1"
                 android:gravity="center"
                 android:text="Batch Timetable"
-                android:textColor="@color/secondary_navy"
+                android:textColor="?attr/colorOnSurfaceVariant"
                 android:textSize="14sp"
                 android:textStyle="bold"
                 android:background="@drawable/unselected_tab_left" />
@@ -52,7 +54,7 @@
             <TextView
                 android:id="@+id/tvCustomTimetable"
                 android:layout_width="0dp"
-                android:layout_height="match_parent"
+                android:layout_height="44dp"
                 android:layout_weight="1"
                 android:gravity="center"
                 android:text="Custom Timetable"
@@ -235,11 +237,9 @@
 
                             <TextView
                                 android:id="@+id/tvToggleHint"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Tap to view list ▲"
-                                android:textSize="11sp"
-                                android:textColor="?attr/colorOnSurfaceVariant" />
+                                android:layout_width="0dp"
+                                android:layout_height="0dp"
+                                android:visibility="gone" />
                         </LinearLayout>
 
                         <!-- Generate Button -->
@@ -271,26 +271,6 @@
             app:layout_constraintTop_toBottomOf="@id/tabContainer"
             app:layout_constraintBottom_toBottomOf="parent">
 
-            <!-- Preview Header Banner -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginHorizontal="12dp"
-                android:layout_marginTop="8dp"
-                app:cardCornerRadius="10dp"
-                app:cardElevation="1dp"
-                app:cardBackgroundColor="@color/primary_orange_light"
-                app:strokeColor="@color/primary_orange"
-                app:strokeWidth="1dp">
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="🗓️ Unified Preview: Showing your newly selected courses combined with your current dashboard courses."
-                    android:textSize="12sp"
-                    android:textColor="@color/primary_orange_dark"
-                    android:padding="10dp" />
-            </com.google.android.material.card.MaterialCardView>
 
             <!-- Day Tabs -->
             <com.google.android.material.tabs.TabLayout

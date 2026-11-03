@@ -19,7 +19,7 @@
             android:id="@+id/topAppBar"
             android:layout_width="0dp"
             android:layout_height="84dp"
-            android:background="@color/secondary_navy"
+            android:background="@color/top_bar_color"
             android:elevation="4dp"
             android:paddingTop="28dp"
             android:paddingBottom="6dp"
@@ -33,52 +33,6 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
 
-        <!-- Tip Banner (Dismissible signifier for new users) -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/cardTipBanner"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_margin="12dp"
-            app:cardCornerRadius="10dp"
-            app:cardElevation="1dp"
-            app:cardBackgroundColor="@color/primary_orange_light"
-            app:strokeColor="@color/primary_orange"
-            app:strokeWidth="1dp"
-            app:layout_constraintTop_toBottomOf="@id/topAppBar"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:paddingStart="12dp"
-                android:paddingEnd="8dp"
-                android:paddingTop="8dp"
-                android:paddingBottom="8dp">
-
-                <TextView
-                    android:id="@+id/tvTipText"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="💡 Tip: Long-press or tap ⋮ on any class card to remove it."
-                    android:textColor="@color/primary_orange_dark"
-                    android:textSize="12sp"
-                    android:textStyle="bold" />
-
-                <ImageButton
-                    android:id="@+id/btnDismissTip"
-                    android:layout_width="28dp"
-                    android:layout_height="28dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="Dismiss tip"
-                    android:src="@drawable/ic_close"
-                    app:tint="@color/primary_orange_dark" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
         <!-- Tab Layout for Today / All Timetable -->
         <LinearLayout
             android:id="@+id/tabContainer"
@@ -91,7 +45,7 @@
             android:paddingBottom="8dp"
             android:background="?attr/colorSurface"
             android:elevation="2dp"
-            app:layout_constraintTop_toBottomOf="@id/cardTipBanner"
+            app:layout_constraintTop_toBottomOf="@id/topAppBar"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent">
 
@@ -117,7 +71,7 @@
                 android:layout_height="44dp"
                 android:layout_weight="1"
                 android:text="All Timetable"
-                android:textColor="@color/secondary_navy"
+                android:textColor="?attr/colorOnSurfaceVariant"
                 android:textSize="15sp"
                 android:textStyle="bold"
                 android:background="@drawable/unselected_tab_right"
@@ -311,9 +265,10 @@
             android:layout_marginBottom="12dp"
             android:contentDescription="Refresh timetable"
             android:src="@drawable/ic_refresh"
-            app:backgroundTint="@color/secondary_navy"
+            app:backgroundTint="@color/primary_orange"
             app:tint="@android:color/white"
             app:fabSize="mini"
+            app:shapeAppearanceOverlay="@style/ShapeAppearance.FASTable.FabCircle"
             app:layout_constraintBottom_toTopOf="@id/fabAddTimetable"
             app:layout_constraintEnd_toEndOf="parent" />
 
@@ -328,6 +283,8 @@
             android:src="@drawable/ic_add"
             app:backgroundTint="@color/primary_orange"
             app:tint="@android:color/white"
+            app:maxImageSize="34dp"
+            app:shapeAppearanceOverlay="@style/ShapeAppearance.FASTable.FabCircle"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
 
@@ -383,7 +340,7 @@
             android:id="@+id/top_bar_menu"
             android:layout_width="match_parent"
             android:layout_height="78dp"
-            android:background="@color/secondary_navy"
+            android:background="@color/top_bar_color"
             android:paddingTop="24dp"
             app:navigationIcon="@drawable/ic_menu"
             app:navigationIconTint="@color/white"

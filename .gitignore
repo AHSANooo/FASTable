@@ -168,3 +168,4 @@ branch_structure.json
 
 gradle/gradle-daemon-jvm.properties
 .vscode/
+.agents/

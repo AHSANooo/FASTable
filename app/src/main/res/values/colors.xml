@@ -2,8 +2,13 @@
 <resources>
     <!-- Brand Primary Colors (FAST Orange) -->
     <color name="primary_orange">#FF6D05</color>
-    <color name="primary_orange_dark">#E05E00</color>
+    <color name="primary_orange_dark">#D85800</color>
     <color name="primary_orange_light">#FFF0E6</color>
+
+    <!-- Top Bar Aesthetically Pleasing Darker Orange (Replaces Navy) -->
+    <color name="top_bar_orange">#C04600</color>
+    <color name="top_bar_orange_dark">#9E3800</color>
+    <color name="top_bar_color">#C04600</color>
 
     <!-- Brand Secondary Colors (FAST Navy) -->
     <color name="secondary_navy">#0A2756</color>
@@ -13,7 +18,7 @@
 
     <!-- Status & Session Colors -->
     <color name="lab_color">#FF6D05</color>
-    <color name="class_color">#0A2756</color>
+    <color name="class_color">#C04600</color>
     <color name="cancelled_color">#DC2626</color>
     <color name="cancelled_badge">#FEE2E2</color>
     <color name="green_primary">#10B981</color>
@@ -28,11 +33,11 @@
 
     <!-- Dark Theme Palette -->
     <color name="background_dark">#0A111C</color>
-    <color name="surface_dark">#121A24</color>
-    <color name="surface_dark_elevated">#1A2536</color>
+    <color name="surface_dark">#16202E</color>
+    <color name="surface_dark_elevated">#1E2C3F</color>
     <color name="text_primary_dark">#F8FAFC</color>
     <color name="text_secondary_dark">#94A3B8</color>
-    <color name="divider_dark">#1E293B</color>
+    <color name="divider_dark">#2E3D52</color>
 
     <!-- Generic & Legacy References -->
     <color name="black">#000000</color>

@@ -9,7 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.fastable.data.models.FreeRoom
 import com.example.fastable.data.models.SlotWithFreeRooms
 import com.example.fastable.data.remote.FreeRoomsExtractor
-import com.example.fastable.data.remote.GoogleSheetsService
+import com.example.fastable.data.repository.TimetableRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -17,7 +17,7 @@ import kotlinx.coroutines.withContext
 class FreeRoomsViewModel(application: Application) : AndroidViewModel(application) {
 
     private val TAG = "FreeRoomsViewModel"
-    private val sheetsService = GoogleSheetsService(application)
+    private val repository = TimetableRepository(application)
 
     private val _freeRooms = MutableLiveData<List<FreeRoom>>()
     val freeRooms: LiveData<List<FreeRoom>> = _freeRooms
@@ -46,11 +46,6 @@ class FreeRoomsViewModel(application: Application) : AndroidViewModel(applicatio
 
     private val _errorMessage = MutableLiveData<String?>()
     val errorMessage: LiveData<String?> = _errorMessage
-
-    // Cache spreadsheet to avoid repeated API calls
-    private var cachedSpreadsheet: com.google.api.services.sheets.v4.model.Spreadsheet? = null
-    private var cacheTime: Long = 0
-    private val CACHE_DURATION = 30 * 60 * 1000L // 30 minutes
 
     // Cache slot-wise free rooms per day
     private val slotWiseCache = mutableMapOf<String, List<SlotWithFreeRooms>>()
@@ -140,8 +135,7 @@ class FreeRoomsViewModel(application: Application) : AndroidViewModel(applicatio
     fun refreshData() {
         // Clear all caches
         slotWiseCache.clear()
-        cachedSpreadsheet = null
-        cacheTime = 0
+        repository.clearSpreadsheetCache()
 
         // Reload current day
         loadSlotWiseFreeRooms(currentDay, forceRefresh = true)
@@ -162,24 +156,7 @@ class FreeRoomsViewModel(application: Application) : AndroidViewModel(applicatio
     fun isLabsFilterActive(): Boolean = showLabs
 
     private suspend fun getSpreadsheet(forceRefresh: Boolean = false): com.google.api.services.sheets.v4.model.Spreadsheet? {
-        val currentTime = System.currentTimeMillis()
-
-        // Return cached if still valid and not forcing refresh
-        if (!forceRefresh && cachedSpreadsheet != null && (currentTime - cacheTime) < CACHE_DURATION) {
-            Log.d(TAG, "Using cached spreadsheet")
-            return cachedSpreadsheet
-        }
-
-        // Fetch new
-        Log.d(TAG, "Fetching spreadsheet from Google Sheets...")
-        val spreadsheet = sheetsService.fetchSpreadsheet()
-
-        if (spreadsheet != null) {
-            cachedSpreadsheet = spreadsheet
-            cacheTime = currentTime
-        }
-
-        return spreadsheet
+        return repository.getSpreadsheet(forceRefresh)
     }
 
     fun clearError() {

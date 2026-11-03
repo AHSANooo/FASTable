@@ -13,6 +13,7 @@ import com.example.fastable.R
 import com.example.fastable.data.local.AppDatabase
 import com.example.fastable.data.models.DashboardSession
 import com.example.fastable.data.models.NotificationItem
+import com.example.fastable.utils.NotificationScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -60,8 +61,12 @@ object ScheduleChangeDetector {
                     changes.forEachIndexed { index, change ->
                         Log.d(TAG, "Change[$index]: Type=${change.type}, Course=${change.courseName}")
                         Log.d(TAG, "  Message: ${change.message}")
-                        sendNotification(context, change)
-                        saveNotificationToDatabase(context, change)
+                        if (NotificationScheduler.isWithinAllowedNotificationWindow()) {
+                            sendNotification(context, change)
+                            saveNotificationToDatabase(context, change)
+                        } else {
+                            Log.d(TAG, "Suppressing schedule change notification and DB save outside allowed window: ${change.courseName}")
+                        }
                     }
                 } else {
                     Log.d(TAG, "=== NO SCHEDULE CHANGES DETECTED ===")
@@ -315,6 +320,11 @@ object ScheduleChangeDetector {
      * Send notification to user
      */
     private fun sendNotification(context: Context, change: ScheduleChange) {
+        if (!NotificationScheduler.isWithinAllowedNotificationWindow()) {
+            Log.d(TAG, "Suppressing sendNotification: outside allowed notification window")
+            return
+        }
+
         Log.d(TAG, "--- SENDING NOTIFICATION ---")
         Log.d(TAG, "Type: ${change.type}")
         Log.d(TAG, "Course: ${change.courseName}")
@@ -359,6 +369,11 @@ object ScheduleChangeDetector {
      * Save notification to database
      */
     private suspend fun saveNotificationToDatabase(context: Context, change: ScheduleChange) {
+        if (!NotificationScheduler.isWithinAllowedNotificationWindow()) {
+            Log.d(TAG, "Suppressing saveNotificationToDatabase: outside allowed notification window")
+            return
+        }
+
         Log.d(TAG, "--- SAVING NOTIFICATION TO DATABASE ---")
         Log.d(TAG, "Course: ${change.courseName}")
 

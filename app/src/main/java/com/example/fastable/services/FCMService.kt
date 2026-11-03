@@ -12,6 +12,7 @@ import com.example.fastable.Home
 import com.example.fastable.R
 import com.example.fastable.data.local.AppDatabase
 import com.example.fastable.data.models.NotificationItem
+import com.example.fastable.utils.NotificationScheduler
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import kotlinx.coroutines.CoroutineScope
@@ -42,6 +43,12 @@ class FCMService : FirebaseMessagingService() {
         super.onMessageReceived(message)
         Log.d(TAG, "Message received from: ${message.from}")
 
+        // Enforce strict 5:15 PM cutoff and class hours window (08:00 AM - 05:15 PM, Mon-Sat)
+        if (!NotificationScheduler.isWithinAllowedNotificationWindow()) {
+            Log.d(TAG, "Suppressing FCM push notification: outside allowed notification window (08:00 - 17:15, Mon-Sat)")
+            return
+        }
+
         if (message.data.isNotEmpty()) {
             val title = message.data["title"] ?: "Course Reminder"
             val body = message.data["body"] ?: ""
@@ -49,7 +56,7 @@ class FCMService : FirebaseMessagingService() {
             val timeSlot = message.data["timeSlot"] ?: ""
             val room = message.data["room"] ?: ""
 
-            // Save to database (always save even during quiet hours)
+            // Save to database only if within allowed window
             saveNotificationToDatabase(title, body, courseName, timeSlot, room)
 
             // Show notification only if it has content AND it's not quiet hours
@@ -71,10 +78,7 @@ class FCMService : FirebaseMessagingService() {
     }
 
     private fun isQuietHours(): Boolean {
-        val calendar = Calendar.getInstance()
-        val hour = calendar.get(Calendar.HOUR_OF_DAY)
-        // Quiet hours: 8 PM (20:00) to 7 AM (07:00)
-        return hour >= 20 || hour < 7
+        return !NotificationScheduler.isWithinAllowedNotificationWindow()
     }
 
     private fun saveNotificationToDatabase(
@@ -84,6 +88,10 @@ class FCMService : FirebaseMessagingService() {
         timeSlot: String,
         room: String
     ) {
+        if (!NotificationScheduler.isWithinAllowedNotificationWindow()) {
+            Log.d(TAG, "Suppressing saveNotificationToDatabase: outside allowed notification window")
+            return
+        }
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val notificationItem = NotificationItem(

@@ -6,28 +6,28 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface CourseDao {
-    @Query("SELECT * FROM courses")
+    @Query("SELECT * FROM courses WHERE name != 'Placeholder'")
     fun getAllCourses(): Flow<List<Course>>
 
-    @Query("SELECT * FROM courses")
+    @Query("SELECT * FROM courses WHERE name != 'Placeholder'")
     suspend fun getAllCoursesOnce(): List<Course>
 
-    @Query("SELECT * FROM courses WHERE isSelected = 1")
+    @Query("SELECT * FROM courses WHERE isSelected = 1 AND name != 'Placeholder'")
     fun getSelectedCourses(): Flow<List<Course>>
 
-    @Query("SELECT * FROM courses WHERE department = :department")
+    @Query("SELECT * FROM courses WHERE department = :department AND name != 'Placeholder'")
     fun getCoursesByDepartment(department: String): Flow<List<Course>>
 
-    @Query("SELECT * FROM courses WHERE batch LIKE '%' || :year || '%'")
+    @Query("SELECT * FROM courses WHERE batch LIKE '%' || :year || '%' AND name != 'Placeholder'")
     fun getCoursesByYear(year: String): Flow<List<Course>>
 
-    @Query("SELECT * FROM courses WHERE name LIKE '%' || :query || '%' OR department LIKE '%' || :query || '%'")
+    @Query("SELECT * FROM courses WHERE (name LIKE '%' || :query || '%' OR department LIKE '%' || :query || '%') AND name != 'Placeholder'")
     fun searchCourses(query: String): Flow<List<Course>>
 
-    @Query("SELECT DISTINCT department FROM courses ORDER BY department")
+    @Query("SELECT DISTINCT department FROM courses WHERE name != 'Placeholder' ORDER BY department")
     fun getAllDepartments(): Flow<List<String>>
 
-    @Query("SELECT DISTINCT batch FROM courses ORDER BY batch")
+    @Query("SELECT DISTINCT batch FROM courses WHERE name != 'Placeholder' AND batch != '' ORDER BY batch")
     fun getAllBatches(): Flow<List<String>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -44,6 +44,9 @@ interface CourseDao {
 
     @Query("DELETE FROM courses")
     suspend fun deleteAllCourses()
+
+    @Query("DELETE FROM courses WHERE name = 'Placeholder'")
+    suspend fun deletePlaceholderCourses()
 
     @Query("UPDATE courses SET isSelected = :isSelected WHERE id = :courseId")
     suspend fun updateCourseSelection(courseId: Long, isSelected: Boolean)

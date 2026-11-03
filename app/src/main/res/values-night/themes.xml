@@ -1,18 +1,21 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme (Dark) -->
     <style name="Base.Theme.FASTable" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Disable orange elevation overlay on dark cards -->
+        <item name="elevationOverlayEnabled">false</item>
+
         <!-- Brand Colors -->
         <item name="colorPrimary">@color/primary_orange</item>
         <item name="colorOnPrimary">@color/white</item>
         <item name="colorPrimaryContainer">#4D2000</item>
         <item name="colorOnPrimaryContainer">#FFA666</item>
 
-        <item name="colorSecondary">#60A5FA</item>
+        <item name="colorSecondary">#FF8F3D</item>
         <item name="colorOnSecondary">@color/background_dark</item>
-        <item name="colorSecondaryContainer">@color/secondary_navy</item>
-        <item name="colorOnSecondaryContainer">#BFDBFE</item>
+        <item name="colorSecondaryContainer">#243247</item>
+        <item name="colorOnSecondaryContainer">#FFCC99</item>
 
-        <!-- Background & Surface -->
+        <!-- Background & Surface with High Contrast -->
         <item name="android:colorBackground">@color/background_dark</item>
         <item name="colorSurface">@color/surface_dark</item>
         <item name="colorOnSurface">@color/text_primary_dark</item>
@@ -21,9 +24,14 @@
         <item name="colorOutline">@color/divider_dark</item>
 
         <!-- System Bars -->
-        <item name="android:statusBarColor">@color/background_dark</item>
+        <item name="android:statusBarColor">@color/top_bar_color</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:navigationBarColor">@color/background_dark</item>
         <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">false</item>
+    </style>
+
+    <style name="ShapeAppearance.FASTable.FabCircle" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
     </style>
 </resources>
