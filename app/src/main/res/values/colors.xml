@@ -23,6 +23,9 @@
     <color name="cancelled_badge">#FEE2E2</color>
     <color name="green_primary">#10B981</color>
     <color name="notification_unread">#FFF3EB</color>
+    <color name="card_surface">#FFFFFF</color>
+    <color name="badge_nuces_bg">#FFF5ED</color>
+    <color name="badge_nuces_stroke">#FFD8BE</color>
 
     <!-- Light Theme Palette -->
     <color name="background_light">#F8F9FA</color>
@@ -56,3 +59,4 @@
     <color name="block_khyber">#EAB308</color>
     <color name="block_auditorium">#059669</color>
 </resources>
+

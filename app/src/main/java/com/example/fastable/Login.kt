@@ -164,6 +164,26 @@ class Login : AppCompatActivity() {
                 return
             }
 
+            val lowerEmail = email.lowercase().trim()
+            if (!lowerEmail.endsWith("nu.edu.pk")) {
+                loginProgress.visibility = View.GONE
+                androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setTitle("FAST NUCES Account Required")
+                    .setMessage("Only official FAST NUCES university accounts (@*.nu.edu.pk) are supported.\n\nYour selected account ($email) is not an official university email.\n\nPlease select your university email or sign in directly with your roll number.")
+                    .setPositiveButton("Enter Roll No") { _, _ ->
+                        promptRollNumberSignIn("Enter your FAST Roll Number to sign in:")
+                    }
+                    .setNegativeButton("Choose Other Account") { _, _ ->
+                        googleSignInClient.signOut().addOnCompleteListener {
+                            val signInIntent = googleSignInClient.signInIntent
+                            googleSignInLauncher.launch(signInIntent)
+                        }
+                    }
+                    .setNeutralButton("Cancel", null)
+                    .show()
+                return
+            }
+
             // CRITICAL FIX: Authenticate with Firebase using the Google token
             val credential = com.google.firebase.auth.GoogleAuthProvider.getCredential(account.idToken, null)
             auth.signInWithCredential(credential).addOnCompleteListener { task ->
@@ -287,3 +307,4 @@ class Login : AppCompatActivity() {
         finish()
     }
 }
+

@@ -57,6 +57,7 @@ class Home : AppCompatActivity() {
     private lateinit var loadingOverlay: FrameLayout
     private val days = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
     private var currentSelectedDay = "Monday"
+    private var allTimetableGestureDetector: GestureDetector? = null
 
     // Permission launcher
     private lateinit var notificationPermissionLauncher: ActivityResultLauncher<String>
@@ -118,7 +119,7 @@ class Home : AppCompatActivity() {
     private fun setupFab() {
         val fab = findViewById<com.google.android.material.floatingactionbutton.FloatingActionButton>(R.id.fabAddTimetable)
         fab.setOnClickListener {
-            val intent = Intent(this, Add_Timetable::class.java)
+            val intent = Intent(this, CustomTimetable::class.java)
             startActivity(intent)
         }
 
@@ -187,8 +188,12 @@ class Home : AppCompatActivity() {
         }
 
         val gestureDetector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
-            private val SWIPE_THRESHOLD = 100
-            private val SWIPE_VELOCITY_THRESHOLD = 100
+            private val SWIPE_THRESHOLD = 80
+            private val SWIPE_VELOCITY_THRESHOLD = 80
+
+            override fun onDown(e: MotionEvent): Boolean {
+                return true
+            }
 
             override fun onFling(
                 e1: MotionEvent?,
@@ -216,8 +221,19 @@ class Home : AppCompatActivity() {
                 return false
             }
         })
+        allTimetableGestureDetector = gestureDetector
 
         rvAllTimetable.setOnTouchListener { _, event ->
+            gestureDetector.onTouchEvent(event)
+            false
+        }
+
+        findViewById<View>(R.id.layoutEmptyAll)?.setOnTouchListener { _, event ->
+            gestureDetector.onTouchEvent(event)
+            true
+        }
+
+        findViewById<View>(R.id.containerAllTimetable)?.setOnTouchListener { _, event ->
             gestureDetector.onTouchEvent(event)
             false
         }
@@ -284,10 +300,10 @@ class Home : AppCompatActivity() {
 
         // Empty state button handlers
         findViewById<Button>(R.id.btnAddCoursesToday)?.setOnClickListener {
-            startActivity(Intent(this, Add_Timetable::class.java))
+            startActivity(Intent(this, CustomTimetable::class.java))
         }
         findViewById<Button>(R.id.btnAddCoursesAll)?.setOnClickListener {
-            startActivity(Intent(this, Add_Timetable::class.java))
+            startActivity(Intent(this, CustomTimetable::class.java))
         }
     }
 
@@ -566,4 +582,23 @@ class Home : AppCompatActivity() {
             ""
         }
     }
+
+    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+        if (ev != null) {
+            val containerAll = findViewById<View>(R.id.containerAllTimetable)
+            if (containerAll != null && containerAll.visibility == View.VISIBLE) {
+                val tabDays = findViewById<View>(R.id.tabLayoutDays)
+                if (tabDays != null) {
+                    val location = IntArray(2)
+                    tabDays.getLocationOnScreen(location)
+                    val contentTop = location[1] + tabDays.height
+                    if (ev.rawY >= contentTop) {
+                        allTimetableGestureDetector?.onTouchEvent(ev)
+                    }
+                }
+            }
+        }
+        return super.dispatchTouchEvent(ev)
+    }
 }
+
