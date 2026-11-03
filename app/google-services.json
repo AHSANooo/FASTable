@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "155030500951",
+    "firebase_url": "https://fastable-2d1ac-default-rtdb.firebaseio.com",
     "project_id": "fastable-2d1ac",
     "storage_bucket": "fastable-2d1ac.firebasestorage.app"
   },
@@ -12,7 +13,20 @@
           "package_name": "com.example.fastable"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "155030500951-2r8pm9faug45kgqoau1pd7la0mulju69.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.fastable",
+            "certificate_hash": "49132d266b051b017082e6448c9784d6a735e00c"
+          }
+        },
+        {
+          "client_id": "155030500951-4omot21lal66nl9b0l8nl9bl01v0j9hs.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBVrSAD2AVkH8LHgqB9D855hO8bTZVlj2k"
@@ -20,7 +34,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "155030500951-4omot21lal66nl9b0l8nl9bl01v0j9hs.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

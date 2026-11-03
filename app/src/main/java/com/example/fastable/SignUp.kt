@@ -67,8 +67,9 @@ class SignUp : AppCompatActivity() {
         auth = FirebaseAuth.getInstance()
         database = FirebaseDatabase.getInstance().reference
 
-        // Configure Google Sign-In with email and profile
+        // Configure Google Sign-In with email, profile, and the ID Token needed for Firebase
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(getString(R.string.default_web_client_id))
             .requestEmail()
             .requestProfile()
             .build()
@@ -384,11 +385,20 @@ class SignUp : AppCompatActivity() {
                 return
             }
 
-            val name = account.displayName ?: email.substringBefore("@")
-            val photoUrl = account.photoUrl?.toString() ?: ""
-            val uid = account.id ?: email.replace(".", "_")
+            val credential = com.google.firebase.auth.GoogleAuthProvider.getCredential(account.idToken, null)
+            auth.signInWithCredential(credential).addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    val user = auth.currentUser
+                    val name = user?.displayName ?: account.displayName ?: email.substringBefore("@")
+                    val photoUrl = user?.photoUrl?.toString() ?: account.photoUrl?.toString() ?: ""
+                    val uid = user?.uid ?: account.id ?: email.replace(".", "_")
 
-            saveGoogleUserProfileAndProceed(uid, name, email, photoUrl)
+                    saveGoogleUserProfileAndProceed(uid, name, email, photoUrl)
+                } else {
+                    signUpProgress.visibility = View.GONE
+                    Toast.makeText(this, "Firebase Auth failed: ${task.exception?.message}", Toast.LENGTH_LONG).show()
+                }
+            }
 
         } catch (e: ApiException) {
             signUpProgress.visibility = View.GONE

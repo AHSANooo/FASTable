@@ -48,8 +48,9 @@ class Login : AppCompatActivity() {
 
         auth = FirebaseAuth.getInstance()
 
-        // Configure Google Sign-In with email and profile
+        // Configure Google Sign-In with email, profile, and the ID Token needed for Firebase
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(getString(R.string.default_web_client_id)) // <--- CRITICAL FIX
             .requestEmail()
             .requestProfile()
             .build()
@@ -163,11 +164,21 @@ class Login : AppCompatActivity() {
                 return
             }
 
-            val name = account.displayName ?: email.substringBefore("@")
-            val photoUrl = account.photoUrl?.toString() ?: ""
-            val uid = account.id ?: email.replace(".", "_")
+            // CRITICAL FIX: Authenticate with Firebase using the Google token
+            val credential = com.google.firebase.auth.GoogleAuthProvider.getCredential(account.idToken, null)
+            auth.signInWithCredential(credential).addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    val user = auth.currentUser
+                    val name = user?.displayName ?: account.displayName ?: email.substringBefore("@")
+                    val photoUrl = user?.photoUrl?.toString() ?: account.photoUrl?.toString() ?: ""
+                    val uid = user?.uid ?: account.id ?: email.replace(".", "_")
 
-            saveUserProfileAndProceed(uid, name, email, photoUrl)
+                    saveUserProfileAndProceed(uid, name, email, photoUrl)
+                } else {
+                    loginProgress.visibility = View.GONE
+                    Toast.makeText(this, "Firebase Auth failed: ${task.exception?.message}", Toast.LENGTH_LONG).show()
+                }
+            }
 
         } catch (e: ApiException) {
             loginProgress.visibility = View.GONE
