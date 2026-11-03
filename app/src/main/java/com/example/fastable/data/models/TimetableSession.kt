@@ -1,6 +1,7 @@
 package com.example.fastable.data.models
 
 import androidx.room.Entity
+import androidx.room.Ignore
 import androidx.room.PrimaryKey
 
 @Entity(tableName = "timetable_sessions")
@@ -20,6 +21,9 @@ data class TimetableSession(
     val isCustom: Boolean = false, // True if from custom timetable
     val lastUpdated: Long = System.currentTimeMillis()
 ) {
+    @Ignore
+    var previewTag: String = "" // "Existing" or "New" for unified preview
+
     // Parse and extract start time for sorting
     fun getStartTimeMillis(): Long {
         return parseTimeSlot(timeSlot)
@@ -38,4 +42,3 @@ data class TimetableSession(
         return matchResult?.value ?: batch
     }
 }
-

@@ -12,497 +12,589 @@
         android:id="@+id/mainLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#F5F7FA">
+        android:background="?android:attr/colorBackground">
 
-    <!-- App Bar -->
-
-
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/topAppBar"
-        android:layout_width="0dp"
-        android:layout_height="90dp"
-        android:background="#0D2A5C"
-        android:elevation="4dp"
-        android:paddingTop="30dp"
-        android:paddingBottom="8dp"
-        app:navigationIcon="@drawable/ic_menu"
-        app:title="FASTable"
-        app:titleCentered="true"
-        app:titleTextColor="@android:color/white"
-        app:menu="@menu/top_app_bar_menu"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
-
-
-    </com.google.android.material.appbar.MaterialToolbar>
-
-    <!-- Tab Layout for Today/All Timetable -->
-    <LinearLayout
-        android:id="@+id/tabContainer"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="16dp"
-        android:background="#FFFFFF"
-        android:elevation="2dp"
-        app:layout_constraintTop_toBottomOf="@id/topAppBar"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnTabToday"
+        <!-- Top App Bar -->
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/topAppBar"
             android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_weight="1"
-            android:text="Today"
-            android:textColor="#FFFFFF"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:background="@drawable/selected_tab_left"
-            android:insetTop="0dp"
-            android:insetBottom="0dp"
-            app:backgroundTint="@null"
-            app:elevation="0dp"
-            app:strokeWidth="0dp" />
+            android:layout_height="84dp"
+            android:background="@color/secondary_navy"
+            android:elevation="4dp"
+            android:paddingTop="28dp"
+            android:paddingBottom="6dp"
+            app:navigationIcon="@drawable/ic_menu"
+            app:navigationIconTint="@color/white"
+            app:title="FASTable"
+            app:titleCentered="true"
+            app:titleTextColor="@color/white"
+            app:menu="@menu/top_app_bar_menu"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnTabAllTimetable"
+        <!-- Tip Banner (Dismissible signifier for new users) -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardTipBanner"
             android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_weight="1"
-            android:text="All Timetable"
-            android:textColor="#0A2E5D"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:background="@drawable/unselected_tab_right"
-            android:insetTop="0dp"
-            android:insetBottom="0dp"
-            app:backgroundTint="@null"
-            app:elevation="0dp"
-            app:strokeWidth="0dp" />
-    </LinearLayout>
-
-    <!-- Container for Today View -->
-    <ScrollView
-        android:id="@+id/scrollViewToday"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:padding="16dp"
-        app:layout_constraintTop_toBottomOf="@id/tabContainer"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        android:scrollbars="none"
-        android:fadeScrollbars="false"
-        app:layout_constraintEnd_toEndOf="parent">
-
-        <LinearLayout
-            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:layout_margin="12dp"
+            app:cardCornerRadius="10dp"
+            app:cardElevation="1dp"
+            app:cardBackgroundColor="@color/primary_orange_light"
+            app:strokeColor="@color/primary_orange"
+            app:strokeWidth="1dp"
+            app:layout_constraintTop_toBottomOf="@id/topAppBar"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
 
-            <!-- Current Day Header -->
-            <TextView
-                android:id="@+id/tvCurrentDay"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Monday"
-                android:textSize="24sp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="12dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp">
+
+                <TextView
+                    android:id="@+id/tvTipText"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="💡 Tip: Long-press or tap ⋮ on any class card to remove it."
+                    android:textColor="@color/primary_orange_dark"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <ImageButton
+                    android:id="@+id/btnDismissTip"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Dismiss tip"
+                    android:src="@drawable/ic_close"
+                    app:tint="@color/primary_orange_dark" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Tab Layout for Today / All Timetable -->
+        <LinearLayout
+            android:id="@+id/tabContainer"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:background="?attr/colorSurface"
+            android:elevation="2dp"
+            app:layout_constraintTop_toBottomOf="@id/cardTipBanner"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnTabToday"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:text="Today"
+                android:textColor="@color/white"
+                android:textSize="15sp"
                 android:textStyle="bold"
-                android:textColor="#0D2A5C"
-                android:layout_marginBottom="16dp"
-                android:fontFamily="sans-serif-medium" />
+                android:background="@drawable/selected_tab_left"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                app:backgroundTint="@null"
+                app:elevation="0dp"
+                app:strokeWidth="0dp" />
 
-            <!-- RecyclerView for Today's Sessions -->
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvDashboardSessions"
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnTabAllTimetable"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:text="All Timetable"
+                android:textColor="@color/secondary_navy"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:background="@drawable/unselected_tab_right"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                app:backgroundTint="@null"
+                app:elevation="0dp"
+                app:strokeWidth="0dp" />
+        </LinearLayout>
+
+        <!-- Container for Today View -->
+        <ScrollView
+            android:id="@+id/scrollViewToday"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:padding="16dp"
+            android:scrollbars="none"
+            app:layout_constraintTop_toBottomOf="@id/tabContainer"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:nestedScrollingEnabled="false"
+                android:orientation="vertical">
+
+                <!-- Current Day Header -->
+                <TextView
+                    android:id="@+id/tvCurrentDay"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Monday"
+                    android:textSize="22sp"
+                    android:textStyle="bold"
+                    android:textColor="?attr/colorOnSurface"
+                    android:layout_marginBottom="12dp"
+                    android:fontFamily="sans-serif-medium" />
+
+                <!-- RecyclerView for Today's Sessions -->
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rvDashboardSessions"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false"
+                    android:clipToPadding="false" />
+
+                <!-- Enhanced Empty State for Today -->
+                <LinearLayout
+                    android:id="@+id/layoutEmptyToday"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:padding="32dp"
+                    android:visibility="gone">
+
+                    <ImageView
+                        android:layout_width="64dp"
+                        android:layout_height="64dp"
+                        android:src="@drawable/app_logo"
+                        android:alpha="0.8" />
+
+                    <TextView
+                        android:id="@+id/tvEmptyTitleToday"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="No Classes Today!"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="?attr/colorOnSurface"
+                        android:layout_marginTop="16dp" />
+
+                    <TextView
+                        android:id="@+id/tvEmptySubtitleToday"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Enjoy your day off, or add courses to build your schedule."
+                        android:textSize="14sp"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textAlignment="center"
+                        android:layout_marginTop="6dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnAddCoursesToday"
+                        android:layout_width="wrap_content"
+                        android:layout_height="48dp"
+                        android:layout_marginTop="20dp"
+                        android:text="Add Courses"
+                        android:textAllCaps="false"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/white"
+                        app:cornerRadius="10dp"
+                        app:backgroundTint="@color/primary_orange" />
+                </LinearLayout>
+
+            </LinearLayout>
+        </ScrollView>
+
+        <!-- Container for All Timetable View -->
+        <LinearLayout
+            android:id="@+id/containerAllTimetable"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:orientation="vertical"
+            android:visibility="gone"
+            app:layout_constraintTop_toBottomOf="@id/tabContainer"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <!-- Day Tabs for All Timetable -->
+            <com.google.android.material.tabs.TabLayout
+                android:id="@+id/tabLayoutDays"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="?attr/colorSurface"
+                app:tabTextColor="?attr/colorOnSurfaceVariant"
+                app:tabSelectedTextColor="@color/primary_orange"
+                app:tabIndicatorColor="@color/primary_orange"
+                app:tabMode="scrollable" />
+
+            <!-- RecyclerView for All Timetable Sessions -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvAllTimetable"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:padding="12dp"
                 android:clipToPadding="false" />
 
-            <!-- Empty State -->
-            <TextView
-                android:id="@+id/tvEmptyState"
+            <!-- Empty State for All Timetable -->
+            <LinearLayout
+                android:id="@+id/layoutEmptyAll"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="No classes scheduled for today\n\nAdd courses from:\n• Batch Timetable\n• Custom Timetable"
-                android:textSize="16sp"
-                android:textColor="#666"
-                android:textAlignment="center"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:gravity="center"
                 android:padding="32dp"
-                android:visibility="gone"
-                android:lineSpacingExtra="4dp" />
+                android:visibility="gone">
+
+                <ImageView
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:src="@drawable/app_logo"
+                    android:alpha="0.7" />
+
+                <TextView
+                    android:id="@+id/tvEmptyTitleAll"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="No Classes Scheduled"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="?attr/colorOnSurface"
+                    android:layout_marginTop="16dp" />
+
+                <TextView
+                    android:id="@+id/tvEmptySubtitleAll"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Add your courses from Batch or Custom Timetable."
+                    android:textSize="14sp"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textAlignment="center"
+                    android:layout_marginTop="6dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnAddCoursesAll"
+                    android:layout_width="wrap_content"
+                    android:layout_height="48dp"
+                    android:layout_marginTop="20dp"
+                    android:text="Add Courses"
+                    android:textAllCaps="false"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/white"
+                    app:cornerRadius="10dp"
+                    app:backgroundTint="@color/primary_orange" />
+            </LinearLayout>
 
         </LinearLayout>
-    </ScrollView>
 
-    <!-- Container for All Timetable View -->
-    <LinearLayout
-        android:id="@+id/containerAllTimetable"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:orientation="vertical"
-        android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@id/tabContainer"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
-
-        <!-- Day Tabs for All Timetable -->
-        <com.google.android.material.tabs.TabLayout
-            android:id="@+id/tabLayoutDays"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="#FFFFFF"
-            app:tabTextColor="#666"
-            app:tabSelectedTextColor="#0A2E5D"
-            app:tabIndicatorColor="#0A2E5D"
-            app:tabMode="scrollable" />
-
-        <!-- RecyclerView for All Timetable Sessions -->
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvAllTimetable"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:padding="8dp"
-            android:clipToPadding="false" />
-
-        <!-- Empty State for All Timetable -->
-        <TextView
-            android:id="@+id/tvEmptyStateAll"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:text="No classes scheduled\n\nAdd courses from:\n• Batch Timetable\n• Custom Timetable"
-            android:textSize="16sp"
-            android:textColor="#666"
-            android:textAlignment="center"
-            android:padding="32dp"
-            android:gravity="center"
-            android:visibility="gone"
-            android:lineSpacingExtra="4dp" />
-    </LinearLayout>
-
-    <!-- Refresh Floating Action Button -->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fabRefresh"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginRight="25dp"
-        android:layout_marginBottom="16dp"
-        android:contentDescription="Refresh timetable"
-        android:src="@drawable/ic_refresh"
-        app:backgroundTint="#0D2A5C"
-        app:tint="@android:color/white"
-        app:fabSize="mini"
-        app:layout_constraintBottom_toTopOf="@id/fabAddTimetable"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <!-- Add Timetable Floating Action Button -->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fabAddTimetable"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="25dp"
-        android:contentDescription="@string/add_timetable"
-        android:src="@android:drawable/ic_input_add"
-        app:backgroundTint="#0D2A5C"
-        app:tint="@android:color/white"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <!-- Loading Overlay for Refresh -->
-    <FrameLayout
-        android:id="@+id/loadingOverlay"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#80FFFFFF"
-        android:visibility="gone"
-        android:clickable="true"
-        android:focusable="true"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
-
-        <LinearLayout
+        <!-- Refresh Floating Action Button -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabRefresh"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:padding="24dp"
-            android:background="@drawable/rounded_card_background">
+            android:layout_marginEnd="20dp"
+            android:layout_marginBottom="12dp"
+            android:contentDescription="Refresh timetable"
+            android:src="@drawable/ic_refresh"
+            app:backgroundTint="@color/secondary_navy"
+            app:tint="@android:color/white"
+            app:fabSize="mini"
+            app:layout_constraintBottom_toTopOf="@id/fabAddTimetable"
+            app:layout_constraintEnd_toEndOf="parent" />
 
-            <ProgressBar
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:indeterminateTint="#0D2A5C" />
+        <!-- Add Timetable Floating Action Button -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabAddTimetable"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="20dp"
+            android:layout_marginBottom="24dp"
+            android:contentDescription="Add courses"
+            android:src="@drawable/ic_add"
+            app:backgroundTint="@color/primary_orange"
+            app:tint="@android:color/white"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
 
-            <TextView
+        <!-- Full-screen Loading Overlay -->
+        <FrameLayout
+            android:id="@+id/loadingOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#80000000"
+            android:visibility="gone"
+            android:clickable="true"
+            android:focusable="true"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:text="Syncing timetable..."
-                android:textColor="#0D2A5C"
-                android:textSize="14sp" />
+                android:layout_gravity="center"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="@drawable/loading_dialog_bg"
+                android:padding="24dp">
 
-        </LinearLayout>
+                <ProgressBar
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:indeterminateTint="@color/primary_orange" />
 
-    </FrameLayout>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="Refreshing schedule..."
+                    android:textColor="?attr/colorOnSurface"
+                    android:textSize="14sp" />
+            </LinearLayout>
+        </FrameLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <!-- Navigation Drawer -->
     <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/navigationDrawer"
-        android:layout_width="300dp"
+        android:id="@+id/drawerPane"
+        android:layout_width="290dp"
         android:layout_height="match_parent"
         android:layout_gravity="start"
-        android:background="#FFFFFF">
+        android:background="?attr/colorSurface">
 
-        <!-- Right-side shadow (fixed width + optional height percent if needed) -->
-        <View
-            android:id="@+id/rightShadow"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:background="@drawable/right_side_shadow"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
-
-        <!-- Top Bar Menu -->
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/top_bar_menu"
-            android:layout_width="0dp"
-            android:layout_height="80dp"
-            android:background="@color/white"
-            android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
-            android:elevation="4dp"
-            android:paddingTop="30dp"
-            android:paddingBottom="8dp"
-            app:navigationIcon="@drawable/ic_menu_black"
-            app:titleTextColor="@android:color/white"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintStart_toStartOf="parent" />
+            android:layout_width="match_parent"
+            android:layout_height="78dp"
+            android:background="@color/secondary_navy"
+            android:paddingTop="24dp"
+            app:navigationIcon="@drawable/ic_menu"
+            app:navigationIconTint="@color/white"
+            app:title="Menu"
+            app:titleTextColor="@color/white"
+            app:layout_constraintTop_toTopOf="parent" />
 
-        <!-- Content Container (menu area ends at shadow start) -->
         <ScrollView
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="0dp"
             android:scrollbars="none"
-            android:fillViewport="true"
             app:layout_constraintTop_toBottomOf="@id/top_bar_menu"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/rightShadow">
+            app:layout_constraintBottom_toBottomOf="parent">
 
-        <LinearLayout
-            android:id="@+id/contentContainer"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingStart="20dp"
-            android:paddingEnd="20dp"
-            android:paddingTop="24dp"
-            android:paddingBottom="24dp">
-
-            <!-- Profile Section -->
             <LinearLayout
-                android:id="@+id/profileSection"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
+                android:orientation="vertical"
+                android:padding="16dp">
 
-                <de.hdodenhof.circleimageview.CircleImageView
-                    android:id="@+id/profileImage"
-                    android:layout_width="56dp"
-                    android:layout_height="56dp"
-                    android:src="@drawable/ic_profile_placeholder"
-                    app:civ_border_width="2dp"
-                    app:civ_border_color="#E0E0E0"
-                    android:contentDescription="@string/profile_image" />
-
+                <!-- Profile Section -->
                 <LinearLayout
-                    android:layout_width="0dp"
+                    android:id="@+id/profileSection"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical"
-                    android:layout_marginStart="12dp">
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:background="?attr/selectableItemBackground"
+                    android:padding="8dp">
 
-                    <TextView
-                        android:id="@+id/tvName"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Muhammad Ahsan"
-                        android:textColor="@color/navy"
-                        android:textSize="20sp"
-                        android:textStyle="bold" />
+                    <de.hdodenhof.circleimageview.CircleImageView
+                        android:id="@+id/profileImage"
+                        android:layout_width="52dp"
+                        android:layout_height="52dp"
+                        android:src="@drawable/ic_profile_placeholder"
+                        app:civ_border_width="2dp"
+                        app:civ_border_color="@color/primary_orange" />
 
-                    <TextView
-                        android:id="@+id/tvEmail"
-                        android:layout_width="wrap_content"
+                    <LinearLayout
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:text="ahsankhetran72@gmail.com"
-                        android:textColor="@color/navy"
-                        android:textSize="12sp" />
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:layout_marginStart="12dp">
+
+                        <TextView
+                            android:id="@+id/tvName"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Student"
+                            android:textColor="?attr/colorOnSurface"
+                            android:textSize="17sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvEmail"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="student@isb.nu.edu.pk"
+                            android:textColor="?attr/colorOnSurfaceVariant"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_arrow_right"
+                        app:tint="?attr/colorOnSurfaceVariant" />
                 </LinearLayout>
 
-                <ImageView
-                    android:id="@+id/imgArrow"
-                    android:layout_width="30dp"
-                    android:layout_height="40dp"
-                    android:src="@drawable/ic_arrow_right"
-                    app:tint="#808080" />
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginBottom="16dp"
+                    android:background="?attr/colorOutline" />
+
+                <!-- Navigation Buttons -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnBatchTimetable"
+                    android:layout_width="match_parent"
+                    android:layout_height="46dp"
+                    android:layout_marginBottom="10dp"
+                    android:text="@string/batch_timetable"
+                    android:textAllCaps="false"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="?attr/colorOnSurface"
+                    app:cornerRadius="10dp"
+                    app:backgroundTint="?attr/colorSurface"
+                    app:strokeColor="?attr/colorOutline"
+                    app:strokeWidth="1dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnCustomTimetable"
+                    android:layout_width="match_parent"
+                    android:layout_height="46dp"
+                    android:layout_marginBottom="10dp"
+                    android:text="@string/custom_timetable"
+                    android:textAllCaps="false"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="?attr/colorOnSurface"
+                    app:cornerRadius="10dp"
+                    app:backgroundTint="?attr/colorSurface"
+                    app:strokeColor="?attr/colorOutline"
+                    app:strokeWidth="1dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnFacultyOffices"
+                    android:layout_width="match_parent"
+                    android:layout_height="46dp"
+                    android:layout_marginBottom="10dp"
+                    android:text="@string/faculty_offices"
+                    android:textAllCaps="false"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="?attr/colorOnSurface"
+                    app:cornerRadius="10dp"
+                    app:backgroundTint="?attr/colorSurface"
+                    app:strokeColor="?attr/colorOutline"
+                    app:strokeWidth="1dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnFreeRooms"
+                    android:layout_width="match_parent"
+                    android:layout_height="46dp"
+                    android:layout_marginBottom="10dp"
+                    android:text="@string/free_rooms"
+                    android:textAllCaps="false"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="?attr/colorOnSurface"
+                    app:cornerRadius="10dp"
+                    app:backgroundTint="?attr/colorSurface"
+                    app:strokeColor="?attr/colorOutline"
+                    app:strokeWidth="1dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnClashDetector"
+                    android:layout_width="match_parent"
+                    android:layout_height="46dp"
+                    android:layout_marginBottom="10dp"
+                    android:text="@string/clash_detector"
+                    android:textAllCaps="false"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/primary_orange"
+                    app:cornerRadius="10dp"
+                    app:backgroundTint="?attr/colorSurface"
+                    app:strokeColor="@color/primary_orange"
+                    app:strokeWidth="1dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnMap"
+                    android:layout_width="match_parent"
+                    android:layout_height="46dp"
+                    android:layout_marginBottom="10dp"
+                    android:text="@string/campus_map"
+                    android:textAllCaps="false"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="?attr/colorOnSurface"
+                    app:cornerRadius="10dp"
+                    app:backgroundTint="?attr/colorSurface"
+                    app:strokeColor="?attr/colorOutline"
+                    app:strokeWidth="1dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnUserManual"
+                    android:layout_width="match_parent"
+                    android:layout_height="46dp"
+                    android:layout_marginBottom="10dp"
+                    android:text="@string/user_manual"
+                    android:textAllCaps="false"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="?attr/colorOnSurface"
+                    app:cornerRadius="10dp"
+                    app:backgroundTint="?attr/colorSurface"
+                    app:strokeColor="?attr/colorOutline"
+                    app:strokeWidth="1dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnAboutUs"
+                    android:layout_width="match_parent"
+                    android:layout_height="46dp"
+                    android:layout_marginBottom="24dp"
+                    android:text="@string/about_us"
+                    android:textAllCaps="false"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="?attr/colorOnSurface"
+                    app:cornerRadius="10dp"
+                    app:backgroundTint="?attr/colorSurface"
+                    app:strokeColor="?attr/colorOutline"
+                    app:strokeWidth="1dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnLogout"
+                    android:layout_width="match_parent"
+                    android:layout_height="46dp"
+                    android:text="@string/log_out"
+                    android:textAllCaps="false"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/white"
+                    app:cornerRadius="10dp"
+                    app:backgroundTint="@color/cancelled_color" />
+
             </LinearLayout>
-
-            <!-- Divider -->
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginTop="12dp"
-                android:background="#B0B0B0" />
-
-            <!-- Buttons -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnBatchTimetable"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginTop="16dp"
-                android:text="@string/batch_timetable"
-                android:textAllCaps="false"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                android:textColor="#0A2E5D"
-                app:cornerRadius="10dp"
-                app:backgroundTint="#FFFFFF"
-                app:strokeColor="#0A2E5D"
-                app:strokeWidth="1dp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnCustomTimetable"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginTop="14dp"
-                android:text="@string/custom_timetable"
-                android:textAllCaps="false"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                android:textColor="#0A2E5D"
-                app:cornerRadius="10dp"
-                app:backgroundTint="#FFFFFF"
-                app:strokeColor="#0A2E5D"
-                app:strokeWidth="1dp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnFacultyOffices"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginTop="14dp"
-                android:text="@string/faculty_offices"
-                android:textAllCaps="false"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                android:textColor="#0A2E5D"
-                app:cornerRadius="10dp"
-                app:backgroundTint="#FFFFFF"
-                app:strokeColor="#0A2E5D"
-                app:strokeWidth="1dp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnFreeRooms"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginTop="14dp"
-                android:text="@string/free_rooms"
-                android:textAllCaps="false"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                android:textColor="#0A2E5D"
-                app:cornerRadius="10dp"
-                app:backgroundTint="#FFFFFF"
-                app:strokeColor="#0A2E5D"
-                app:strokeWidth="1dp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnClashDetector"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginTop="14dp"
-                android:text="@string/clash_detector"
-                android:textAllCaps="false"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                android:textColor="#0A2E5D"
-                app:cornerRadius="10dp"
-                app:backgroundTint="#FFFFFF"
-                app:strokeColor="#0A2E5D"
-                app:strokeWidth="1dp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnMap"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginTop="14dp"
-                android:text="@string/campus_map"
-                android:textAllCaps="false"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                android:textColor="#0A2E5D"
-                app:cornerRadius="10dp"
-                app:backgroundTint="#FFFFFF"
-                app:strokeColor="#0A2E5D"
-                app:strokeWidth="1dp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnUserManual"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginTop="14dp"
-                android:text="@string/user_manual"
-                android:textAllCaps="false"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                android:textColor="#0A2E5D"
-                app:cornerRadius="10dp"
-                app:backgroundTint="#FFFFFF"
-                app:strokeColor="#0A2E5D"
-                app:strokeWidth="1dp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnAboutUs"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginTop="14dp"
-                android:text="@string/about_us"
-                android:textAllCaps="false"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                android:textColor="#0A2E5D"
-                app:cornerRadius="10dp"
-                app:backgroundTint="#FFFFFF"
-                app:strokeColor="#0A2E5D"
-                app:strokeWidth="1dp" />
-
-            <Button
-                android:id="@+id/btnLogout"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginTop="40dp"
-                android:layout_marginBottom="16dp"
-                android:text="@string/log_out"
-                android:textAllCaps="false"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                android:textColor="#FFFFFF"
-                app:cornerRadius="10dp"
-                app:backgroundTint="#80060F"
-                app:strokeColor="#45051A"
-                app:strokeWidth="1dp" />
-        </LinearLayout>
-
         </ScrollView>
 
     </androidx.constraintlayout.widget.ConstraintLayout>

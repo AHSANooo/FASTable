@@ -1,67 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F5F7FA"
+    android:background="?android:attr/colorBackground"
     tools:context=".CustomTimetable">
 
-    <!-- Top Bar -->
-    <View
+    <!-- Top App Bar -->
+    <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/topBar"
         android:layout_width="match_parent"
         android:layout_height="80dp"
-        android:background="#0A2E5D"
+        android:background="@color/secondary_navy"
+        android:paddingTop="26dp"
+        android:paddingBottom="6dp"
+        app:navigationIcon="@drawable/ic_arrow_back"
+        app:navigationIconTint="@color/white"
+        app:title="Batch Timetable"
+        app:titleTextColor="@color/white"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <ImageView
-        android:id="@+id/ivBack"
-        android:layout_width="24dp"
-        android:layout_height="24dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginBottom="16dp"
-        android:src="@drawable/ic_arrow_back"
-        android:contentDescription="@string/back_button"
-        app:layout_constraintBottom_toBottomOf="@id/topBar"
-        app:layout_constraintStart_toStartOf="parent" />
-
-    <TextView
-        android:id="@+id/tvTitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Batch Timetable"
-        android:textColor="@android:color/white"
-        android:textSize="20sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="16dp"
-        app:layout_constraintBottom_toBottomOf="@id/topBar"
-        app:layout_constraintStart_toEndOf="@id/ivBack"
-        android:layout_marginStart="16dp"/>
-
-    <!-- Toggle Tabs -->
+    <!-- Toggle Tabs (Batch vs Custom) -->
     <LinearLayout
         android:id="@+id/tabContainer"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginHorizontal="24dp"
-        android:background="@drawable/toggle_background"
+        android:layout_height="44dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginHorizontal="20dp"
+        android:background="?attr/colorSurface"
+        android:elevation="2dp"
         android:orientation="horizontal"
         app:layout_constraintTop_toBottomOf="@id/topBar">
-
-        <TextView
-            android:id="@+id/tvCustomTimetable"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:text="Batch Timetable"
-            android:textColor="#FFFFFF"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:background="@drawable/selected_tab_left"/>
 
         <TextView
             android:id="@+id/tvBatchTimetable"
@@ -69,144 +39,183 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:gravity="center"
-            android:text="Custom Timetable"
-            android:textColor="#0A2E5D"
+            android:text="Batch Timetable"
+            android:textColor="@color/white"
             android:textSize="14sp"
-            android:background="@drawable/unselected_tab_right"/>
+            android:textStyle="bold"
+            android:background="@drawable/selected_tab_left" />
+
+        <TextView
+            android:id="@+id/tvCustomTimetable"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="Custom Timetable"
+            android:textColor="@color/secondary_navy"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:background="@drawable/unselected_tab_right" />
     </LinearLayout>
 
-    <!-- Input Section -->
-    <LinearLayout
-        android:id="@+id/inputSection"
+    <!-- Batch & Section Input Card -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/inputCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="16dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="10dp"
+        app:cardCornerRadius="14dp"
+        app:cardElevation="2dp"
+        app:cardBackgroundColor="?attr/colorSurface"
+        app:strokeColor="?attr/colorOutline"
+        app:strokeWidth="1dp"
         app:layout_constraintTop_toBottomOf="@id/tabContainer">
 
-        <TextView
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Select Batch"
-            android:textSize="14sp"
-            android:textColor="#0A2E5D"
-            android:textStyle="bold"
-            android:layout_marginBottom="8dp"/>
+            android:orientation="vertical"
+            android:padding="16dp">
 
-        <Spinner
-            android:id="@+id/spinnerBatch"
-            android:layout_width="match_parent"
-            android:layout_height="50dp"
-            android:textColorHint="@color/black"
-            android:textColor="@color/black"
-            android:background="@android:drawable/edit_text"
-            android:padding="12dp"/>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Select Batch &amp; Section"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="?attr/colorOnSurface"
+                android:layout_marginBottom="10dp" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Enter Section"
-            android:textSize="14sp"
-            android:textColor="#0A2E5D"
-            android:textStyle="bold"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="8dp"/>
+            <!-- Batch Spinner Container -->
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:background="@drawable/edittext_border"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp">
 
-        <EditText
-            android:id="@+id/etSection"
-            android:layout_width="match_parent"
-            android:layout_height="50dp"
-            android:hint="e.g., A, B, C"
-            android:textColorHint="#999999"
-            android:textColor="#000000"
-            android:inputType="textCapCharacters"
-            android:maxLength="1"
-            android:background="@android:drawable/edit_text"
-            android:padding="12dp"/>
+                <Spinner
+                    android:id="@+id/spinnerBatch"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:spinnerMode="dropdown" />
+            </FrameLayout>
 
-        <Button
-            android:id="@+id/btnLoadTimetable"
-            android:layout_width="match_parent"
-            android:layout_height="50dp"
-            android:text="Load Timetable"
-            android:textColor="#FFFFFF"
-            android:backgroundTint="#0A2E5D"
-            android:layout_marginTop="16dp"/>
-    </LinearLayout>
+            <!-- Section Input -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:hint="Section (e.g. A, B, CS-A)"
+                app:boxCornerRadiusTopStart="10dp"
+                app:boxCornerRadiusTopEnd="10dp"
+                app:boxCornerRadiusBottomStart="10dp"
+                app:boxCornerRadiusBottomEnd="10dp"
+                app:boxStrokeColor="@color/primary_orange"
+                app:hintTextColor="@color/primary_orange"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etSection"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textCapCharacters"
+                    android:maxLines="1"
+                    android:textColor="?attr/colorOnSurface" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Load Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnLoadTimetable"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="12dp"
+                android:text="Load Timetable"
+                android:textAllCaps="false"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="@color/white"
+                app:cornerRadius="10dp"
+                app:backgroundTint="@color/primary_orange" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
 
     <!-- Error TextView -->
     <TextView
         android:id="@+id/tvError"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Error message"
-        android:textColor="#FF0000"
-        android:textSize="14sp"
-        android:padding="16dp"
+        android:textColor="@color/cancelled_color"
+        android:textSize="13sp"
+        android:paddingHorizontal="16dp"
         android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@id/inputSection"/>
+        app:layout_constraintTop_toBottomOf="@id/inputCard" />
 
     <!-- Loading ProgressBar -->
     <ProgressBar
         android:id="@+id/progressBar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:indeterminateTint="#0A2E5D"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:indeterminateTint="@color/primary_orange"
         android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@id/inputSection"
+        app:layout_constraintTop_toBottomOf="@id/inputCard"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"/>
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <!-- No Data TextView -->
     <TextView
         android:id="@+id/tvNoData"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="No timetable data available"
-        android:textSize="16sp"
-        android:textColor="#666"
+        android:text="No timetable data found for this batch"
+        android:textSize="15sp"
+        android:textColor="?attr/colorOnSurfaceVariant"
         android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@id/inputSection"
+        app:layout_constraintTop_toBottomOf="@id/inputCard"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"/>
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <!-- Day Tabs -->
     <com.google.android.material.tabs.TabLayout
         android:id="@+id/tabLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#FFFFFF"
-        app:tabTextColor="#666"
-        app:tabSelectedTextColor="#0A2E5D"
-        app:tabIndicatorColor="#0A2E5D"
+        android:layout_marginTop="6dp"
+        android:background="?attr/colorSurface"
+        android:visibility="gone"
+        app:tabTextColor="?attr/colorOnSurfaceVariant"
+        app:tabSelectedTextColor="@color/primary_orange"
+        app:tabIndicatorColor="@color/primary_orange"
         app:tabMode="scrollable"
-        app:layout_constraintTop_toBottomOf="@id/inputSection"/>
+        app:layout_constraintTop_toBottomOf="@id/inputCard" />
 
     <!-- Timetable RecyclerView -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvTimetable"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:padding="8dp"
+        android:paddingVertical="6dp"
         android:clipToPadding="false"
         app:layout_constraintTop_toBottomOf="@id/tabLayout"
-        app:layout_constraintBottom_toTopOf="@id/btnSetAsDefault"/>
+        app:layout_constraintBottom_toTopOf="@id/btnSetAsDefault" />
 
     <!-- Set as Default Button -->
-    <Button
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/btnSetAsDefault"
         android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:text="Set as Default"
-        android:textColor="#FFFFFF"
-        android:backgroundTint="#0A2E5D"
-        android:layout_margin="16dp"
+        android:layout_height="50dp"
+        android:layout_margin="14dp"
+        android:text="Set as Default Batch Schedule"
+        android:textAllCaps="false"
+        android:textColor="@color/white"
+        android:textSize="15sp"
+        android:textStyle="bold"
         android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="parent"/>
+        app:cornerRadius="12dp"
+        app:backgroundTint="@color/primary_orange"
+        app:layout_constraintBottom_toBottomOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
-

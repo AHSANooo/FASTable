@@ -5,14 +5,18 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
+import com.example.fastable.data.local.AppDatabase
 import com.example.fastable.data.models.Course
 import com.example.fastable.data.models.TimetableSession
 import com.example.fastable.data.repository.TimetableRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class CustomTimetableViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = TimetableRepository(application)
+    private val database = AppDatabase.getDatabase(application)
 
     private val _courses = MutableLiveData<List<Course>>()
     val courses: LiveData<List<Course>> = _courses
@@ -41,21 +45,18 @@ class CustomTimetableViewModel(application: Application) : AndroidViewModel(appl
 
     private fun loadInitialData() {
         viewModelScope.launch {
-            // Load departments
             repository.getDepartments().collect { deptList ->
                 _departments.value = deptList
             }
         }
 
         viewModelScope.launch {
-            // Load batches
             repository.getBatches().collect { batchList ->
                 _batches.value = batchList
             }
         }
 
         viewModelScope.launch {
-            // Load all courses (filter out cancelled courses)
             repository.getAllCourses().collect { courseList ->
                 _courses.value = courseList.filter {
                     !it.name.contains("Cancelled", ignoreCase = true)
@@ -64,7 +65,6 @@ class CustomTimetableViewModel(application: Application) : AndroidViewModel(appl
         }
 
         viewModelScope.launch {
-            // Load selected courses
             repository.getSelectedCourses().collect { selectedList ->
                 _selectedCourses.value = selectedList
             }
@@ -101,6 +101,11 @@ class CustomTimetableViewModel(application: Application) : AndroidViewModel(appl
         }
     }
 
+    /**
+     * Unified Schedule Preview:
+     * Generates timetable for selected courses and merges with existing dashboard courses,
+     * badging each with [Existing] and [New]
+     */
     fun generateCustomTimetable() {
         val selected = _selectedCourses.value ?: emptyList()
 
@@ -112,17 +117,40 @@ class CustomTimetableViewModel(application: Application) : AndroidViewModel(appl
         _isLoading.value = true
         _errorMessage.value = null
 
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             val result = repository.getCustomTimetable(selected)
-            _isLoading.value = false
 
-            result.onSuccess { sessions ->
-                _timetableSessions.value = sessions
-                if (sessions.isEmpty()) {
-                    _errorMessage.value = "No classes found for selected courses"
+            result.onSuccess { newSessions ->
+                newSessions.forEach { it.previewTag = "New" }
+
+                // Retrieve existing dashboard courses to display combined schedule
+                val existingDashboard = try {
+                    database.dashboardDao().getAllDashboardSessionsOnce()
+                } catch (e: Exception) {
+                    emptyList()
+                }
+
+                val existingAsTimetable = existingDashboard.map { dbSession ->
+                    dbSession.toTimetableSession().apply { previewTag = "Existing" }
+                }
+
+                // Combine both and eliminate exact duplicates
+                val combined = (existingAsTimetable + newSessions).distinctBy {
+                    "${it.day}_${it.timeSlot}_${it.courseName}_${it.section}"
+                }.sortedWith(compareBy({ it.day }, { it.rank }, { it.timeSlot }))
+
+                withContext(Dispatchers.Main) {
+                    _isLoading.value = false
+                    _timetableSessions.value = combined
+                    if (combined.isEmpty()) {
+                        _errorMessage.value = "No classes found for selected courses"
+                    }
                 }
             }.onFailure { exception ->
-                _errorMessage.value = exception.message ?: "Failed to generate timetable"
+                withContext(Dispatchers.Main) {
+                    _isLoading.value = false
+                    _errorMessage.value = exception.message ?: "Failed to generate timetable"
+                }
             }
         }
     }
@@ -136,19 +164,15 @@ class CustomTimetableViewModel(application: Application) : AndroidViewModel(appl
         }
 
         _isLoading.value = true
-        // Use GlobalScope to prevent cancellation when activity is destroyed
-        kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+        kotlinx.coroutines.GlobalScope.launch(Dispatchers.IO) {
             try {
                 repository.addCustomCoursesToDashboard(selected)
-
-                // Post success on main thread
-                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                withContext(Dispatchers.Main) {
                     _errorMessage.value = "Courses added to dashboard!"
                     _isLoading.value = false
                 }
             } catch (e: Exception) {
-                // Post error on main thread
-                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                withContext(Dispatchers.Main) {
                     _errorMessage.value = "Failed to add to dashboard: ${e.message}"
                     _isLoading.value = false
                 }
@@ -178,4 +202,3 @@ class CustomTimetableViewModel(application: Application) : AndroidViewModel(appl
         _errorMessage.value = null
     }
 }
-

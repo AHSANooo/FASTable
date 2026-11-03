@@ -3,37 +3,51 @@ package com.example.fastable
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.widget.ImageView
+import android.widget.Button
+import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.google.android.material.appbar.MaterialToolbar
 
 class AboutUs : AppCompatActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_about_us)
 
-        // Handle back button
-        val backBtn = findViewById<ImageView>(R.id.backBtn)
-        backBtn.setOnClickListener {
+        val toolbar = findViewById<MaterialToolbar>(R.id.toolbar)
+        toolbar.setNavigationOnClickListener {
             finish()
         }
 
+        findViewById<TextView>(R.id.tvAppVersion)?.text = "Version ${BuildConfig.VERSION_NAME}"
+
         // Person 1 - Muhammad Ahsan
         setupEmailClick(R.id.emailText1, "i230553@isb.nu.edu.pk")
-        setupLinkedInClick(R.id.linkedinText1, R.id.linkedinIcon1, "muhammad-ahsan-7612701a7")
+        setupLinkedInClick(R.id.btnLinkedIn1, "muhammad-ahsan-7612701a7")
 
         // Person 2 - Ali Ahmad Riaz
         setupEmailClick(R.id.emailText2, "i232528@isb.nu.edu.pk")
-        setupLinkedInClick(R.id.linkedinText2, R.id.linkedinIcon2, "aliahmadriaz")
+        setupLinkedInClick(R.id.btnLinkedIn2, "aliahmadriaz")
 
         // Person 3 - Farzeen Khan Tareen
         setupEmailClick(R.id.emailText3, "i230721@isb.nu.edu.pk")
-        setupLinkedInClick(R.id.linkedinText3, R.id.linkedinIcon3, "muhammad-farzeen-khan-tareen")
+        setupLinkedInClick(R.id.btnLinkedIn3, "muhammad-farzeen-khan-tareen")
+
+        // GitHub Repository Link
+        findViewById<Button>(R.id.btnGitHub)?.setOnClickListener {
+            try {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/AHSANooo/FASTable"))
+                startActivity(intent)
+            } catch (e: Exception) {
+                Toast.makeText(this, "Could not open browser", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun setupEmailClick(textViewId: Int, email: String) {
-        val emailTextView = findViewById<TextView>(textViewId)
+        val emailTextView = findViewById<TextView>(textViewId) ?: return
         emailTextView.setOnClickListener {
             try {
                 val intent = Intent(Intent.ACTION_SENDTO).apply {
@@ -46,28 +60,15 @@ class AboutUs : AppCompatActivity() {
         }
     }
 
-    private fun setupLinkedInClick(textViewId: Int, iconId: Int, linkedInUsername: String) {
-        val linkedInTextView = findViewById<TextView>(textViewId)
-        val linkedInIcon = findViewById<ImageView>(iconId)
-
-        val clickListener = {
+    private fun setupLinkedInClick(buttonId: Int, linkedInUsername: String) {
+        val button = findViewById<ImageButton>(buttonId) ?: return
+        button.setOnClickListener {
             try {
-                // Try to open in LinkedIn app first
-                val linkedInAppIntent = Intent(Intent.ACTION_VIEW, Uri.parse("linkedin://profile/$linkedInUsername"))
-                linkedInAppIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                startActivity(linkedInAppIntent)
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.linkedin.com/in/$linkedInUsername"))
+                startActivity(intent)
             } catch (e: Exception) {
-                // If LinkedIn app not installed, open in browser
-                try {
-                    val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.linkedin.com/in/$linkedInUsername"))
-                    startActivity(browserIntent)
-                } catch (e: Exception) {
-                    Toast.makeText(this, "Cannot open LinkedIn", Toast.LENGTH_SHORT).show()
-                }
+                Toast.makeText(this, "Cannot open LinkedIn", Toast.LENGTH_SHORT).show()
             }
         }
-
-        linkedInTextView.setOnClickListener { clickListener() }
-        linkedInIcon.setOnClickListener { clickListener() }
     }
 }

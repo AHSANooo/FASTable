@@ -53,9 +53,23 @@ class SignUp : AppCompatActivity() {
             openImagePicker()
         }
 
+        findViewById<android.widget.TextView>(R.id.tvBackToLogin)?.setOnClickListener {
+            finish()
+        }
+
         signUpBtn.setOnClickListener {
             val name = nameEt.text.toString().trim()
-            val email = emailEt.text.toString().trim()
+            var email = emailEt.text.toString().trim()
+            if (!email.contains("@") && email.isNotEmpty()) {
+                val cleaned = email.lowercase().trim()
+                val match = Regex("^[a-z](\\d{2})\\d{4}$").find(cleaned)
+                email = if (match != null) {
+                    val batchYear = match.groupValues[1].toIntOrNull() ?: 23
+                    if (batchYear >= 23) "$cleaned@isb.nu.edu.pk" else "$cleaned@nu.edu.pk"
+                } else {
+                    "$cleaned@isb.nu.edu.pk"
+                }
+            }
             val password = passwordEt.text.toString().trim()
             val confirmPassword = confirmPasswordEt.text.toString().trim()
 

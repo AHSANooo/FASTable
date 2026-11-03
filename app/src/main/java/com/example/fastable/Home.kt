@@ -36,9 +36,11 @@ import java.io.FileOutputStream
 import android.util.Base64
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.widget.FrameLayout
 import android.view.GestureDetector
 import android.view.MotionEvent
+import android.view.View
+import android.widget.FrameLayout
+import android.widget.ImageButton
 import androidx.activity.result.ActivityResultLauncher
 import kotlin.math.abs
 
@@ -62,11 +64,8 @@ class Home : AppCompatActivity() {
         // Initialize notification permission launcher
         notificationPermissionLauncher = PermissionManager.createNotificationPermissionLauncher(
             activity = this,
-            onGranted = {
-                // Permission granted - notifications will work
-            },
+            onGranted = {},
             onDenied = {
-                // Show a gentle reminder that notifications are useful
                 Snackbar.make(
                     findViewById(android.R.id.content),
                     "Enable notifications in settings to get class reminders",
@@ -75,50 +74,28 @@ class Home : AppCompatActivity() {
             }
         )
 
-        // Initialize Realtime Database
         database = FirebaseDatabase.getInstance().reference
-
-        // Initialize ViewModel
         viewModel = ViewModelProvider(this)[HomeViewModel::class.java]
 
-        // Initialize RecyclerViews
         setupRecyclerView()
         setupAllTimetableView()
-
-        // Setup tabs
         setupTabs()
-
-        // Observe data
+        setupTipBanner()
         observeViewModel()
 
-        // Get reference to the drawer layout
         val drawerLayout = findViewById<DrawerLayout>(R.id.drawerLayout)
-
-        // Initialize loading overlay
         loadingOverlay = findViewById(R.id.loadingOverlay)
 
         setupDrawer(drawerLayout)
         setupFab()
-
-        // Load user profile
         loadUserProfile()
-
-        // Refresh dashboard on app start to detect cancelled classes
         viewModel.refreshDashboardOnStart()
-
-        // Request notification permission if not granted
         requestNotificationPermissionIfNeeded()
     }
 
-    /**
-     * Request notification permission (Android 13+) on first use
-     */
     private fun requestNotificationPermissionIfNeeded() {
         if (!PermissionManager.hasNotificationPermission(this)) {
-            // Check if we should show rationale
             val shouldShowRationale = PermissionManager.shouldShowNotificationRationale(this)
-
-            // Request with or without rationale
             PermissionManager.requestNotificationPermission(
                 activity = this,
                 launcher = notificationPermissionLauncher,
@@ -129,23 +106,31 @@ class Home : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Reload dashboard sessions when activity comes to foreground
         viewModel.loadDashboardSessions()
-        // Reload user profile to get latest data
         loadUserProfile()
-        // Background sync is handled by TimetableSyncWorker with debouncing
-        // Only trigger sync on first resume (not every time activity comes to foreground)
         TimetableSyncWorker.runImmediateSync(this)
+    }
+
+    private fun setupTipBanner() {
+        val cardTipBanner = findViewById<View>(R.id.cardTipBanner)
+        val btnDismissTip = findViewById<ImageButton>(R.id.btnDismissTip)
+        val prefs = getSharedPreferences("fastable_prefs", MODE_PRIVATE)
+        val isDismissed = prefs.getBoolean("tip_banner_dismissed", false)
+
+        cardTipBanner.visibility = if (isDismissed) View.GONE else View.VISIBLE
+        btnDismissTip.setOnClickListener {
+            prefs.edit().putBoolean("tip_banner_dismissed", true).apply()
+            cardTipBanner.visibility = View.GONE
+        }
     }
 
     private fun setupFab() {
         val fab = findViewById<com.google.android.material.floatingactionbutton.FloatingActionButton>(R.id.fabAddTimetable)
         fab.setOnClickListener {
-            val intent = Intent(this, CustomTimetable::class.java)
+            val intent = Intent(this, Add_Timetable::class.java)
             startActivity(intent)
         }
 
-        // Setup refresh button
         val fabRefresh = findViewById<com.google.android.material.floatingactionbutton.FloatingActionButton>(R.id.fabRefresh)
         fabRefresh.setOnClickListener {
             viewModel.manualRefresh()
@@ -159,35 +144,30 @@ class Home : AppCompatActivity() {
         val containerAllTimetable = findViewById<LinearLayout>(R.id.containerAllTimetable)
 
         btnTabToday.setOnClickListener {
-            // Update tab appearance
             btnTabToday.backgroundTintList = null
             btnTabToday.setBackgroundResource(R.drawable.selected_tab_left)
-            btnTabToday.setTextColor(resources.getColor(android.R.color.white, null))
+            btnTabToday.setTextColor(getColor(R.color.white))
 
             btnTabAllTimetable.backgroundTintList = null
             btnTabAllTimetable.setBackgroundResource(R.drawable.unselected_tab_right)
-            btnTabAllTimetable.setTextColor(resources.getColor(R.color.navy, null))
+            btnTabAllTimetable.setTextColor(getColor(R.color.secondary_navy))
 
-            // Show/hide views
-            scrollViewToday.visibility = android.view.View.VISIBLE
-            containerAllTimetable.visibility = android.view.View.GONE
+            scrollViewToday.visibility = View.VISIBLE
+            containerAllTimetable.visibility = View.GONE
         }
 
         btnTabAllTimetable.setOnClickListener {
-            // Update tab appearance
             btnTabAllTimetable.backgroundTintList = null
             btnTabAllTimetable.setBackgroundResource(R.drawable.selected_tab_right)
-            btnTabAllTimetable.setTextColor(resources.getColor(android.R.color.white, null))
+            btnTabAllTimetable.setTextColor(getColor(R.color.white))
 
             btnTabToday.backgroundTintList = null
             btnTabToday.setBackgroundResource(R.drawable.unselected_tab_left)
-            btnTabToday.setTextColor(resources.getColor(R.color.navy, null))
+            btnTabToday.setTextColor(getColor(R.color.secondary_navy))
 
-            // Show/hide views
-            scrollViewToday.visibility = android.view.View.GONE
-            containerAllTimetable.visibility = android.view.View.VISIBLE
+            scrollViewToday.visibility = View.GONE
+            containerAllTimetable.visibility = View.VISIBLE
 
-            // Load all timetable for current day
             viewModel.loadAllSessionsForDay(currentSelectedDay)
         }
     }
@@ -197,8 +177,8 @@ class Home : AppCompatActivity() {
         allTimetableAdapter = DashboardSessionAdapter(
             onLongClick = { session ->
                 androidx.appcompat.app.AlertDialog.Builder(this)
-                    .setTitle("Remove Session")
-                    .setMessage("Remove ${session.courseName} from dashboard?")
+                    .setTitle("Remove Class")
+                    .setMessage("Remove ${session.courseName} from your dashboard?")
                     .setPositiveButton("Remove") { _, _ ->
                         viewModel.deleteDashboardSession(session)
                     }
@@ -209,14 +189,12 @@ class Home : AppCompatActivity() {
         rvAllTimetable.layoutManager = LinearLayoutManager(this)
         rvAllTimetable.adapter = allTimetableAdapter
 
-        // Setup day tabs
         val tabLayoutDays = findViewById<com.google.android.material.tabs.TabLayout>(R.id.tabLayoutDays)
         tabLayoutDays.removeAllTabs()
         days.forEach { day ->
             tabLayoutDays.addTab(tabLayoutDays.newTab().setText(day))
         }
 
-        // Add swipe gesture to navigate between days
         val gestureDetector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
             private val SWIPE_THRESHOLD = 100
             private val SWIPE_VELOCITY_THRESHOLD = 100
@@ -228,19 +206,16 @@ class Home : AppCompatActivity() {
                 velocityY: Float
             ): Boolean {
                 if (e1 == null) return false
-
                 val diffX = e2.x - e1.x
                 val diffY = e2.y - e1.y
 
                 if (abs(diffX) > abs(diffY) && abs(diffX) > SWIPE_THRESHOLD && abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
                     val currentIndex = days.indexOf(currentSelectedDay)
                     if (diffX < 0) {
-                        // Swipe left - go to next day
                         if (currentIndex < days.size - 1) {
                             tabLayoutDays.getTabAt(currentIndex + 1)?.select()
                         }
                     } else {
-                        // Swipe right - go to previous day
                         if (currentIndex > 0) {
                             tabLayoutDays.getTabAt(currentIndex - 1)?.select()
                         }
@@ -251,9 +226,9 @@ class Home : AppCompatActivity() {
             }
         })
 
-        rvAllTimetable.setOnTouchListener { v, event ->
+        rvAllTimetable.setOnTouchListener { _, event ->
             gestureDetector.onTouchEvent(event)
-            false // Allow RecyclerView to handle scrolling
+            false
         }
 
         tabLayoutDays.addOnTabSelectedListener(object : com.google.android.material.tabs.TabLayout.OnTabSelectedListener {
@@ -263,7 +238,6 @@ class Home : AppCompatActivity() {
                     viewModel.loadAllSessionsForDay(currentSelectedDay)
                 }
             }
-
             override fun onTabUnselected(tab: com.google.android.material.tabs.TabLayout.Tab?) {}
             override fun onTabReselected(tab: com.google.android.material.tabs.TabLayout.Tab?) {}
         })
@@ -273,10 +247,9 @@ class Home : AppCompatActivity() {
         val recyclerView = findViewById<RecyclerView>(R.id.rvDashboardSessions)
         adapter = DashboardSessionAdapter(
             onLongClick = { session ->
-                // Show confirmation and delete
                 androidx.appcompat.app.AlertDialog.Builder(this)
-                    .setTitle("Remove Session")
-                    .setMessage("Remove ${session.courseName} from dashboard?")
+                    .setTitle("Remove Class")
+                    .setMessage("Remove ${session.courseName} from your dashboard?")
                     .setPositiveButton("Remove") { _, _ ->
                         viewModel.deleteDashboardSession(session)
                     }
@@ -289,32 +262,24 @@ class Home : AppCompatActivity() {
     }
 
     private fun observeViewModel() {
-        // Observe current day
         viewModel.currentDay.observe(this) { day ->
             findViewById<TextView>(R.id.tvCurrentDay).text = day
         }
 
-        // Observe today's sessions
+        viewModel.dashboardSessions.observe(this) {
+            updateEmptyStates()
+        }
+
         viewModel.todaysSessions.observe(this) { sessions ->
             adapter.submitList(sessions)
-
-            // Show/hide empty state
-            findViewById<TextView>(R.id.tvEmptyState).visibility =
-                if (sessions.isEmpty()) android.view.View.VISIBLE
-                else android.view.View.GONE
+            updateEmptyStates()
         }
 
-        // Observe all day sessions for All Timetable tab
         viewModel.allDaySessions.observe(this) { sessions ->
             allTimetableAdapter.submitList(sessions)
-
-            // Show/hide empty state
-            findViewById<TextView>(R.id.tvEmptyStateAll).visibility =
-                if (sessions.isEmpty()) android.view.View.VISIBLE
-                else android.view.View.GONE
+            updateEmptyStates()
         }
 
-        // Observe error messages
         viewModel.errorMessage.observe(this) { message ->
             message?.let {
                 Snackbar.make(findViewById(android.R.id.content), it, Snackbar.LENGTH_SHORT).show()
@@ -322,21 +287,71 @@ class Home : AppCompatActivity() {
             }
         }
 
-        // Observe refresh state for loading overlay
         viewModel.isRefreshing.observe(this) { isRefreshing ->
-            loadingOverlay.visibility = if (isRefreshing) android.view.View.VISIBLE else android.view.View.GONE
+            loadingOverlay.visibility = if (isRefreshing) View.VISIBLE else View.GONE
+        }
+
+        // Empty state button handlers
+        findViewById<Button>(R.id.btnAddCoursesToday)?.setOnClickListener {
+            startActivity(Intent(this, Add_Timetable::class.java))
+        }
+        findViewById<Button>(R.id.btnAddCoursesAll)?.setOnClickListener {
+            startActivity(Intent(this, Add_Timetable::class.java))
+        }
+    }
+
+    private fun updateEmptyStates() {
+        val totalCourses = viewModel.dashboardSessions.value?.size ?: 0
+        val todaysCourses = viewModel.todaysSessions.value?.size ?: 0
+        val allDayCourses = viewModel.allDaySessions.value?.size ?: 0
+
+        val layoutEmptyToday = findViewById<LinearLayout>(R.id.layoutEmptyToday)
+        val tvEmptyTitleToday = findViewById<TextView>(R.id.tvEmptyTitleToday)
+        val tvEmptySubtitleToday = findViewById<TextView>(R.id.tvEmptySubtitleToday)
+        val btnAddCoursesToday = findViewById<Button>(R.id.btnAddCoursesToday)
+
+        val layoutEmptyAll = findViewById<LinearLayout>(R.id.layoutEmptyAll)
+        val tvEmptyTitleAll = findViewById<TextView>(R.id.tvEmptyTitleAll)
+        val tvEmptySubtitleAll = findViewById<TextView>(R.id.tvEmptySubtitleAll)
+        val btnAddCoursesAll = findViewById<Button>(R.id.btnAddCoursesAll)
+
+        if (todaysCourses == 0) {
+            layoutEmptyToday?.visibility = View.VISIBLE
+            if (totalCourses == 0) {
+                tvEmptyTitleToday?.text = "No Courses Added Yet"
+                tvEmptySubtitleToday?.text = "Please add your courses to see your daily schedule."
+                btnAddCoursesToday?.text = "Add Courses"
+            } else {
+                tvEmptyTitleToday?.text = "No Classes Today! 🎉"
+                tvEmptySubtitleToday?.text = "Enjoy your day off! Check All Timetable to view upcoming classes."
+                btnAddCoursesToday?.text = "Manage Courses"
+            }
+        } else {
+            layoutEmptyToday?.visibility = View.GONE
+        }
+
+        if (allDayCourses == 0) {
+            layoutEmptyAll?.visibility = View.VISIBLE
+            if (totalCourses == 0) {
+                tvEmptyTitleAll?.text = "No Courses Added Yet"
+                tvEmptySubtitleAll?.text = "Add your courses from Batch or Custom Timetable."
+                btnAddCoursesAll?.text = "Add Courses"
+            } else {
+                tvEmptyTitleAll?.text = "No Classes on $currentSelectedDay"
+                tvEmptySubtitleAll?.text = "You have no classes scheduled for this day."
+                btnAddCoursesAll?.text = "Add More Courses"
+            }
+        } else {
+            layoutEmptyAll?.visibility = View.GONE
         }
     }
 
     private fun setupDrawer(drawerLayout: DrawerLayout) {
-
-        // Top app bar - open drawer on menu icon click
         val topAppBar = findViewById<MaterialToolbar>(R.id.topAppBar)
         topAppBar.setNavigationOnClickListener {
             drawerLayout.openDrawer(GravityCompat.START)
         }
 
-        // Handle notification icon click
         topAppBar.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
                 R.id.notification_icon -> {
@@ -348,133 +363,114 @@ class Home : AppCompatActivity() {
             }
         }
 
-        // Drawer menu top bar - close drawer on menu icon click
         val topBarMenu = findViewById<Toolbar>(R.id.top_bar_menu)
         topBarMenu.setNavigationOnClickListener {
             drawerLayout.closeDrawer(GravityCompat.START)
         }
 
-        // Batch Timetable button
-        val btnBatchTimetable = findViewById<Button>(R.id.btnBatchTimetable)
-        btnBatchTimetable.setOnClickListener {
-            val intent = Intent(this, CustomTimetable::class.java)
+        findViewById<Button>(R.id.btnBatchTimetable).setOnClickListener {
+            startActivity(Intent(this, CustomTimetable::class.java))
+            drawerLayout.closeDrawer(GravityCompat.START)
+        }
+
+        findViewById<Button>(R.id.btnCustomTimetable).setOnClickListener {
+            startActivity(Intent(this, Add_Timetable::class.java))
+            drawerLayout.closeDrawer(GravityCompat.START)
+        }
+
+        findViewById<Button>(R.id.btnFacultyOffices).setOnClickListener {
+            startActivity(Intent(this, FacultyOffices::class.java))
+            drawerLayout.closeDrawer(GravityCompat.START)
+        }
+
+        findViewById<Button>(R.id.btnAboutUs).setOnClickListener {
+            startActivity(Intent(this, AboutUs::class.java))
+            drawerLayout.closeDrawer(GravityCompat.START)
+        }
+
+        findViewById<Button>(R.id.btnUserManual).setOnClickListener {
+            startActivity(Intent(this, UserManual::class.java))
+            drawerLayout.closeDrawer(GravityCompat.START)
+        }
+
+        // Clash Detector - links to requested official URL
+        findViewById<Button>(R.id.btnClashDetector).setOnClickListener {
+            val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://clashes-detector.vercel.app/"))
             startActivity(intent)
             drawerLayout.closeDrawer(GravityCompat.START)
         }
 
-        // Custom Timetable button
-        val btnCustomTimetable = findViewById<Button>(R.id.btnCustomTimetable)
-        btnCustomTimetable.setOnClickListener {
-            val intent = Intent(this, Add_Timetable::class.java)
-            startActivity(intent)
+        findViewById<Button>(R.id.btnMap).setOnClickListener {
+            startActivity(Intent(this, CampusMap::class.java))
             drawerLayout.closeDrawer(GravityCompat.START)
         }
 
-        // Faculty Offices button
-        val btnFacultyOffices = findViewById<Button>(R.id.btnFacultyOffices)
-        btnFacultyOffices.setOnClickListener {
-            startActivity(Intent(this, com.example.fastable.FacultyOffices::class.java))
+        findViewById<Button>(R.id.btnFreeRooms).setOnClickListener {
+            startActivity(Intent(this, FreeRooms::class.java))
             drawerLayout.closeDrawer(GravityCompat.START)
         }
 
-        // About Us button
-        val btnAboutUs = findViewById<Button>(R.id.btnAboutUs)
-        btnAboutUs.setOnClickListener {
-            val intent = Intent(this, AboutUs::class.java)
-            startActivity(intent)
-            drawerLayout.closeDrawer(GravityCompat.START)
+        findViewById<Button>(R.id.btnLogout).setOnClickListener {
+            androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Log Out")
+                .setMessage("Are you sure you want to log out of FASTable?")
+                .setPositiveButton("Log Out") { _, _ ->
+                    FirebaseAuth.getInstance().signOut()
+                    val intent = Intent(this, Login::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    }
+                    startActivity(intent)
+                    finish()
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
         }
 
-        // User Manual button
-        val btnUserManual = findViewById<Button>(R.id.btnUserManual)
-        btnUserManual.setOnClickListener {
-            val intent = Intent(this, UserManual::class.java)
-            startActivity(intent)
-            drawerLayout.closeDrawer(GravityCompat.START)
-        }
-
-        // Clash Detector button - opens external link
-        val btnClashDetector = findViewById<Button>(R.id.btnClashDetector)
-        btnClashDetector.setOnClickListener {
-            val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://clashes-detector-dvam.vercel.app/"))
-            startActivity(intent)
-            drawerLayout.closeDrawer(GravityCompat.START)
-        }
-
-        // Campus Map button
-        val btnMap = findViewById<Button>(R.id.btnMap)
-        btnMap.setOnClickListener {
-            val intent = Intent(this, CampusMap::class.java)
-            startActivity(intent)
-            drawerLayout.closeDrawer(GravityCompat.START)
-        }
-
-        // Free Rooms button
-        val btnFreeRooms = findViewById<Button>(R.id.btnFreeRooms)
-        btnFreeRooms.setOnClickListener {
-            val intent = Intent(this, FreeRooms::class.java)
-            startActivity(intent)
-            drawerLayout.closeDrawer(GravityCompat.START)
-        }
-
-        // Logout button
-        val btnLogout = findViewById<Button>(R.id.btnLogout)
-        btnLogout.setOnClickListener {
-            FirebaseAuth.getInstance().signOut()
-            val intent = Intent(this, Login::class.java)
-            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            startActivity(intent)
-            finish()
-        }
-
-        // Profile section
-        val profile = findViewById<LinearLayout>(R.id.profileSection)
-        profile.setOnClickListener {
-            val intent = Intent(this, Profile::class.java)
-            startActivity(intent)
+        findViewById<LinearLayout>(R.id.profileSection).setOnClickListener {
+            startActivity(Intent(this, Profile::class.java))
             drawerLayout.closeDrawer(GravityCompat.START)
         }
     }
 
-
     private fun loadUserProfile() {
-        val currentUser = FirebaseAuth.getInstance().currentUser
-        if (currentUser != null) {
-            // Load from offline database first (instant)
-            CoroutineScope(Dispatchers.IO).launch {
-                val offlineProfile = AppDatabase.getDatabase(this@Home).userProfileDao()
-                    .getUserProfile(currentUser.uid)
-
-                withContext(Dispatchers.Main) {
-                    if (offlineProfile != null) {
-                        // Display offline data immediately
-                        displayUserProfile(offlineProfile)
-                        android.util.Log.d("Home", "Loaded profile from offline DB")
-                    }
+        CoroutineScope(Dispatchers.IO).launch {
+            val offlineProfile = AppDatabase.getDatabase(this@Home).userProfileDao().getAnyUserProfile()
+            withContext(Dispatchers.Main) {
+                if (offlineProfile != null) {
+                    displayUserProfile(offlineProfile)
                 }
+            }
 
-                // Then sync with Firebase in background (for updates)
+            val currentUser = FirebaseAuth.getInstance().currentUser
+            if (currentUser != null) {
                 syncProfileFromFirebase(currentUser.uid)
             }
         }
     }
 
     private fun displayUserProfile(profile: UserProfile) {
-        findViewById<TextView>(R.id.tvName).text = profile.name
-        findViewById<TextView>(R.id.tvEmail).text = profile.email
+        findViewById<TextView>(R.id.tvName)?.text = profile.name
+        findViewById<TextView>(R.id.tvEmail)?.text = profile.email
 
-        val profileImage = findViewById<CircleImageView>(R.id.profileImage)
+        val profileImage = findViewById<CircleImageView>(R.id.profileImage) ?: return
         if (profile.profileImageUrl.isNotEmpty()) {
-            val localFile = File(profile.profileImageUrl)
-            if (localFile.exists()) {
-                // Use Picasso for loading local files
+            if (profile.profileImageUrl.startsWith("http", ignoreCase = true)) {
                 com.squareup.picasso.Picasso.get()
-                    .load(localFile)
+                    .load(profile.profileImageUrl)
                     .placeholder(R.drawable.ic_profile_placeholder)
                     .error(R.drawable.ic_profile_placeholder)
                     .into(profileImage)
             } else {
-                profileImage.setImageResource(R.drawable.ic_profile_placeholder)
+                val localFile = File(profile.profileImageUrl)
+                if (localFile.exists()) {
+                    com.squareup.picasso.Picasso.get()
+                        .load(localFile)
+                        .placeholder(R.drawable.ic_profile_placeholder)
+                        .error(R.drawable.ic_profile_placeholder)
+                        .into(profileImage)
+                } else {
+                    profileImage.setImageResource(R.drawable.ic_profile_placeholder)
+                }
             }
         } else {
             profileImage.setImageResource(R.drawable.ic_profile_placeholder)
@@ -491,18 +487,15 @@ class Home : AppCompatActivity() {
                         val batch = snapshot.child("batch").getValue(String::class.java) ?: ""
                         val degree = snapshot.child("degree").getValue(String::class.java) ?: ""
                         val section = snapshot.child("section").getValue(String::class.java) ?: ""
-                        // This will be Base64 string from Firebase
-                        val profileImageBase64 = snapshot.child("profileImageUrl").getValue(String::class.java) ?: ""
+                        val profileImageUrl = snapshot.child("profileImageUrl").getValue(String::class.java) ?: ""
 
                         CoroutineScope(Dispatchers.IO).launch {
-                            // Convert Base64 to local file path
-                            val localImagePath = if (profileImageBase64.isNotEmpty()) {
-                                saveBase64ImageLocally(uid, profileImageBase64)
+                            val localImagePath = if (profileImageUrl.isNotEmpty() && !profileImageUrl.startsWith("http")) {
+                                saveBase64ImageLocally(uid, profileImageUrl)
                             } else {
-                                ""
+                                profileImageUrl
                             }
 
-                            // Save to offline database
                             val profile = UserProfile(
                                 uid = uid,
                                 name = name,
@@ -510,66 +503,35 @@ class Home : AppCompatActivity() {
                                 batch = batch,
                                 degree = degree,
                                 section = section,
-                                profileImageUrl = localImagePath  // Store local path
+                                profileImageUrl = localImagePath
                             )
 
-                            AppDatabase.getDatabase(this@Home).userProfileDao()
-                                .insertUserProfile(profile)
+                            AppDatabase.getDatabase(this@Home).userProfileDao().insertUserProfile(profile)
 
                             withContext(Dispatchers.Main) {
-                                // Update UI with synced data
                                 displayUserProfile(profile)
-                                android.util.Log.d("Home", "Synced profile from Firebase")
                             }
                         }
                     }
                 }
 
-                override fun onCancelled(error: DatabaseError) {
-                    android.util.Log.e("Home", "Error syncing profile: ${error.message}")
-                }
+                override fun onCancelled(error: DatabaseError) {}
             })
     }
 
-    /**
-     * Convert Base64 string to bitmap and save locally
-     * Returns the local file path
-     */
-    private fun saveBase64ImageLocally(uid: String, base64String: String): String {
+    private fun saveBase64ImageLocally(userId: String, base64String: String): String {
         return try {
-            // Decode Base64 to bitmap
-            val bytes = Base64.decode(base64String, Base64.DEFAULT)
-            val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-
-            if (bitmap == null) {
-                android.util.Log.e("Home", "Failed to decode Base64 image")
-                return ""
-            }
-
-            // Create directory for profile images
-            val directory = File(filesDir, "profile_images")
-            if (!directory.exists()) {
-                directory.mkdirs()
-            }
-
-            // Save to file
-            val filename = "$uid.jpg"
-            val file = File(directory, filename)
-
-            FileOutputStream(file).use { out ->
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
-            }
-
-            // Verify file was saved
-            if (file.exists() && file.length() > 0) {
-                android.util.Log.d("Home", "Profile image saved locally: ${file.absolutePath}")
-                file.absolutePath
-            } else {
-                android.util.Log.e("Home", "Failed to save profile image")
-                ""
-            }
+            val imageBytes = Base64.decode(base64String, Base64.DEFAULT)
+            val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size) ?: return ""
+            val profileImagesDir = File(filesDir, "profile_images")
+            if (!profileImagesDir.exists()) profileImagesDir.mkdirs()
+            val file = File(profileImagesDir, "profile_$userId.jpg")
+            val outputStream = FileOutputStream(file)
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, outputStream)
+            outputStream.flush()
+            outputStream.close()
+            file.absolutePath
         } catch (e: Exception) {
-            android.util.Log.e("Home", "Error saving Base64 image: ${e.message}", e)
             ""
         }
     }

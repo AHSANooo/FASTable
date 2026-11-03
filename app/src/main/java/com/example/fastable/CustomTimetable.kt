@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.fastable.adapters.TimetableAdapter
 import com.example.fastable.viewmodel.BatchTimetableViewModel
+import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.tabs.TabLayout
 import kotlin.math.abs
 
@@ -43,16 +44,15 @@ class CustomTimetable : AppCompatActivity() {
         setupRecyclerView()
         setupTabLayout()
         setupListeners()
-
-        // Fast batch sync is now done automatically in BatchTimetableViewModel
     }
 
     private fun initViews() {
-        findViewById<ImageView>(R.id.ivBack).setOnClickListener {
+        val topBar = findViewById<MaterialToolbar>(R.id.topBar)
+        topBar.setNavigationOnClickListener {
             finish()
         }
 
-        findViewById<TextView>(R.id.tvBatchTimetable).setOnClickListener {
+        findViewById<TextView>(R.id.tvCustomTimetable).setOnClickListener {
             val intent = Intent(this, Add_Timetable::class.java)
             startActivity(intent)
             finish()
@@ -72,38 +72,35 @@ class CustomTimetable : AppCompatActivity() {
     private fun setupViewModel() {
         viewModel = ViewModelProvider(this)[BatchTimetableViewModel::class.java]
 
-        // Observe batches from database
         viewModel.batches.observe(this) { batches ->
             if (batches.isNotEmpty()) {
                 val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, batches)
                 adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
                 spinnerBatch.adapter = adapter
             } else {
-                // Show loading state
-                val emptyAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, listOf("Syncing data..."))
+                val emptyAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, listOf("Loading batches..."))
                 emptyAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
                 spinnerBatch.adapter = emptyAdapter
             }
         }
 
-        // Observe timetable sessions
         viewModel.timetableSessions.observe(this) { sessions ->
             if (sessions.isEmpty()) {
                 tvNoData.visibility = View.VISIBLE
                 recyclerView.visibility = View.GONE
+                tabLayout.visibility = View.GONE
                 btnSetAsDefault.visibility = View.GONE
             } else {
                 tvNoData.visibility = View.GONE
                 recyclerView.visibility = View.VISIBLE
+                tabLayout.visibility = View.VISIBLE
                 btnSetAsDefault.visibility = View.VISIBLE
                 updateSessionsForDay(days[tabLayout.selectedTabPosition])
             }
         }
 
-        // Observe loading state
         viewModel.isLoading.observe(this) { isLoading ->
             progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
-            // Hide other views when loading
             if (isLoading) {
                 tvNoData.visibility = View.GONE
                 recyclerView.visibility = View.GONE
@@ -111,28 +108,24 @@ class CustomTimetable : AppCompatActivity() {
             }
         }
 
-        // Observe errors and success messages
         viewModel.errorMessage.observe(this) { error ->
+            progressDialog?.dismiss()
+            btnSetAsDefault.isEnabled = true
             if (error != null) {
-                if (error == "Batch set as default!") {
-                    // Success - navigate to Home
-                    progressDialog?.dismiss()
-                    Toast.makeText(this, "Successfully set as default! Navigating to Dashboard...", Toast.LENGTH_SHORT).show()
-
-                    // Navigate to Home after a short delay
+                if (error.contains("Default batch set to", ignoreCase = true) || error.contains("Batch set as default", ignoreCase = true)) {
+                    Toast.makeText(this, error, Toast.LENGTH_SHORT).show()
                     android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                        val intent = Intent(this, Home::class.java)
-                        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        val intent = Intent(this, Home::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        }
                         startActivity(intent)
                         finish()
-                    }, 500)
+                    }, 400)
                 } else {
-                    // Error - show and re-enable button
-                    progressDialog?.dismiss()
                     tvError.text = error
                     tvError.visibility = View.VISIBLE
-                    btnSetAsDefault.isEnabled = true
                 }
+                viewModel.clearError()
             } else {
                 tvError.visibility = View.GONE
             }
@@ -146,11 +139,11 @@ class CustomTimetable : AppCompatActivity() {
     }
 
     private fun setupTabLayout() {
+        tabLayout.removeAllTabs()
         days.forEach { day ->
             tabLayout.addTab(tabLayout.newTab().setText(day))
         }
 
-        // Add swipe gesture to navigate between days
         val gestureDetector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
             private val SWIPE_THRESHOLD = 100
             private val SWIPE_VELOCITY_THRESHOLD = 100
@@ -162,19 +155,16 @@ class CustomTimetable : AppCompatActivity() {
                 velocityY: Float
             ): Boolean {
                 if (e1 == null) return false
-
                 val diffX = e2.x - e1.x
                 val diffY = e2.y - e1.y
 
                 if (abs(diffX) > abs(diffY) && abs(diffX) > SWIPE_THRESHOLD && abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
                     val currentIndex = tabLayout.selectedTabPosition
                     if (diffX < 0) {
-                        // Swipe left - go to next day
                         if (currentIndex < days.size - 1) {
                             tabLayout.getTabAt(currentIndex + 1)?.select()
                         }
                     } else {
-                        // Swipe right - go to previous day
                         if (currentIndex > 0) {
                             tabLayout.getTabAt(currentIndex - 1)?.select()
                         }
@@ -185,9 +175,9 @@ class CustomTimetable : AppCompatActivity() {
             }
         })
 
-        recyclerView.setOnTouchListener { v, event ->
+        recyclerView.setOnTouchListener { _, event ->
             gestureDetector.onTouchEvent(event)
-            false // Allow RecyclerView to handle scrolling
+            false
         }
 
         tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
@@ -196,7 +186,6 @@ class CustomTimetable : AppCompatActivity() {
                     updateSessionsForDay(days[it.position])
                 }
             }
-
             override fun onTabUnselected(tab: TabLayout.Tab?) {}
             override fun onTabReselected(tab: TabLayout.Tab?) {}
         })
@@ -207,13 +196,13 @@ class CustomTimetable : AppCompatActivity() {
             val batch = spinnerBatch.selectedItem?.toString() ?: ""
             val section = etSection.text.toString().trim().uppercase()
 
-            if (batch.isEmpty() || batch == "Syncing data...") {
+            if (batch.isEmpty() || batch.startsWith("Loading")) {
                 Toast.makeText(this, "Please wait for batches to load", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
             if (section.isEmpty()) {
-                Toast.makeText(this, "Please enter a section", Toast.LENGTH_SHORT).show()
+                etSection.error = "Enter section (e.g. A)"
                 return@setOnClickListener
             }
 
@@ -228,15 +217,13 @@ class CustomTimetable : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            // Show progress dialog
             progressDialog = android.app.ProgressDialog(this).apply {
-                setMessage("Setting as default...\nPlease wait")
+                setMessage("Setting as default schedule...")
                 setCancelable(false)
                 show()
             }
 
             btnSetAsDefault.isEnabled = false
-
             viewModel.setDefaultBatch(currentBatch, currentSection)
         }
     }

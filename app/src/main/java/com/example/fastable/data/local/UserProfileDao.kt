@@ -13,6 +13,9 @@ interface UserProfileDao {
     @Query("SELECT * FROM user_profile WHERE uid = :uid LIMIT 1")
     suspend fun getUserProfile(uid: String): UserProfile?
 
+    @Query("SELECT * FROM user_profile LIMIT 1")
+    suspend fun getAnyUserProfile(): UserProfile?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertUserProfile(profile: UserProfile)
 
@@ -31,4 +34,3 @@ interface UserProfileDao {
     @Query("DELETE FROM user_profile")
     suspend fun deleteAllProfiles()
 }
-

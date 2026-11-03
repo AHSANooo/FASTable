@@ -1,225 +1,333 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F5F7FA"
+    android:background="?android:attr/colorBackground"
     tools:context=".Add_Timetable">
 
-    <!-- Top Bar -->
-    <View
-        android:id="@+id/topBar"
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="80dp"
-        android:background="#0A2E5D"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:layout_height="match_parent">
 
-    <ImageView
-        android:id="@+id/ivBack"
-        android:layout_width="24dp"
-        android:layout_height="24dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginBottom="16dp"
-        android:src="@drawable/ic_arrow_back"
-        android:contentDescription="@string/back_button"
-        app:layout_constraintBottom_toBottomOf="@id/topBar"
-        app:layout_constraintStart_toStartOf="parent" />
-
-    <TextView
-        android:id="@+id/tvTitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Select Courses"
-        android:textColor="@android:color/white"
-        android:textSize="20sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="16dp"
-        app:layout_constraintBottom_toBottomOf="@id/topBar"
-        app:layout_constraintStart_toEndOf="@id/ivBack"
-        android:layout_marginStart="16dp"/>
-
-    <!-- Toggle Tabs -->
-    <LinearLayout
-        android:id="@+id/tabContainer"
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginHorizontal="24dp"
-        android:background="@drawable/toggle_background"
-        android:orientation="horizontal"
-        app:layout_constraintTop_toBottomOf="@id/topBar">
-
-        <TextView
-            android:id="@+id/tvBatchTimetable"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:text="Batch Timetable"
-            android:textColor="#0A2E5D"
-            android:textSize="14sp"
-            android:background="@drawable/unselected_tab_left"/>
-
-        <TextView
-            android:id="@+id/tvCustomTimetable"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:text="Custom Timetable"
-            android:textColor="#FFFFFF"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:background="@drawable/selected_tab_right"/>
-    </LinearLayout>
-
-    <!-- Course Selection Section -->
-    <LinearLayout
-        android:id="@+id/llCourseSelection"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:orientation="vertical"
-        android:visibility="visible"
-        app:layout_constraintTop_toBottomOf="@id/tabContainer"
-        app:layout_constraintBottom_toBottomOf="parent">
-
-        <!-- Search and Filter -->
-        <LinearLayout
+        <!-- Top App Bar -->
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/topBar"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp">
+            android:layout_height="80dp"
+            android:background="@color/secondary_navy"
+            android:paddingTop="26dp"
+            android:paddingBottom="6dp"
+            app:navigationIcon="@drawable/ic_arrow_back"
+            app:navigationIconTint="@color/white"
+            app:title="Custom Timetable"
+            app:titleTextColor="@color/white"
+            app:layout_constraintTop_toTopOf="parent" />
 
-            <androidx.appcompat.widget.SearchView
-                android:id="@+id/searchView"
-                android:layout_width="match_parent"
-                android:layout_height="50dp"
-                android:background="@android:drawable/edit_text"
-                app:iconifiedByDefault="false"
-                app:queryHint="Search courses..."
-                />
+        <!-- Toggle Tabs (Batch Timetable vs Custom Timetable) -->
+        <LinearLayout
+            android:id="@+id/tabContainer"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginHorizontal="20dp"
+            android:background="?attr/colorSurface"
+            android:elevation="2dp"
+            android:orientation="horizontal"
+            app:layout_constraintTop_toBottomOf="@id/topBar">
 
             <TextView
-                android:id="@+id/tvSelectedCount"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Selected: 0 courses"
+                android:id="@+id/tvBatchTimetable"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="Batch Timetable"
+                android:textColor="@color/secondary_navy"
                 android:textSize="14sp"
-                android:textColor="#0A2E5D"
                 android:textStyle="bold"
-                android:layout_marginTop="12dp"/>
+                android:background="@drawable/unselected_tab_left" />
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginTop="12dp">
-
-                <Button
-                    android:id="@+id/btnGenerate"
-                    android:layout_width="0dp"
-                    android:layout_height="50dp"
-                    android:layout_weight="1"
-                    android:text="Generate Timetable"
-                    android:textColor="#FFFFFF"
-                    android:backgroundTint="#0A2E5D"
-                    android:layout_marginEnd="8dp"
-                    android:enabled="false"/>
-
-                <Button
-                    android:id="@+id/btnClear"
-                    android:layout_width="wrap_content"
-                    android:layout_height="50dp"
-                    android:text="Clear All"
-                    android:textColor="#0A2E5D"
-                    android:backgroundTint="#FFFFFF"
-                    android:layout_marginStart="8dp"/>
-            </LinearLayout>
+            <TextView
+                android:id="@+id/tvCustomTimetable"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="Custom Timetable"
+                android:textColor="@color/white"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:background="@drawable/selected_tab_right" />
         </LinearLayout>
 
-        <!-- Progress Bar -->
-        <ProgressBar
-            android:id="@+id/progressBar"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:visibility="gone"/>
-
-        <!-- Error TextView -->
-        <TextView
-            android:id="@+id/tvError"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Error message"
-            android:textColor="#FF0000"
-            android:textSize="14sp"
-            android:padding="16dp"
-            android:visibility="gone"/>
-
-        <!-- No Data TextView -->
-        <TextView
-            android:id="@+id/tvNoData"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="No courses available"
-            android:textSize="16sp"
-            android:textColor="#666"
-            android:layout_gravity="center"
-            android:visibility="gone"/>
-
-        <!-- Courses RecyclerView -->
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvCourses"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:padding="8dp"
-            android:clipToPadding="false"/>
-    </LinearLayout>
-
-    <!-- Timetable View Section -->
-    <LinearLayout
-        android:id="@+id/llTimetableView"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:orientation="vertical"
-        android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@id/tabContainer"
-        app:layout_constraintBottom_toBottomOf="parent">
-
-        <!-- Day Tabs -->
-        <com.google.android.material.tabs.TabLayout
-            android:id="@+id/tabLayout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="#FFFFFF"
-            app:tabTextColor="#666"
-            app:tabSelectedTextColor="#0A2E5D"
-            app:tabIndicatorColor="#0A2E5D"
-            app:tabMode="scrollable"/>
-
-        <!-- Save to Dashboard Button -->
-        <Button
-            android:id="@+id/btnSaveToDashboard"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_margin="16dp"
-            android:text="Add to Dashboard"
-            android:textColor="#FFFFFF"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:backgroundTint="#0A2E5D"/>
-
-        <!-- Timetable RecyclerView -->
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvTimetable"
+        <!-- Course Selection Section -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/llCourseSelection"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1"
-            android:padding="8dp"
-            android:clipToPadding="false"/>
-    </LinearLayout>
+            android:visibility="visible"
+            app:layout_constraintTop_toBottomOf="@id/tabContainer"
+            app:layout_constraintBottom_toBottomOf="parent">
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+            <!-- Search Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/searchCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginTop="10dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="1dp"
+                app:cardBackgroundColor="?attr/colorSurface"
+                app:strokeColor="?attr/colorOutline"
+                app:strokeWidth="1dp"
+                app:layout_constraintTop_toTopOf="parent">
 
+                <androidx.appcompat.widget.SearchView
+                    android:id="@+id/searchView"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    app:iconifiedByDefault="false"
+                    app:queryHint="Search courses (e.g. Data Structures)..." />
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Loading ProgressBar -->
+            <ProgressBar
+                android:id="@+id/progressBar"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:indeterminateTint="@color/primary_orange"
+                android:visibility="gone"
+                app:layout_constraintTop_toBottomOf="@id/searchCard"
+                app:layout_constraintBottom_toTopOf="@id/dockSelectedCourses"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+            <!-- Error TextView -->
+            <TextView
+                android:id="@+id/tvError"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/cancelled_color"
+                android:textSize="13sp"
+                android:paddingHorizontal="16dp"
+                android:visibility="gone"
+                app:layout_constraintTop_toBottomOf="@id/searchCard" />
+
+            <!-- Empty Data State -->
+            <TextView
+                android:id="@+id/tvNoData"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="No courses found"
+                android:textSize="15sp"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:visibility="gone"
+                app:layout_constraintTop_toBottomOf="@id/searchCard"
+                app:layout_constraintBottom_toTopOf="@id/dockSelectedCourses"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+            <!-- Courses RecyclerView -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvCourses"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_marginTop="8dp"
+                android:paddingBottom="90dp"
+                android:clipToPadding="false"
+                app:layout_constraintTop_toBottomOf="@id/searchCard"
+                app:layout_constraintBottom_toBottomOf="parent" />
+
+            <!-- Floating Bottom Action Dock for Selected Courses -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/dockSelectedCourses"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="12dp"
+                android:layout_marginBottom="12dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="6dp"
+                app:cardBackgroundColor="?attr/colorSurface"
+                app:strokeColor="?attr/colorOutline"
+                app:strokeWidth="1dp"
+                app:layout_constraintBottom_toBottomOf="parent">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="12dp">
+
+                    <!-- Expandable Chips Section (Hidden by default, shown when tapped) -->
+                    <LinearLayout
+                        android:id="@+id/layoutExpandedDock"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:visibility="gone"
+                        android:layout_marginBottom="8dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Selected Courses"
+                                android:textStyle="bold"
+                                android:textSize="13sp"
+                                android:textColor="?attr/colorOnSurface" />
+
+                            <TextView
+                                android:id="@+id/btnClear"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Clear All"
+                                android:textColor="@color/cancelled_color"
+                                android:textStyle="bold"
+                                android:textSize="12sp"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:padding="4dp" />
+                        </LinearLayout>
+
+                        <androidx.recyclerview.widget.RecyclerView
+                            android:id="@+id/rvSelectedChips"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:orientation="horizontal"
+                            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+                    </LinearLayout>
+
+                    <!-- Dock Bottom Action Row -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <!-- Selected Count & Toggle Info -->
+                        <LinearLayout
+                            android:id="@+id/btnToggleDock"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:clickable="true"
+                            android:focusable="true">
+
+                            <TextView
+                                android:id="@+id/tvSelectedCount"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="0 courses selected"
+                                android:textSize="14sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/primary_orange_dark" />
+
+                            <TextView
+                                android:id="@+id/tvToggleHint"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Tap to view list ▲"
+                                android:textSize="11sp"
+                                android:textColor="?attr/colorOnSurfaceVariant" />
+                        </LinearLayout>
+
+                        <!-- Generate Button -->
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnGenerate"
+                            android:layout_width="wrap_content"
+                            android:layout_height="44dp"
+                            android:text="Generate"
+                            android:textAllCaps="false"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/white"
+                            android:enabled="false"
+                            app:cornerRadius="10dp"
+                            app:backgroundTint="@color/primary_orange" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <!-- Timetable View Section (Combined Schedule Preview) -->
+        <LinearLayout
+            android:id="@+id/llTimetableView"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:orientation="vertical"
+            android:visibility="gone"
+            app:layout_constraintTop_toBottomOf="@id/tabContainer"
+            app:layout_constraintBottom_toBottomOf="parent">
+
+            <!-- Preview Header Banner -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="12dp"
+                android:layout_marginTop="8dp"
+                app:cardCornerRadius="10dp"
+                app:cardElevation="1dp"
+                app:cardBackgroundColor="@color/primary_orange_light"
+                app:strokeColor="@color/primary_orange"
+                app:strokeWidth="1dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="🗓️ Unified Preview: Showing your newly selected courses combined with your current dashboard courses."
+                    android:textSize="12sp"
+                    android:textColor="@color/primary_orange_dark"
+                    android:padding="10dp" />
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Day Tabs -->
+            <com.google.android.material.tabs.TabLayout
+                android:id="@+id/tabLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:background="?attr/colorSurface"
+                app:tabTextColor="?attr/colorOnSurfaceVariant"
+                app:tabSelectedTextColor="@color/primary_orange"
+                app:tabIndicatorColor="@color/primary_orange"
+                app:tabMode="scrollable" />
+
+            <!-- Timetable RecyclerView -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvTimetable"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:paddingVertical="6dp"
+                android:clipToPadding="false" />
+
+            <!-- Save to Dashboard Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSaveToDashboard"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:layout_margin="12dp"
+                android:text="Confirm &amp; Save to Dashboard"
+                android:textAllCaps="false"
+                android:textColor="@color/white"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                app:cornerRadius="12dp"
+                app:backgroundTint="@color/primary_orange" />
+        </LinearLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

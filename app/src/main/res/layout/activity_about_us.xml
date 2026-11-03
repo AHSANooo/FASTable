@@ -1,298 +1,307 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:card_view="http://schemas.android.com/apk/res-auto"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#FFFFFF">
+    android:background="?android:attr/colorBackground">
 
-    <!-- Top Blue Bar -->
-    <LinearLayout
+    <!-- Top App Bar -->
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
         android:layout_width="match_parent"
-        android:layout_height="88dp"
-        android:background="#0A2C60"
-        android:gravity="bottom"
-        android:paddingBottom="8dp">
-
-        <ImageView
-            android:id="@+id/backBtn"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:layout_marginStart="16dp"
-            android:src="@drawable/ic_arrow_back"
-            card_view:tint="@android:color/white" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:text="About Us"
-            android:textColor="@android:color/white"
-            android:textSize="20sp"
-            />
-    </LinearLayout>
+        android:layout_height="80dp"
+        android:paddingTop="26dp"
+        android:paddingBottom="6dp"
+        android:background="@color/secondary_navy"
+        android:elevation="4dp"
+        app:title="About FASTable"
+        app:titleTextColor="@color/white"
+        app:navigationIcon="@drawable/ic_arrow_back"
+        app:navigationIconTint="@color/white" />
 
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        >
+        android:layout_height="match_parent"
+        android:scrollbars="none">
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:gravity="center_horizontal">
 
-            <!-- Section Title -->
+            <!-- Hero Branding Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="?attr/colorSurface"
+                app:strokeColor="?attr/colorOutline"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center_horizontal"
+                    android:padding="20dp">
+
+                    <ImageView
+                        android:layout_width="80dp"
+                        android:layout_height="80dp"
+                        android:src="@drawable/app_logo"
+                        android:contentDescription="@string/app_name" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="FASTable"
+                        android:textSize="22sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/primary_orange"
+                        android:layout_marginTop="10dp"
+                        android:fontFamily="sans-serif-black" />
+
+                    <TextView
+                        android:id="@+id/tvAppVersion"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Version 1.0.3"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/primary_orange_dark"
+                        android:background="@drawable/section_badge_bg"
+                        android:paddingStart="8dp"
+                        android:paddingEnd="8dp"
+                        android:paddingTop="2dp"
+                        android:paddingBottom="2dp"
+                        android:layout_marginTop="4dp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="An open-source schedule and campus companion designed by students, for students of FAST NUCES."
+                        android:textSize="13sp"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textAlignment="center"
+                        android:layout_marginTop="10dp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Team Section Title -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="The Thinkers"
-                android:textAlignment="center"
-                android:textColor="#0A2C60"
-                android:textSize="22sp"
+                android:text="Development Team"
+                android:textSize="16sp"
                 android:textStyle="bold"
+                android:textColor="?attr/colorOnSurface"
                 android:layout_marginTop="20dp"
-                android:layout_marginBottom="12dp" />
+                android:layout_marginBottom="10dp"
+                android:paddingStart="4dp" />
 
-            <!-- Cards Container -->
-            <LinearLayout
+            <!-- Person 1: Muhammad Ahsan -->
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:gravity="center_horizontal"
-                android:paddingBottom="24dp">
+                android:layout_marginBottom="8dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="1dp"
+                app:cardBackgroundColor="?attr/colorSurface"
+                app:strokeColor="?attr/colorOutline"
+                app:strokeWidth="1dp">
 
-                <!-- Card Template -->
-                <androidx.cardview.widget.CardView
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginHorizontal="20dp"
-                    android:layout_marginVertical="8dp"
-                    card_view:cardCornerRadius="12dp"
-                    card_view:cardBackgroundColor="@android:color/white"
-                    card_view:cardElevation="6dp"
-                    card_view:cardUseCompatPadding="true"
-                    android:background="@android:color/white">
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:padding="14dp">
 
                     <LinearLayout
-                        android:layout_width="match_parent"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="16dp"
-                        android:gravity="center_horizontal">
+                        android:layout_weight="1"
+                        android:orientation="vertical">
 
-                        <!-- Profile Image -->
-                        <ImageView
-                            android:id="@+id/profileImage1"
-                            android:layout_width="70dp"
-                            android:layout_height="70dp"
-                            android:src="@drawable/img_demo"
-                            android:scaleType="centerCrop"
-                            android:background="@drawable/circle_mask"
-                            android:clipToOutline="true"
-                            android:layout_marginBottom="8dp" />
-
-                        <!-- Name -->
                         <TextView
-                            android:id="@+id/nameText1"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Muhammad Ahsan"
-                            android:textSize="18sp"
+                            android:textSize="15sp"
                             android:textStyle="bold"
-                            android:textColor="#000000"
-                            android:layout_marginBottom="4dp" />
+                            android:textColor="?attr/colorOnSurface" />
 
-                        <!-- Email -->
                         <TextView
                             android:id="@+id/emailText1"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="i230553@isb.nu.edu.pk"
-                            android:textColor="#3466AF"
-                            android:textSize="14sp"
-                            android:layout_marginBottom="10dp" />
-
-                        <!-- LinkedIn Row -->
-                        <LinearLayout
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical">
-
-                            <ImageView
-                                android:id="@+id/linkedinIcon1"
-                                android:layout_width="22dp"
-                                android:layout_height="22dp"
-                                android:src="@drawable/ic_linkedin"
-                                android:layout_marginEnd="6dp" />
-
-                            <TextView
-                                android:id="@+id/linkedinText1"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="linkedin.com/muhammad-ahsan"
-                                android:textColor="#0A2C60"
-                                android:textSize="14sp" />
-                        </LinearLayout>
-
+                            android:textSize="12sp"
+                            android:textColor="?attr/colorOnSurfaceVariant"
+                            android:layout_marginTop="2dp" />
                     </LinearLayout>
-                </androidx.cardview.widget.CardView>
-                <!-- Card 2 -->
-                <androidx.cardview.widget.CardView
+
+                    <ImageButton
+                        android:id="@+id/btnLinkedIn1"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:src="@drawable/ic_linkedin"
+                        android:contentDescription="LinkedIn profile"
+                        app:tint="@color/primary_orange" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Person 2: Ali Ahmad Riaz -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="1dp"
+                app:cardBackgroundColor="?attr/colorSurface"
+                app:strokeColor="?attr/colorOutline"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginHorizontal="20dp"
-                    android:layout_marginVertical="8dp"
-                    card_view:cardBackgroundColor="@android:color/white"
-                    card_view:cardCornerRadius="12dp"
-                    card_view:cardElevation="6dp"
-                    card_view:cardUseCompatPadding="true"
-                    android:background="@android:color/white">
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:padding="14dp">
 
                     <LinearLayout
-                        android:layout_width="match_parent"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="16dp"
-                        android:gravity="center_horizontal">
+                        android:layout_weight="1"
+                        android:orientation="vertical">
 
-                        <!-- Profile Image -->
-                        <ImageView
-                            android:id="@+id/profileImage2"
-                            android:layout_width="70dp"
-                            android:layout_height="70dp"
-                            android:src="@drawable/ali"
-                            android:scaleType="centerCrop"
-                            android:background="@drawable/circle_mask"
-                            android:clipToOutline="true"
-                            android:layout_marginBottom="8dp" />
-
-                        <!-- Name -->
                         <TextView
-                            android:id="@+id/nameText2"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Ali Ahmad Riaz"
-                            android:textSize="18sp"
+                            android:textSize="15sp"
                             android:textStyle="bold"
-                            android:textColor="#000000"
-                            android:layout_marginBottom="4dp" />
+                            android:textColor="?attr/colorOnSurface" />
 
-                        <!-- Email -->
                         <TextView
                             android:id="@+id/emailText2"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="i232528@isb.nu.edu.pk"
-                            android:textColor="#3466AF"
-                            android:textSize="14sp"
-                            android:layout_marginBottom="10dp" />
-
-                        <!-- LinkedIn Row -->
-                        <LinearLayout
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical">
-
-                            <ImageView
-                                android:id="@+id/linkedinIcon2"
-                                android:layout_width="22dp"
-                                android:layout_height="22dp"
-                                android:src="@drawable/ic_linkedin"
-                                android:layout_marginEnd="6dp" />
-
-                            <TextView
-                                android:id="@+id/linkedinText2"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="linkedin.com/ali-ahmad-riaz"
-                                android:textColor="#0A2C60"
-                                android:textSize="14sp" />
-                        </LinearLayout>
-
+                            android:textSize="12sp"
+                            android:textColor="?attr/colorOnSurfaceVariant"
+                            android:layout_marginTop="2dp" />
                     </LinearLayout>
-                </androidx.cardview.widget.CardView>
 
-                <!-- Card 3 -->
-                <androidx.cardview.widget.CardView
+                    <ImageButton
+                        android:id="@+id/btnLinkedIn2"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:src="@drawable/ic_linkedin"
+                        android:contentDescription="LinkedIn profile"
+                        app:tint="@color/primary_orange" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Person 3: Farzeen Khan Tareen -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="1dp"
+                app:cardBackgroundColor="?attr/colorSurface"
+                app:strokeColor="?attr/colorOutline"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginHorizontal="20dp"
-                    android:layout_marginVertical="8dp"
-                    card_view:cardCornerRadius="12dp"
-                    card_view:cardElevation="6dp"
-                    card_view:cardBackgroundColor="@android:color/white"
-                    card_view:cardUseCompatPadding="true"
-                    android:background="@android:color/white">
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:padding="14dp">
 
                     <LinearLayout
-                        android:layout_width="match_parent"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="16dp"
-                        android:gravity="center_horizontal">
+                        android:layout_weight="1"
+                        android:orientation="vertical">
 
-                        <!-- Profile Image -->
-                        <ImageView
-                            android:id="@+id/profileImage3"
-                            android:layout_width="70dp"
-                            android:layout_height="70dp"
-                            android:src="@drawable/farzeen"
-                            android:scaleType="centerCrop"
-                            android:background="@drawable/circle_mask"
-                            android:clipToOutline="true"
-                            android:layout_marginBottom="8dp" />
-
-                        <!-- Name -->
                         <TextView
-                            android:id="@+id/nameText3"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Farzeen Khan Tareen"
-                            android:textSize="18sp"
+                            android:textSize="15sp"
                             android:textStyle="bold"
-                            android:textColor="#000000"
-                            android:layout_marginBottom="4dp" />
+                            android:textColor="?attr/colorOnSurface" />
 
-                        <!-- Email -->
                         <TextView
                             android:id="@+id/emailText3"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="i230721@isb.nu.edu.pk"
-                            android:textColor="#3466AF"
-                            android:textSize="14sp"
-                            android:layout_marginBottom="10dp" />
-
-                        <!-- LinkedIn Row -->
-                        <LinearLayout
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical">
-
-                            <ImageView
-                                android:id="@+id/linkedinIcon3"
-                                android:layout_width="22dp"
-                                android:layout_height="22dp"
-                                android:src="@drawable/ic_linkedin"
-                                android:layout_marginEnd="6dp" />
-
-                            <TextView
-                                android:id="@+id/linkedinText3"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="linkedin.com/farzeen-khan-tareen"
-                                android:textColor="#0A2C60"
-                                android:textSize="14sp" />
-                        </LinearLayout>
-
+                            android:textSize="12sp"
+                            android:textColor="?attr/colorOnSurfaceVariant"
+                            android:layout_marginTop="2dp" />
                     </LinearLayout>
-                </androidx.cardview.widget.CardView>
-            </LinearLayout>
+
+                    <ImageButton
+                        android:id="@+id/btnLinkedIn3"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:src="@drawable/ic_linkedin"
+                        android:contentDescription="LinkedIn profile"
+                        app:tint="@color/primary_orange" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Open Source & GitHub Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="14dp"
+                app:cardElevation="1dp"
+                app:cardBackgroundColor="?attr/colorSurface"
+                app:strokeColor="?attr/colorOutline"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:gravity="center_horizontal">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Open Source • MIT License"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/primary_orange_dark" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnGitHub"
+                        android:layout_width="wrap_content"
+                        android:layout_height="44dp"
+                        android:layout_marginTop="10dp"
+                        android:text="View on GitHub"
+                        android:textAllCaps="false"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/white"
+                        app:cornerRadius="10dp"
+                        app:backgroundTint="@color/secondary_navy" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
         </LinearLayout>
     </ScrollView>
-
-
 </LinearLayout>

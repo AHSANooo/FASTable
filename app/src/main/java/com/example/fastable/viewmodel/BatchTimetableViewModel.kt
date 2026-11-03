@@ -34,9 +34,8 @@ class BatchTimetableViewModel(application: Application) : AndroidViewModel(appli
     private var currentSection: String = ""
 
     init {
-        // Use FAST batch sync instead of full data sync for instant batch dropdown
         viewModelScope.launch {
-            Log.d(TAG, "Initializing with FAST batch sync...")
+            Log.d(TAG, "Initializing with batch sync...")
             repository.syncBatchesOnly()
         }
         loadBatches()
@@ -57,11 +56,7 @@ class BatchTimetableViewModel(application: Application) : AndroidViewModel(appli
         _isLoading.value = true
 
         viewModelScope.launch {
-            // Clear the spreadsheet cache to ensure we fetch from the updated Firebase link
-            repository.clearSpreadsheetCache()
-
-            // Fetch fresh data from Google Sheets (using updated spreadsheet link)
-            val result = repository.getBatchTimetable(batch, section, forceFresh = true)
+            val result = repository.getBatchTimetable(batch, section, forceFresh = false)
             _isLoading.value = false
 
             result.onSuccess { sessions ->
@@ -79,7 +74,18 @@ class BatchTimetableViewModel(application: Application) : AndroidViewModel(appli
 
     fun refreshTimetable() {
         if (currentBatch.isNotEmpty() && currentSection.isNotEmpty()) {
-            loadTimetable(currentBatch, currentSection)
+            _errorMessage.value = null
+            _isLoading.value = true
+            viewModelScope.launch {
+                val result = repository.getBatchTimetable(currentBatch, currentSection, forceFresh = true)
+                _isLoading.value = false
+                result.onSuccess { sessions ->
+                    _timetableSessions.value = sessions
+                    _errorMessage.value = if (sessions.isEmpty()) "No classes found for $currentBatch - Section $currentSection" else null
+                }.onFailure { exception ->
+                    _errorMessage.value = exception.message ?: "Failed to refresh timetable"
+                }
+            }
         }
     }
 
@@ -94,32 +100,29 @@ class BatchTimetableViewModel(application: Application) : AndroidViewModel(appli
     }
 
     fun setDefaultBatch(batch: String, section: String) {
-        // Use GlobalScope to prevent cancellation when activity is destroyed
         kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             try {
                 Log.d(TAG, "setDefaultBatch: Calling repository for $batch - Section $section")
                 repository.setDefaultBatch(batch, section)
-                Log.d(TAG, "setDefaultBatch: Successfully set default batch")
-
-                // Post success on main thread
                 kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                    _errorMessage.value = "Batch set as default!"
                     _setAsDefaultStatus.value = true
+                    _errorMessage.value = "Default batch set to $batch - Section $section"
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "setDefaultBatch: Failed", e)
-
-                // Post error on main thread
+                Log.e(TAG, "setDefaultBatch: Exception", e)
                 kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                    _errorMessage.value = "Failed to set as default: ${e.message}"
                     _setAsDefaultStatus.value = false
+                    _errorMessage.value = "Error: ${e.message}"
                 }
             }
         }
+    }
+
+    fun resetSetAsDefaultStatus() {
+        _setAsDefaultStatus.value = null
     }
 
     fun clearError() {
         _errorMessage.value = null
     }
 }
-

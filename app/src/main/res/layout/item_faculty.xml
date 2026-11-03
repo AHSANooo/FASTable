@@ -3,10 +3,12 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="12dp"
-    app:cardCornerRadius="8dp"
-    app:cardElevation="2dp"
-    app:cardBackgroundColor="@color/white">
+    android:layout_marginBottom="10dp"
+    app:cardCornerRadius="14dp"
+    app:cardElevation="1dp"
+    app:cardBackgroundColor="?attr/colorSurface"
+    app:strokeColor="?attr/colorOutline"
+    app:strokeWidth="1dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -14,40 +16,40 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- Faculty Name -->
+        <!-- Faculty Name & Designation -->
         <TextView
             android:id="@+id/tvFacultyName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Dr. John Doe"
-            android:textSize="18sp"
+            android:textSize="17sp"
             android:textStyle="bold"
-            android:textColor="@color/navy"
-            android:layout_marginBottom="4dp" />
+            android:textColor="?attr/colorOnSurface" />
 
-        <!-- Designation -->
         <TextView
             android:id="@+id/tvDesignation"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Professor"
-            android:textSize="14sp"
-            android:textColor="@android:color/darker_gray"
-            android:layout_marginBottom="8dp" />
+            android:text="Associate Professor"
+            android:textSize="13sp"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:layout_marginTop="2dp"
+            android:layout_marginBottom="10dp" />
 
-        <!-- Office -->
+        <!-- Office Badge Row -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginBottom="4dp">
+            android:gravity="center_vertical"
+            android:layout_marginBottom="6dp">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:drawablePadding="8dp"
-                android:text="📍"
-                android:textSize="14sp" />
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:src="@drawable/ic_location"
+                app:tint="@color/primary_orange"
+                android:layout_marginEnd="6dp" />
 
             <TextView
                 android:id="@+id/tvOffice"
@@ -55,40 +57,36 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Office: A-123"
-                android:textSize="14sp"
-                android:textColor="@color/black" />
-
+                android:textSize="13sp"
+                android:textColor="?attr/colorOnSurface" />
         </LinearLayout>
 
-        <!-- Email -->
+        <!-- Email Row -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:drawablePadding="8dp"
-                android:text="📧"
-                android:textSize="14sp" />
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:src="@drawable/ic_email"
+                app:tint="@color/primary_orange"
+                android:layout_marginEnd="6dp" />
 
             <TextView
                 android:id="@+id/tvEmail"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text=" john.doe@example.com"
-                android:textSize="14sp"
-                android:textColor="@color/navy"
-                android:textStyle="italic"
+                android:text="john.doe@nu.edu.pk"
+                android:textSize="13sp"
+                android:textColor="@color/primary_orange_dark"
                 android:clickable="true"
                 android:focusable="true"
                 android:background="?attr/selectableItemBackground" />
-
         </LinearLayout>
 
     </LinearLayout>
-
 </com.google.android.material.card.MaterialCardView>
-

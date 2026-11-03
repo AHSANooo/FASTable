@@ -5,7 +5,9 @@ import android.graphics.Paint
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageButton
 import android.widget.TextView
+import androidx.appcompat.widget.PopupMenu
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -32,51 +34,53 @@ class DashboardSessionAdapter(
     ) : RecyclerView.ViewHolder(itemView) {
 
         private val tvCourseName: TextView = itemView.findViewById(R.id.tvCourseName)
+        private val tvSection: TextView = itemView.findViewById(R.id.tvSection)
         private val tvSessionType: TextView = itemView.findViewById(R.id.tvSessionType)
         private val tvRoom: TextView = itemView.findViewById(R.id.tvRoom)
         private val tvTimeSlot: TextView = itemView.findViewById(R.id.tvTimeSlot)
         private val colorIndicator: View = itemView.findViewById(R.id.colorIndicator)
+        private val btnMore: ImageButton = itemView.findViewById(R.id.btnMore)
 
         fun bind(session: DashboardSession) {
-            // Check if class is cancelled
+            val context = itemView.context
             val isCancelled = session.courseName.contains("Cancelled", ignoreCase = true)
 
             tvCourseName.text = session.courseName
             tvSessionType.text = if (isCancelled) "Cancelled" else session.sessionType
-            tvRoom.text = session.room
+            tvRoom.text = session.room.ifEmpty { "TBA" }
             tvTimeSlot.text = session.timeSlot
+
+            // Display Section badge if available
+            val sectionDisplay = when {
+                session.section.isNotEmpty() && session.batch.isNotEmpty() -> "${session.batch}-${session.section}"
+                session.section.isNotEmpty() -> "Sec ${session.section}"
+                session.batch.isNotEmpty() -> session.batch
+                else -> ""
+            }
+
+            if (sectionDisplay.isNotEmpty()) {
+                tvSection.text = sectionDisplay
+                tvSection.visibility = View.VISIBLE
+            } else {
+                tvSection.visibility = View.GONE
+            }
 
             // Apply cancelled styling
             if (isCancelled) {
-                // Strikethrough effect on course name
                 tvCourseName.paintFlags = tvCourseName.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
-                tvCourseName.setTextColor(Color.parseColor("#999999"))
-
-                // Gray out other text
-                tvRoom.setTextColor(Color.parseColor("#AAAAAA"))
-                tvTimeSlot.setTextColor(Color.parseColor("#AAAAAA"))
-
-                // Red indicator for cancelled
-                colorIndicator.setBackgroundColor(Color.parseColor("#FF4444"))
-
-                // Red background for session type badge
-                tvSessionType.setBackgroundColor(Color.parseColor("#FF4444"))
+                colorIndicator.setBackgroundColor(context.getColor(R.color.cancelled_color))
+                tvSessionType.setBackgroundColor(context.getColor(R.color.cancelled_color))
             } else {
-                // Reset to normal styling
                 tvCourseName.paintFlags = tvCourseName.paintFlags and Paint.STRIKE_THRU_TEXT_FLAG.inv()
-                tvCourseName.setTextColor(Color.parseColor("#0D2A5C"))
-                tvRoom.setTextColor(Color.parseColor("#666666"))
-                tvTimeSlot.setTextColor(Color.parseColor("#666666"))
 
-                // Set session type background based on type (match TimetableAdapter colors)
-                val context = itemView.context
-                if (session.sessionType == "Lab") {
+                // Session type badge color
+                if (session.sessionType.equals("Lab", ignoreCase = true)) {
                     tvSessionType.setBackgroundColor(context.getColor(R.color.lab_color))
                 } else {
                     tvSessionType.setBackgroundColor(context.getColor(R.color.class_color))
                 }
 
-                // Set color on the indicator bar - convert from Google Sheets RGB format to Android Color
+                // Color indicator bar
                 if (session.colorCode.isNotEmpty() && session.colorCode != "1.001.001.00") {
                     try {
                         val colorStr = session.colorCode
@@ -86,17 +90,30 @@ class DashboardSessionAdapter(
                             val b = (colorStr.substring(8, 12).toFloat() * 255).toInt()
                             colorIndicator.setBackgroundColor(Color.rgb(r, g, b))
                         } else {
-                            colorIndicator.setBackgroundColor(Color.parseColor("#0D2A5C"))
+                            colorIndicator.setBackgroundColor(context.getColor(R.color.primary_orange))
                         }
                     } catch (e: Exception) {
-                        colorIndicator.setBackgroundColor(Color.parseColor("#0D2A5C"))
+                        colorIndicator.setBackgroundColor(context.getColor(R.color.primary_orange))
                     }
                 } else {
-                    colorIndicator.setBackgroundColor(Color.parseColor("#0D2A5C"))
+                    colorIndicator.setBackgroundColor(context.getColor(R.color.primary_orange))
                 }
             }
 
-            // Long click to delete
+            // 3-dot overflow menu
+            btnMore.setOnClickListener { view ->
+                val popup = PopupMenu(context, view)
+                popup.menu.add(0, 1, 0, "Remove from Dashboard")
+                popup.setOnMenuItemClickListener { menuItem ->
+                    if (menuItem.itemId == 1) {
+                        onLongClick(session)
+                        true
+                    } else false
+                }
+                popup.show()
+            }
+
+            // Long click to remove
             itemView.setOnLongClickListener {
                 onLongClick(session)
                 true
@@ -114,4 +131,3 @@ class DashboardSessionAdapter(
         }
     }
 }
-

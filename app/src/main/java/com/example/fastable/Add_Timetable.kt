@@ -13,8 +13,10 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.fastable.adapters.CourseAdapter
+import com.example.fastable.adapters.SelectedCourseChipAdapter
 import com.example.fastable.adapters.TimetableAdapter
 import com.example.fastable.viewmodel.CustomTimetableViewModel
+import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.tabs.TabLayout
 import kotlin.math.abs
 
@@ -23,23 +25,31 @@ class Add_Timetable : AppCompatActivity() {
     private lateinit var viewModel: CustomTimetableViewModel
     private lateinit var courseAdapter: CourseAdapter
     private lateinit var timetableAdapter: TimetableAdapter
+    private lateinit var chipAdapter: SelectedCourseChipAdapter
+
     private lateinit var rvCourses: RecyclerView
     private lateinit var rvTimetable: RecyclerView
+    private lateinit var rvSelectedChips: RecyclerView
     private lateinit var searchView: SearchView
     private lateinit var btnGenerate: Button
-    private lateinit var btnClear: Button
+    private lateinit var btnClear: TextView
     private lateinit var progressBar: ProgressBar
     private lateinit var tvError: TextView
     private lateinit var tvNoData: TextView
     private lateinit var tvSelectedCount: TextView
+    private lateinit var tvToggleHint: TextView
+    private lateinit var layoutExpandedDock: LinearLayout
+    private lateinit var btnToggleDock: View
     private lateinit var tabLayout: TabLayout
-    private lateinit var llCourseSelection: LinearLayout
+    private lateinit var llCourseSelection: View
     private lateinit var llTimetableView: LinearLayout
     private lateinit var btnSaveToDashboard: Button
+    private lateinit var topBar: MaterialToolbar
     private var progressDialog: android.app.ProgressDialog? = null
 
     private val days = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
     private var showingTimetable = false
+    private var isDockExpanded = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,7 +60,6 @@ class Add_Timetable : AppCompatActivity() {
         setupRecyclerViews()
         setupListeners()
 
-        // Handle back press
         onBackPressedDispatcher.addCallback(this) {
             if (showingTimetable) {
                 showCourseSelection()
@@ -61,7 +70,8 @@ class Add_Timetable : AppCompatActivity() {
     }
 
     private fun initViews() {
-        findViewById<ImageView>(R.id.ivBack).setOnClickListener {
+        topBar = findViewById(R.id.topBar)
+        topBar.setNavigationOnClickListener {
             if (showingTimetable) {
                 showCourseSelection()
             } else {
@@ -77,6 +87,7 @@ class Add_Timetable : AppCompatActivity() {
 
         rvCourses = findViewById(R.id.rvCourses)
         rvTimetable = findViewById(R.id.rvTimetable)
+        rvSelectedChips = findViewById(R.id.rvSelectedChips)
         searchView = findViewById(R.id.searchView)
         btnGenerate = findViewById(R.id.btnGenerate)
         btnClear = findViewById(R.id.btnClear)
@@ -84,35 +95,49 @@ class Add_Timetable : AppCompatActivity() {
         tvError = findViewById(R.id.tvError)
         tvNoData = findViewById(R.id.tvNoData)
         tvSelectedCount = findViewById(R.id.tvSelectedCount)
+        tvToggleHint = findViewById(R.id.tvToggleHint)
+        layoutExpandedDock = findViewById(R.id.layoutExpandedDock)
+        btnToggleDock = findViewById(R.id.btnToggleDock)
         tabLayout = findViewById(R.id.tabLayout)
         llCourseSelection = findViewById(R.id.llCourseSelection)
         llTimetableView = findViewById(R.id.llTimetableView)
         btnSaveToDashboard = findViewById(R.id.btnSaveToDashboard)
 
-        // Set SearchView colors programmatically
-        val searchEditText = searchView.findViewById<EditText>(androidx.appcompat.R.id.search_src_text)
-        searchEditText?.setTextColor(resources.getColor(android.R.color.black, null))
-        searchEditText?.setHintTextColor(resources.getColor(android.R.color.darker_gray, null))
-
-        // Update hint text
-        searchView.queryHint = "Search courses..."
+        // Toggle Expandable dock
+        btnToggleDock.setOnClickListener {
+            val selectedCount = viewModel.selectedCourses.value?.size ?: 0
+            if (selectedCount > 0) {
+                isDockExpanded = !isDockExpanded
+                layoutExpandedDock.visibility = if (isDockExpanded) View.VISIBLE else View.GONE
+                tvToggleHint.text = if (isDockExpanded) "Tap to hide list ▼" else "Tap to view list ▲"
+            }
+        }
     }
 
     private fun setupViewModel() {
         viewModel = ViewModelProvider(this)[CustomTimetableViewModel::class.java]
 
-        // Observe courses
         viewModel.courses.observe(this) { courses ->
             courseAdapter.submitList(courses)
+            tvNoData.visibility = if (courses.isEmpty()) View.VISIBLE else View.GONE
         }
 
-        // Observe selected courses
         viewModel.selectedCourses.observe(this) { selected ->
-            tvSelectedCount.text = "Selected: ${selected.size} courses"
-            btnGenerate.isEnabled = selected.isNotEmpty()
+            val count = selected.size
+            tvSelectedCount.text = "$count course${if (count != 1) "s" else ""} selected"
+            btnGenerate.isEnabled = count > 0
+
+            chipAdapter.submitList(selected)
+
+            if (count == 0) {
+                isDockExpanded = false
+                layoutExpandedDock.visibility = View.GONE
+                tvToggleHint.text = "Select courses to begin"
+            } else {
+                tvToggleHint.text = if (isDockExpanded) "Tap to hide list ▼" else "Tap to view list ▲"
+            }
         }
 
-        // Observe timetable
         viewModel.timetableSessions.observe(this) { sessions ->
             if (sessions.isNotEmpty()) {
                 showTimetable()
@@ -121,30 +146,24 @@ class Add_Timetable : AppCompatActivity() {
             }
         }
 
-        // Observe loading
         viewModel.isLoading.observe(this) { isLoading ->
             progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
-            btnGenerate.isEnabled = !isLoading
+            btnGenerate.isEnabled = !isLoading && (viewModel.selectedCourses.value?.isNotEmpty() == true)
         }
 
-        // Observe errors and success messages
         viewModel.errorMessage.observe(this) { error ->
             if (error != null) {
+                progressDialog?.dismiss()
                 if (error == "Courses added to dashboard!") {
-                    // Success - navigate to Home
-                    progressDialog?.dismiss()
                     Toast.makeText(this, error, Toast.LENGTH_SHORT).show()
-
-                    // Navigate to Home after a short delay
                     android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                        val intent = Intent(this, Home::class.java)
-                        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        val intent = Intent(this, Home::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        }
                         startActivity(intent)
                         finish()
-                    }, 500)
+                    }, 400)
                 } else {
-                    // Error - just show toast and re-enable button
-                    progressDialog?.dismiss()
                     Toast.makeText(this, error, Toast.LENGTH_LONG).show()
                     btnSaveToDashboard.isEnabled = true
                 }
@@ -152,7 +171,6 @@ class Add_Timetable : AppCompatActivity() {
             }
         }
 
-        // Sync data
         viewModel.syncData()
     }
 
@@ -162,6 +180,13 @@ class Add_Timetable : AppCompatActivity() {
         }
         rvCourses.layoutManager = LinearLayoutManager(this)
         rvCourses.adapter = courseAdapter
+
+        // Selected chips horizontal list
+        chipAdapter = SelectedCourseChipAdapter { courseToRemove ->
+            viewModel.toggleCourseSelection(courseToRemove)
+        }
+        rvSelectedChips.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        rvSelectedChips.adapter = chipAdapter
 
         timetableAdapter = TimetableAdapter()
         rvTimetable.layoutManager = LinearLayoutManager(this)
@@ -187,17 +212,15 @@ class Add_Timetable : AppCompatActivity() {
 
         btnClear.setOnClickListener {
             viewModel.clearAllSelections()
-            Toast.makeText(this, "All selections cleared", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Selections cleared", Toast.LENGTH_SHORT).show()
         }
 
         btnSaveToDashboard.setOnClickListener {
-            // Show progress dialog
             progressDialog = android.app.ProgressDialog(this).apply {
-                setMessage("Adding courses to dashboard...\nPlease wait")
+                setMessage("Adding courses to dashboard...")
                 setCancelable(false)
                 show()
             }
-
             btnSaveToDashboard.isEnabled = false
             viewModel.addToDashboard()
         }
@@ -209,7 +232,6 @@ class Add_Timetable : AppCompatActivity() {
             tabLayout.addTab(tabLayout.newTab().setText(day))
         }
 
-        // Add swipe gesture to navigate between days
         val gestureDetector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
             private val SWIPE_THRESHOLD = 100
             private val SWIPE_VELOCITY_THRESHOLD = 100
@@ -221,19 +243,16 @@ class Add_Timetable : AppCompatActivity() {
                 velocityY: Float
             ): Boolean {
                 if (e1 == null) return false
-
                 val diffX = e2.x - e1.x
                 val diffY = e2.y - e1.y
 
                 if (abs(diffX) > abs(diffY) && abs(diffX) > SWIPE_THRESHOLD && abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
                     val currentIndex = tabLayout.selectedTabPosition
                     if (diffX < 0) {
-                        // Swipe left - go to next day
                         if (currentIndex < days.size - 1) {
                             tabLayout.getTabAt(currentIndex + 1)?.select()
                         }
                     } else {
-                        // Swipe right - go to previous day
                         if (currentIndex > 0) {
                             tabLayout.getTabAt(currentIndex - 1)?.select()
                         }
@@ -244,9 +263,9 @@ class Add_Timetable : AppCompatActivity() {
             }
         })
 
-        rvTimetable.setOnTouchListener { v, event ->
+        rvTimetable.setOnTouchListener { _, event ->
             gestureDetector.onTouchEvent(event)
-            false // Allow RecyclerView to handle scrolling
+            false
         }
 
         tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
@@ -255,7 +274,6 @@ class Add_Timetable : AppCompatActivity() {
                     updateSessionsForDay(days[it.position])
                 }
             }
-
             override fun onTabUnselected(tab: TabLayout.Tab?) {}
             override fun onTabReselected(tab: TabLayout.Tab?) {}
         })
@@ -270,13 +288,13 @@ class Add_Timetable : AppCompatActivity() {
         showingTimetable = true
         llCourseSelection.visibility = View.GONE
         llTimetableView.visibility = View.VISIBLE
-        findViewById<TextView>(R.id.tvTitle).text = "Custom Timetable"
+        topBar.title = "Unified Preview"
     }
 
     private fun showCourseSelection() {
         showingTimetable = false
         llCourseSelection.visibility = View.VISIBLE
         llTimetableView.visibility = View.GONE
-        findViewById<TextView>(R.id.tvTitle).text = "Select Courses"
+        topBar.title = "Custom Timetable"
     }
 }

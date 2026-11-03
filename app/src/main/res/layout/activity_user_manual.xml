@@ -4,13 +4,13 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#FFFFFF">
+    android:background="?android:attr/colorBackground">
 
     <!-- Top Blue Bar -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="88dp"
-        android:background="#0A2C60"
+        android:background="@color/secondary_navy"
         android:gravity="bottom"
         android:paddingBottom="8dp">
 
@@ -50,7 +50,7 @@
                 android:text="📚 Welcome to FASTable!"
                 android:textSize="24sp"
                 android:textStyle="bold"
-                android:textColor="#0A2C60"
+                android:textColor="@color/primary_orange"
                 android:layout_marginBottom="8dp" />
 
             <TextView
@@ -82,7 +82,7 @@
                         android:text="➕ Adding Courses"
                         android:textSize="18sp"
                         android:textStyle="bold"
-                        android:textColor="#0A2C60"
+                        android:textColor="@color/primary_orange"
                         android:layout_marginBottom="8dp" />
 
                     <TextView
@@ -117,7 +117,7 @@
                         android:text="🗑️ Removing Classes"
                         android:textSize="18sp"
                         android:textStyle="bold"
-                        android:textColor="#0A2C60"
+                        android:textColor="@color/primary_orange"
                         android:layout_marginBottom="8dp" />
 
                     <TextView
@@ -152,7 +152,7 @@
                         android:text="📖 Electives &amp; Custom Courses"
                         android:textSize="18sp"
                         android:textStyle="bold"
-                        android:textColor="#0A2C60"
+                        android:textColor="@color/primary_orange"
                         android:layout_marginBottom="8dp" />
 
                     <TextView
@@ -187,7 +187,7 @@
                         android:text="👀 Dashboard Views"
                         android:textSize="18sp"
                         android:textStyle="bold"
-                        android:textColor="#0A2C60"
+                        android:textColor="@color/primary_orange"
                         android:layout_marginBottom="8dp" />
 
                     <TextView
@@ -222,7 +222,7 @@
                         android:text="👨‍🏫 Faculty Offices"
                         android:textSize="18sp"
                         android:textStyle="bold"
-                        android:textColor="#0A2C60"
+                        android:textColor="@color/primary_orange"
                         android:layout_marginBottom="8dp" />
 
                     <TextView
@@ -257,7 +257,7 @@
                         android:text="🔔 Notifications"
                         android:textSize="18sp"
                         android:textStyle="bold"
-                        android:textColor="#0A2C60"
+                        android:textColor="@color/primary_orange"
                         android:layout_marginBottom="8dp" />
 
                     <TextView
@@ -292,7 +292,7 @@
                         android:text="💡 Pro Tips"
                         android:textSize="18sp"
                         android:textStyle="bold"
-                        android:textColor="#0A2C60"
+                        android:textColor="@color/primary_orange"
                         android:layout_marginBottom="8dp" />
 
                     <TextView
