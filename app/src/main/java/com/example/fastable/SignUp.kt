@@ -385,6 +385,23 @@ class SignUp : AppCompatActivity() {
                 return
             }
 
+            val lowerEmail = email.lowercase().trim()
+            if (!lowerEmail.endsWith("nu.edu.pk")) {
+                signUpProgress.visibility = View.GONE
+                androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setTitle("FAST NUCES Account Required")
+                    .setMessage("Only official FAST NUCES university accounts (@*.nu.edu.pk) are supported.\n\nYour selected account ($email) is not an official university email.")
+                    .setPositiveButton("Choose University Account") { _, _ ->
+                        googleSignInClient.signOut().addOnCompleteListener {
+                            val signInIntent = googleSignInClient.signInIntent
+                            googleSignInLauncher.launch(signInIntent)
+                        }
+                    }
+                    .setNegativeButton("Cancel", null)
+                    .show()
+                return
+            }
+
             val credential = com.google.firebase.auth.GoogleAuthProvider.getCredential(account.idToken, null)
             auth.signInWithCredential(credential).addOnCompleteListener { task ->
                 if (task.isSuccessful) {
@@ -503,3 +520,4 @@ class SignUp : AppCompatActivity() {
         }
     }
 }
+

@@ -49,9 +49,7 @@ class NotificationAdapter(
             viewReadIndicator.visibility = if (notification.isRead) View.GONE else View.VISIBLE
 
             // Set background color for unread notifications
-            itemView.setBackgroundResource(
-                if (notification.isRead) R.color.white else R.color.notification_unread
-            )
+            (itemView as? com.google.android.material.card.MaterialCardView)?.setCardBackgroundColor(androidx.core.content.ContextCompat.getColor(itemView.context, if (notification.isRead) R.color.card_surface else R.color.notification_unread))
 
             itemView.setOnClickListener {
                 onClick(notification)
@@ -85,4 +83,5 @@ class NotificationAdapter(
         }
     }
 }
+
 
