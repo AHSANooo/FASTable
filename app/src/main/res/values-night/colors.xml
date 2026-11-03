@@ -4,6 +4,10 @@
     <color name="top_bar_color">#923400</color>
     <color name="top_bar_orange">#923400</color>
     <color name="top_bar_orange_dark">#782900</color>
+    <color name="notification_unread">#231910</color>
+    <color name="card_surface">#16202E</color>
+    <color name="badge_nuces_bg">#1F1A15</color>
+    <color name="badge_nuces_stroke">#5E3616</color>
 
     <color name="background_light">#0A111C</color>
     <color name="surface_light">#16202E</color>
@@ -17,4 +21,5 @@
     <color name="divider_dark">#2E3D52</color>
     <color name="divider_color">#2E3D52</color>
 </resources>
+
 

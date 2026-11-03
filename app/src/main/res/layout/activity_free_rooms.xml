@@ -94,7 +94,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:visibility="gone"
-            android:indeterminateTint="#0D2A5C" />
+            android:indeterminateTint="@color/top_bar_color" />
 
         <!-- Empty State -->
         <TextView
@@ -196,4 +196,5 @@
         android:visibility="gone" />
 
 </LinearLayout>
+
 
