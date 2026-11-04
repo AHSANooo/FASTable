@@ -25,6 +25,16 @@ class TimetableRepository(private val context: Context) {
 
     private var lastSyncTime: Long = 0
     private val SYNC_INTERVAL = 30 * 1000 // 30 seconds - very aggressive
+    fun getLastSyncTimestamp(): Long {
+        val prefs = context.getSharedPreferences("fastable_timetable_prefs", Context.MODE_PRIVATE)
+        return prefs.getLong("last_refresh_timestamp", 0L)
+    }
+
+    fun saveLastSyncTimestamp(timestamp: Long = System.currentTimeMillis()) {
+        val prefs = context.getSharedPreferences("fastable_timetable_prefs", Context.MODE_PRIVATE)
+        prefs.edit().putLong("last_refresh_timestamp", timestamp).apply()
+        lastSyncTime = timestamp
+    }
 
     init {
         val prefs = context.getSharedPreferences("fastable_timetable_prefs", Context.MODE_PRIVATE)
@@ -246,6 +256,7 @@ class TimetableRepository(private val context: Context) {
                 Log.d(TAG, "Saved ${courses.size} courses to database (preserved ${existingSelections.size} selections)")
 
                 lastSyncTime = currentTime
+                saveLastSyncTimestamp(currentTime)
                 Result.success(true)
             } catch (e: Exception) {
                 Log.e(TAG, "Sync failed", e)
@@ -670,6 +681,7 @@ class TimetableRepository(private val context: Context) {
 
                 Log.d(TAG, "refreshDashboardSessions: Database updated successfully")
 
+                saveLastSyncTimestamp(System.currentTimeMillis())
                 Result.success(refreshedSessions)
             } catch (e: Exception) {
                 Log.e(TAG, "refreshDashboardSessions: Failed", e)
@@ -678,4 +690,5 @@ class TimetableRepository(private val context: Context) {
         }
     }
 }
+
 

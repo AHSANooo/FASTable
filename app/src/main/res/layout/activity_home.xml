@@ -256,6 +256,47 @@
 
         </LinearLayout>
 
+                <!-- Refresh Timestamp Floating Pill -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/pillRefreshStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="34dp"
+            android:layout_marginEnd="8dp"
+            app:cardCornerRadius="17dp"
+            app:cardElevation="3dp"
+            app:cardBackgroundColor="?attr/colorSurface"
+            app:strokeColor="?attr/colorOutline"
+            app:strokeWidth="1dp"
+            app:layout_constraintTop_toTopOf="@id/fabRefresh"
+            app:layout_constraintBottom_toBottomOf="@id/fabRefresh"
+            app:layout_constraintEnd_toStartOf="@id/fabRefresh">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp">
+
+                <View
+                    android:id="@+id/dotSyncStatus"
+                    android:layout_width="6dp"
+                    android:layout_height="6dp"
+                    android:layout_marginEnd="6dp"
+                    android:background="@drawable/bg_dot_online" />
+
+                <TextView
+                    android:id="@+id/tvRefreshStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Last synced just now"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:textColor="?attr/colorOnSurfaceVariant" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
         <!-- Refresh Floating Action Button -->
         <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/fabRefresh"
@@ -449,7 +490,26 @@
                     app:strokeColor="?attr/colorOutline"
                     app:strokeWidth="1dp" />
 
+                
                 <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSyncGoogleCalendar"
+                    android:layout_width="match_parent"
+                    android:layout_height="46dp"
+                    android:layout_marginBottom="10dp"
+                    android:text="Sync Google Calendar"
+                    android:textAllCaps="false"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="?attr/colorOnSurface"
+                    app:icon="@drawable/ic_calendar"
+                    app:iconGravity="textStart"
+                    app:iconPadding="10dp"
+                    app:iconTint="@color/primary_orange"
+                    app:cornerRadius="10dp"
+                    app:backgroundTint="?attr/colorSurface"
+                    app:strokeColor="?attr/colorOutline"
+                    app:strokeWidth="1dp" />
+<com.google.android.material.button.MaterialButton
                     android:id="@+id/btnFacultyOffices"
                     android:layout_width="match_parent"
                     android:layout_height="46dp"
@@ -557,3 +617,4 @@
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.drawerlayout.widget.DrawerLayout>
+

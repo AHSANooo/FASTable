@@ -38,6 +38,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _isRefreshing = MutableLiveData<Boolean>()
     val isRefreshing: LiveData<Boolean> = _isRefreshing
+    private val _lastSyncText = MutableLiveData<String>()
+    val lastSyncText: LiveData<String> = _lastSyncText
 
     private val _errorMessage = MutableLiveData<String?>()
     val errorMessage: LiveData<String?> = _errorMessage
@@ -48,6 +50,29 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     init {
         updateCurrentDay()
         loadDashboardSessions()
+        updateSyncTimeDisplay()
+    }
+
+        fun updateSyncTimeDisplay() {
+        val lastTimestamp = repository.getLastSyncTimestamp()
+        if (lastTimestamp == 0L) {
+            _lastSyncText.postValue("Last synced: never")
+            return
+        }
+        val diffMs = System.currentTimeMillis() - lastTimestamp
+        val diffSec = diffMs / 1000
+        val diffMin = diffSec / 60
+        val diffHour = diffMin / 60
+        val diffDay = diffHour / 24
+
+        val text = when {
+            diffMin < 1 -> "Last synced just now"
+            diffMin < 60 -> "Last synced ${diffMin}m ago"
+            diffHour < 24 -> "Last synced ${diffHour}h ago"
+            diffDay == 1L -> "Last synced yesterday"
+            else -> "Last synced ${diffDay}d ago"
+        }
+        _lastSyncText.postValue(text)
     }
 
     private fun updateCurrentDay() {
@@ -141,6 +166,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
             result.onSuccess {
                 loadDashboardSessions()
+        updateSyncTimeDisplay()
             }.onFailure { exception ->
                 _errorMessage.value = "Sync failed: ${exception.message}"
             }
@@ -176,6 +202,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         hasRefreshedOnStart = true
         // Don't show loading indicator - background sync will update silently
         // _isRefreshing.value = true
+        _lastSyncText.value = "Updating..."
 
         viewModelScope.launch {
             try {
@@ -209,6 +236,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
                     // Schedule notifications for updated sessions
                     NotificationScheduler.scheduleNotificationsForSessions(context, refreshedSessions)
+
+                    if (com.example.fastable.utils.GoogleCalendarSyncManager.isCalendarSyncEnabled(context)) {
+                        com.example.fastable.utils.GoogleCalendarSyncManager.syncCurrentWeek(context, refreshedSessions)
+                    }
+                    updateSyncTimeDisplay()
                 }.onFailure { exception: Throwable ->
                     Log.e(TAG, "refreshDashboardOnStart: Failed - ${exception.message}")
                     // Don't show error to user, just keep existing data
@@ -235,6 +267,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         _isRefreshing.value = true
+        _lastSyncText.value = "Updating..."
 
         viewModelScope.launch {
             try {
@@ -269,6 +302,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     // Schedule notifications for updated sessions
                     NotificationScheduler.scheduleNotificationsForSessions(context, refreshedSessions)
 
+                    if (com.example.fastable.utils.GoogleCalendarSyncManager.isCalendarSyncEnabled(context)) {
+                        com.example.fastable.utils.GoogleCalendarSyncManager.syncCurrentWeek(context, refreshedSessions)
+                    }
+                    updateSyncTimeDisplay()
+
                     // Provide feedback to user
                     val cancelledCount = refreshedSessions.count { it.courseName.contains("Cancelled", ignoreCase = true) }
                     if (cancelledCount > 0) {
@@ -285,8 +323,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 _errorMessage.value = "Refresh failed: ${e.message}"
             } finally {
                 _isRefreshing.value = false
+                updateSyncTimeDisplay()
             }
         }
     }
 }
+
 

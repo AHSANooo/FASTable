@@ -61,6 +61,7 @@ class Home : AppCompatActivity() {
 
     // Permission launcher
     private lateinit var notificationPermissionLauncher: ActivityResultLauncher<String>
+    private lateinit var calendarPermissionLauncher: ActivityResultLauncher<Array<String>>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -95,6 +96,21 @@ class Home : AppCompatActivity() {
         loadUserProfile()
         viewModel.refreshDashboardOnStart()
         requestNotificationPermissionIfNeeded()
+
+        calendarPermissionLauncher = PermissionManager.createCalendarPermissionLauncher(
+            activity = this,
+            onGranted = {
+                syncGoogleCalendarNow()
+            },
+            onDenied = {
+                Snackbar.make(
+                    findViewById(android.R.id.content),
+                    "Calendar permission needed to sync course schedule",
+                    Snackbar.LENGTH_LONG
+                ).show()
+            }
+        )
+
     }
 
     private fun requestNotificationPermissionIfNeeded() {
@@ -111,6 +127,7 @@ class Home : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         viewModel.loadDashboardSessions()
+        viewModel.updateSyncTimeDisplay()
         loadUserProfile()
         TimetableSyncWorker.runImmediateSync(this)
     }
@@ -121,6 +138,10 @@ class Home : AppCompatActivity() {
         fab.setOnClickListener {
             val intent = Intent(this, CustomTimetable::class.java)
             startActivity(intent)
+        }
+
+        findViewById<View>(R.id.pillRefreshStatus)?.setOnClickListener {
+            viewModel.manualRefresh()
         }
 
         val fabRefresh = findViewById<com.google.android.material.floatingactionbutton.FloatingActionButton>(R.id.fabRefresh)
@@ -294,6 +315,10 @@ class Home : AppCompatActivity() {
             }
         }
 
+        viewModel.lastSyncText.observe(this) { text ->
+            findViewById<TextView>(R.id.tvRefreshStatus)?.text = text
+        }
+
         viewModel.isRefreshing.observe(this) { isRefreshing ->
             loadingOverlay.visibility = if (isRefreshing) View.VISIBLE else View.GONE
         }
@@ -378,6 +403,20 @@ class Home : AppCompatActivity() {
         findViewById<Button>(R.id.btnBatchTimetable).setOnClickListener {
             startActivity(Intent(this, CustomTimetable::class.java))
             drawerLayout.closeDrawer(GravityCompat.START)
+        }
+
+        findViewById<Button>(R.id.btnSyncGoogleCalendar)?.setOnClickListener {
+            drawerLayout.closeDrawer(GravityCompat.START)
+            if (PermissionManager.hasCalendarPermission(this)) {
+                syncGoogleCalendarNow()
+            } else {
+                calendarPermissionLauncher.launch(
+                    arrayOf(
+                        android.Manifest.permission.READ_CALENDAR,
+                        android.Manifest.permission.WRITE_CALENDAR
+                    )
+                )
+            }
         }
 
         findViewById<Button>(R.id.btnCustomTimetable).setOnClickListener {
@@ -600,5 +639,28 @@ class Home : AppCompatActivity() {
         }
         return super.dispatchTouchEvent(ev)
     }
-}
 
+    private fun syncGoogleCalendarNow() {
+        val sessions = viewModel.dashboardSessions.value ?: emptyList()
+        if (sessions.isEmpty()) {
+            Snackbar.make(findViewById(android.R.id.content), "No courses in dashboard to sync", Snackbar.LENGTH_SHORT).show()
+            return
+        }
+        com.example.fastable.utils.GoogleCalendarSyncManager.setCalendarSyncEnabled(this, true)
+        val result = com.example.fastable.utils.GoogleCalendarSyncManager.syncCurrentWeek(this, sessions)
+        result.onSuccess { count ->
+            Snackbar.make(
+                findViewById(android.R.id.content),
+                "Synced $count session(s) to Google Calendar for this week!",
+                Snackbar.LENGTH_LONG
+            ).show()
+        }.onFailure { e ->
+            Snackbar.make(
+                findViewById(android.R.id.content),
+                "Calendar sync failed: ${e.message}",
+                Snackbar.LENGTH_LONG
+            ).show()
+        }
+    }
+
+}

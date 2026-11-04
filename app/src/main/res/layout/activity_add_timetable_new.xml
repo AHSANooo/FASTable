@@ -95,6 +95,77 @@
                     app:queryHint="Search courses (e.g. Data Structures)..." />
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- Department Filter Chips -->
+            <HorizontalScrollView
+                android:id="@+id/scrollDeptChips"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:paddingHorizontal="16dp"
+                android:scrollbars="none"
+                app:layout_constraintTop_toBottomOf="@id/searchCard">
+
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/chipGroupDepartment"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:singleSelection="true"
+                    app:selectionRequired="true">
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipDeptAll"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="All"
+                        android:checked="true" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipDeptCS"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="CS" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipDeptAI"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="AI" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipDeptSE"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="SE" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipDeptDS"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="DS" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipDeptCY"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="CY" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipDeptEE"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="EE" />
+
+                </com.google.android.material.chip.ChipGroup>
+            </HorizontalScrollView>
+
+
             <!-- Loading ProgressBar -->
             <ProgressBar
                 android:id="@+id/progressBar"
@@ -102,7 +173,7 @@
                 android:layout_height="40dp"
                 android:indeterminateTint="@color/primary_orange"
                 android:visibility="gone"
-                app:layout_constraintTop_toBottomOf="@id/searchCard"
+                app:layout_constraintTop_toBottomOf="@id/scrollDeptChips"
                 app:layout_constraintBottom_toTopOf="@id/dockSelectedCourses"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent" />
@@ -116,7 +187,7 @@
                 android:textSize="13sp"
                 android:paddingHorizontal="16dp"
                 android:visibility="gone"
-                app:layout_constraintTop_toBottomOf="@id/searchCard" />
+                app:layout_constraintTop_toBottomOf="@id/scrollDeptChips" />
 
             <!-- Empty Data State -->
             <TextView
@@ -127,7 +198,7 @@
                 android:textSize="15sp"
                 android:textColor="?attr/colorOnSurfaceVariant"
                 android:visibility="gone"
-                app:layout_constraintTop_toBottomOf="@id/searchCard"
+                app:layout_constraintTop_toBottomOf="@id/scrollDeptChips"
                 app:layout_constraintBottom_toTopOf="@id/dockSelectedCourses"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent" />
@@ -140,7 +211,7 @@
                 android:layout_marginTop="8dp"
                 android:paddingBottom="90dp"
                 android:clipToPadding="false"
-                app:layout_constraintTop_toBottomOf="@id/searchCard"
+                app:layout_constraintTop_toBottomOf="@id/scrollDeptChips"
                 app:layout_constraintBottom_toBottomOf="parent" />
 
             <!-- Floating Bottom Action Dock for Selected Courses -->

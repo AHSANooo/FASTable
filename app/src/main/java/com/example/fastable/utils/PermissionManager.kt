@@ -90,5 +90,32 @@ object PermissionManager {
             }
         }
     }
-}
 
+    /**
+     * Check if calendar permissions are granted
+     */
+    fun hasCalendarPermission(context: Context): Boolean {
+        return ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED &&
+               ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_CALENDAR) == PackageManager.PERMISSION_GRANTED
+    }
+
+    /**
+     * Create permission launcher for calendar permissions
+     */
+    fun createCalendarPermissionLauncher(
+        activity: AppCompatActivity,
+        onGranted: () -> Unit = {},
+        onDenied: () -> Unit = {}
+    ): ActivityResultLauncher<Array<String>> {
+        return activity.registerForActivityResult(
+            ActivityResultContracts.RequestMultiplePermissions()
+        ) { permissions ->
+            val allGranted = permissions.entries.all { it.value }
+            if (allGranted) {
+                onGranted()
+            } else {
+                onDenied()
+            }
+        }
+    }
+}

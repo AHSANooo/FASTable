@@ -12,18 +12,23 @@ import androidx.appcompat.widget.SearchView
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.fastable.adapters.CourseAdapter
+import com.example.fastable.adapters.CourseGroup
+import com.example.fastable.adapters.GroupedCourseAdapter
 import com.example.fastable.adapters.SelectedCourseChipAdapter
 import com.example.fastable.adapters.TimetableAdapter
+import com.example.fastable.data.models.Course
+import com.example.fastable.utils.TimeParser
 import com.example.fastable.viewmodel.CustomTimetableViewModel
 import com.google.android.material.appbar.MaterialToolbar
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
 import com.google.android.material.tabs.TabLayout
 import kotlin.math.abs
 
 class Add_Timetable : AppCompatActivity() {
 
     private lateinit var viewModel: CustomTimetableViewModel
-    private lateinit var courseAdapter: CourseAdapter
+    private lateinit var groupedCourseAdapter: GroupedCourseAdapter
     private lateinit var timetableAdapter: TimetableAdapter
     private lateinit var chipAdapter: SelectedCourseChipAdapter
 
@@ -31,6 +36,7 @@ class Add_Timetable : AppCompatActivity() {
     private lateinit var rvTimetable: RecyclerView
     private lateinit var rvSelectedChips: RecyclerView
     private lateinit var searchView: SearchView
+    private lateinit var chipGroupDepartment: ChipGroup
     private lateinit var btnGenerate: Button
     private lateinit var btnClear: TextView
     private lateinit var progressBar: ProgressBar
@@ -50,6 +56,10 @@ class Add_Timetable : AppCompatActivity() {
     private val days = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
     private var showingTimetable = false
     private var isDockExpanded = false
+
+    private var allLoadedCourses: List<Course> = emptyList()
+    private var currentSelectedDept: String = "All"
+    private var currentQuery: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -89,6 +99,7 @@ class Add_Timetable : AppCompatActivity() {
         rvTimetable = findViewById(R.id.rvTimetable)
         rvSelectedChips = findViewById(R.id.rvSelectedChips)
         searchView = findViewById(R.id.searchView)
+        chipGroupDepartment = findViewById(R.id.chipGroupDepartment)
         btnGenerate = findViewById(R.id.btnGenerate)
         btnClear = findViewById(R.id.btnClear)
         progressBar = findViewById(R.id.progressBar)
@@ -123,9 +134,8 @@ class Add_Timetable : AppCompatActivity() {
         viewModel = ViewModelProvider(this)[CustomTimetableViewModel::class.java]
 
         viewModel.courses.observe(this) { courses ->
-            val realCourses = courses.filter { !it.name.equals("Placeholder", ignoreCase = true) }
-            courseAdapter.submitList(realCourses)
-            updateCourseVisibility(realCourses, viewModel.isLoading.value ?: false)
+            allLoadedCourses = courses.filter { !it.name.equals("Placeholder", ignoreCase = true) }
+            applyCourseFilters()
         }
 
         viewModel.selectedCourses.observe(this) { selected ->
@@ -142,6 +152,9 @@ class Add_Timetable : AppCompatActivity() {
             } else {
                 tvToggleHint.text = if (isDockExpanded) "Tap to hide list ▼" else "Tap to view list ▲"
             }
+
+            // Sync selection state on course groups
+            applyCourseFilters()
         }
 
         viewModel.timetableSessions.observe(this) { sessions ->
@@ -154,7 +167,7 @@ class Add_Timetable : AppCompatActivity() {
 
         viewModel.isLoading.observe(this) { isLoading ->
             btnGenerate.isEnabled = !isLoading && (viewModel.selectedCourses.value?.isNotEmpty() == true)
-            updateCourseVisibility(viewModel.courses.value, isLoading)
+            applyCourseFilters()
         }
 
         viewModel.errorMessage.observe(this) { error ->
@@ -180,31 +193,63 @@ class Add_Timetable : AppCompatActivity() {
         viewModel.loadOrSyncData(forceRefresh = false)
     }
 
-    private fun updateCourseVisibility(courses: List<com.example.fastable.data.models.Course>?, isLoading: Boolean) {
-        val realCourses = courses?.filter { !it.name.equals("Placeholder", ignoreCase = true) } ?: emptyList()
-        if (isLoading && realCourses.isEmpty()) {
-            // Keep loading active and courses hidden while courses are being fetched
+    private fun applyCourseFilters() {
+        val filteredGroups = groupCourses(allLoadedCourses, currentSelectedDept, currentQuery)
+        groupedCourseAdapter.submitList(filteredGroups)
+
+        val isLoading = viewModel.isLoading.value ?: false
+        if (isLoading && filteredGroups.isEmpty()) {
             progressBar.visibility = View.VISIBLE
             rvCourses.visibility = View.GONE
             tvNoData.visibility = View.GONE
-        } else if (realCourses.isEmpty()) {
+        } else if (filteredGroups.isEmpty()) {
             progressBar.visibility = View.GONE
             rvCourses.visibility = View.GONE
             tvNoData.visibility = View.VISIBLE
         } else {
-            // Content appears once fully fetched and cached
             progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
             rvCourses.visibility = View.VISIBLE
             tvNoData.visibility = View.GONE
         }
     }
 
+    private fun groupCourses(courses: List<Course>, deptFilter: String, query: String): List<CourseGroup> {
+        val queryFiltered = if (query.isNotBlank()) {
+            courses.filter { it.name.contains(query, ignoreCase = true) }
+        } else {
+            courses
+        }
+
+        val grouped = queryFiltered.groupBy { course ->
+            val dept = if (course.department.isNotBlank()) {
+                course.department.trim()
+            } else {
+                TimeParser.extractDepartmentFromBatch(course.batch).ifEmpty { "General" }
+            }
+            Pair(course.name.trim(), dept.uppercase())
+        }
+
+        val groups = grouped.map { (key, sections) ->
+            CourseGroup(
+                courseName = key.first,
+                department = key.second,
+                sections = sections.sortedBy { it.section }
+            )
+        }.sortedWith(compareBy({ it.department }, { it.courseName }))
+
+        return if (deptFilter.equals("All", ignoreCase = true)) {
+            groups
+        } else {
+            groups.filter { it.department.equals(deptFilter, ignoreCase = true) }
+        }
+    }
+
     private fun setupRecyclerViews() {
-        courseAdapter = CourseAdapter { course ->
+        groupedCourseAdapter = GroupedCourseAdapter { course ->
             viewModel.toggleCourseSelection(course)
         }
         rvCourses.layoutManager = LinearLayoutManager(this)
-        rvCourses.adapter = courseAdapter
+        rvCourses.adapter = groupedCourseAdapter
 
         // Selected chips horizontal list
         chipAdapter = SelectedCourseChipAdapter { courseToRemove ->
@@ -219,14 +264,23 @@ class Add_Timetable : AppCompatActivity() {
     }
 
     private fun setupListeners() {
+        chipGroupDepartment.setOnCheckedStateChangeListener { group, checkedIds ->
+            val chipId = checkedIds.firstOrNull() ?: R.id.chipDeptAll
+            val chip = group.findViewById<Chip>(chipId)
+            currentSelectedDept = chip?.text?.toString() ?: "All"
+            applyCourseFilters()
+        }
+
         searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean {
-                query?.let { viewModel.searchCourses(it) }
+                currentQuery = query.orEmpty().trim()
+                applyCourseFilters()
                 return true
             }
 
             override fun onQueryTextChange(newText: String?): Boolean {
-                newText?.let { viewModel.searchCourses(it) }
+                currentQuery = newText.orEmpty().trim()
+                applyCourseFilters()
                 return true
             }
         })
