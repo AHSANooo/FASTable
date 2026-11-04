@@ -51,8 +51,9 @@ class CampusMap : AppCompatActivity() {
         setContentView(R.layout.activity_campus_map)
 
         setupToolbar()
-        setupRecyclerView()
         initViews()
+        setupRecyclerView()
+        setupFloorChipsForBlock(selectedBlock)
         loadUserSessions()
     }
 
@@ -83,8 +84,6 @@ class CampusMap : AppCompatActivity() {
                 setupFloorChipsForBlock(selectedBlock)
             }
         }
-
-        setupFloorChipsForBlock(selectedBlock)
     }
 
     private fun setupFloorChipsForBlock(block: String) {
@@ -161,7 +160,7 @@ class CampusMap : AppCompatActivity() {
     }
 
     private fun renderFloorRooms() {
-        if (!::adapter.isInitialized) return
+        if (!::rvFloorRooms.isInitialized || !::adapter.isInitialized) return
         val cal = Calendar.getInstance()
         val currentDay = when (cal.get(Calendar.DAY_OF_WEEK)) {
             Calendar.MONDAY -> "Monday"
