@@ -405,7 +405,7 @@ class Add_Timetable : AppCompatActivity() {
                     val result = RosterSyncManager.syncRosterForStudent(this@Add_Timetable, rollNo)
                     progress.dismiss()
                     result.onSuccess { count ->
-                        Toast.makeText(this@Add_Timetable, "Roster Synced! Loaded $count classes (CS-E)", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@Add_Timetable, "Roster Synced! Loaded $count classes", Toast.LENGTH_SHORT).show()
                         val intent = Intent(this@Add_Timetable, Home::class.java).apply {
                             flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
                         }

@@ -422,12 +422,12 @@ class Home : AppCompatActivity() {
                 val rollNo = com.example.fastable.utils.RosterSyncManager.extractRollNoFromEmail(userEmail)
                 androidx.appcompat.app.AlertDialog.Builder(this@Home)
                     .setTitle("Fast Roster Sync")
-                    .setMessage("Auto-load official CS Section E courses for Roll Number $rollNo?")
+                    .setMessage("Auto-load official courses for Roll Number $rollNo?")
                     .setPositiveButton("Sync Schedule") { _, _ ->
                         lifecycleScope.launch {
                             val result = com.example.fastable.utils.RosterSyncManager.syncRosterForStudent(this@Home, rollNo)
                             result.onSuccess { count ->
-                                Toast.makeText(this@Home, "Roster Synced! Loaded $count classes (CS-E)", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(this@Home, "Roster Synced! Loaded $count classes", Toast.LENGTH_SHORT).show()
                                 viewModel.loadDashboardSessions()
                             }.onFailure { ex ->
                                 Toast.makeText(this@Home, "Sync failed: ${ex.message}", Toast.LENGTH_LONG).show()

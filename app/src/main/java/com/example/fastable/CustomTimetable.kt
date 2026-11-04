@@ -75,7 +75,7 @@ class CustomTimetable : AppCompatActivity() {
                     val result = RosterSyncManager.syncRosterForStudent(this@CustomTimetable, rollNo)
                     progress.dismiss()
                     result.onSuccess { count ->
-                        android.widget.Toast.makeText(this@CustomTimetable, "Roster Synced! Loaded $count classes (CS-E)", android.widget.Toast.LENGTH_SHORT).show()
+                        android.widget.Toast.makeText(this@CustomTimetable, "Roster Synced! Loaded $count classes", android.widget.Toast.LENGTH_SHORT).show()
                         val intent = Intent(this@CustomTimetable, Home::class.java).apply {
                             flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
                         }

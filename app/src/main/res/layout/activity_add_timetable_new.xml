@@ -109,7 +109,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:layout_marginStart="8dp"
-                            android:text="Fast Roster Sync (CS-E Mock)"
+                            android:text="Fast Roster Sync"
                             android:textSize="14sp"
                             android:textStyle="bold"
                             android:textColor="?attr/colorOnSurface" />
