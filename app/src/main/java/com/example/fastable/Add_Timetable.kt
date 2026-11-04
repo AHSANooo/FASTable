@@ -2,6 +2,12 @@ package com.example.fastable
 
 import android.content.Intent
 import android.os.Bundle
+import androidx.lifecycle.lifecycleScope
+import com.example.fastable.data.local.AppDatabase
+import com.example.fastable.utils.RosterSyncManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
@@ -69,6 +75,7 @@ class Add_Timetable : AppCompatActivity() {
         setupViewModel()
         setupRecyclerViews()
         setupListeners()
+        setupRosterSync()
 
         onBackPressedDispatcher.addCallback(this) {
             if (showingTimetable) {
@@ -375,5 +382,40 @@ class Add_Timetable : AppCompatActivity() {
         llCourseSelection.visibility = View.VISIBLE
         llTimetableView.visibility = View.GONE
         topBar.title = "Custom Timetable"
+    }
+    private fun setupRosterSync() {
+        val tvDetectedRollNo = findViewById<TextView>(R.id.tvDetectedRollNo) ?: return
+        val btnQuickRosterSync = findViewById<View>(R.id.btnQuickRosterSync) ?: return
+
+        lifecycleScope.launch {
+            val userEmail = withContext(Dispatchers.IO) {
+                AppDatabase.getDatabase(this@Add_Timetable).userProfileDao().getAnyUserProfile()?.email
+                    ?: com.google.android.gms.auth.api.signin.GoogleSignIn.getLastSignedInAccount(this@Add_Timetable)?.email
+            }
+            val rollNo = RosterSyncManager.extractRollNoFromEmail(userEmail)
+            tvDetectedRollNo.text = rollNo
+
+            btnQuickRosterSync.setOnClickListener {
+                val progress = android.app.ProgressDialog(this@Add_Timetable).apply {
+                    setMessage("Syncing roster for $rollNo...")
+                    setCancelable(false)
+                    show()
+                }
+                lifecycleScope.launch {
+                    val result = RosterSyncManager.syncRosterForStudent(this@Add_Timetable, rollNo)
+                    progress.dismiss()
+                    result.onSuccess { count ->
+                        Toast.makeText(this@Add_Timetable, "Roster Synced! Loaded $count classes (CS-E)", Toast.LENGTH_SHORT).show()
+                        val intent = Intent(this@Add_Timetable, Home::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        }
+                        startActivity(intent)
+                        finish()
+                    }.onFailure { ex ->
+                        Toast.makeText(this@Add_Timetable, "Sync failed: ${ex.message}", Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+        }
     }
 }

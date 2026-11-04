@@ -31,8 +31,7 @@
         android:paddingEnd="16dp"
         android:paddingTop="8dp"
         android:paddingBottom="8dp"
-        android:background="?attr/colorSurface"
-        android:elevation="2dp"
+        android:background="?android:attr/colorBackground"
         app:layout_constraintTop_toBottomOf="@id/topBar">
 
         <TextView
@@ -59,6 +58,84 @@
             android:textStyle="bold"
             android:background="@drawable/unselected_tab_right" />
     </LinearLayout>
+
+    <!-- Deliverable D3 Concept 1: Instant Roster Sync by Roll Number -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardRosterSync"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="8dp"
+        app:cardCornerRadius="14dp"
+        app:cardElevation="1dp"
+        app:cardBackgroundColor="?attr/colorSurface"
+        app:strokeColor="@color/primary_orange_light"
+        app:strokeWidth="1.5dp"
+        app:layout_constraintTop_toBottomOf="@id/tabContainer">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="12dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_refresh"
+                    app:tint="@color/primary_orange" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:text="Fast Roster Sync (CS-E Mock)"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="?attr/colorOnSurface" />
+
+                <TextView
+                    android:id="@+id/tvDetectedRollNo"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_badge_nuces"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="2dp"
+                    android:text="23I-0553"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/primary_orange_dark" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Auto-load official course schedule matching your student roll number in 1 tap."
+                android:textSize="12sp"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnQuickRosterSync"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:layout_marginTop="8dp"
+                android:text="1-Tap Sync Roster"
+                android:textAllCaps="false"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:textColor="@color/white"
+                app:cornerRadius="8dp"
+                app:backgroundTint="@color/primary_orange" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
 
     <!-- Batch & Section Input Card -->
     <com.google.android.material.card.MaterialCardView

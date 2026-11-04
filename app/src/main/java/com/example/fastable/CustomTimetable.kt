@@ -2,6 +2,12 @@ package com.example.fastable
 
 import android.content.Intent
 import android.os.Bundle
+import androidx.lifecycle.lifecycleScope
+import com.example.fastable.data.local.AppDatabase
+import com.example.fastable.utils.RosterSyncManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
@@ -44,6 +50,43 @@ class CustomTimetable : AppCompatActivity() {
         setupRecyclerView()
         setupTabLayout()
         setupListeners()
+        setupRosterSync()
+    }
+
+    private fun setupRosterSync() {
+        val tvDetectedRollNo = findViewById<android.widget.TextView>(R.id.tvDetectedRollNo) ?: return
+        val btnQuickRosterSync = findViewById<android.view.View>(R.id.btnQuickRosterSync) ?: return
+
+        lifecycleScope.launch {
+            val userEmail = withContext(Dispatchers.IO) {
+                AppDatabase.getDatabase(this@CustomTimetable).userProfileDao().getAnyUserProfile()?.email
+                    ?: com.google.android.gms.auth.api.signin.GoogleSignIn.getLastSignedInAccount(this@CustomTimetable)?.email
+            }
+            val rollNo = RosterSyncManager.extractRollNoFromEmail(userEmail)
+            tvDetectedRollNo.text = rollNo
+
+            btnQuickRosterSync.setOnClickListener {
+                val progress = android.app.ProgressDialog(this@CustomTimetable).apply {
+                    setMessage("Syncing roster for $rollNo...")
+                    setCancelable(false)
+                    show()
+                }
+                lifecycleScope.launch {
+                    val result = RosterSyncManager.syncRosterForStudent(this@CustomTimetable, rollNo)
+                    progress.dismiss()
+                    result.onSuccess { count ->
+                        android.widget.Toast.makeText(this@CustomTimetable, "Roster Synced! Loaded $count classes (CS-E)", android.widget.Toast.LENGTH_SHORT).show()
+                        val intent = Intent(this@CustomTimetable, Home::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        }
+                        startActivity(intent)
+                        finish()
+                    }.onFailure { ex ->
+                        android.widget.Toast.makeText(this@CustomTimetable, "Sync failed: ${ex.message}", android.widget.Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+        }
     }
 
     private fun initViews() {

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.fastable.data.models.Course
 import com.example.fastable.data.models.TimetableSession
 import com.example.fastable.data.models.DashboardSession
@@ -36,6 +37,12 @@ abstract class AppDatabase : RoomDatabase() {
                     "fastable_database"
                 )
                     .fallbackToDestructiveMigration()
+                    .addCallback(object : RoomDatabase.Callback() {
+                        override fun onOpen(db: SupportSQLiteDatabase) {
+                            super.onOpen(db)
+                            db.execSQL("DELETE FROM courses WHERE LOWER(name) LIKE '%placeholder%'")
+                        }
+                    })
                     .build()
                 INSTANCE = instance
                 instance
@@ -43,4 +50,3 @@ abstract class AppDatabase : RoomDatabase() {
         }
     }
 }
-

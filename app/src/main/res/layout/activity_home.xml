@@ -492,6 +492,21 @@
 
                 
                 <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnRosterSyncDrawer"
+                    android:layout_width="match_parent"
+                    android:layout_height="46dp"
+                    android:layout_marginBottom="10dp"
+                    android:text="⚡ Fast Roster Sync (CS-E)"
+                    android:textAllCaps="false"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/primary_orange_dark"
+                    app:cornerRadius="10dp"
+                    app:backgroundTint="?attr/colorSurface"
+                    app:strokeColor="@color/primary_orange"
+                    app:strokeWidth="1dp" />
+
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnSyncGoogleCalendar"
                     android:layout_width="match_parent"
                     android:layout_height="46dp"

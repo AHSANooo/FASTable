@@ -2,6 +2,11 @@ package com.example.fastable
 
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.appcompat.app.AppCompatActivity
 import android.widget.Button
 import android.widget.LinearLayout
@@ -28,9 +33,6 @@ import com.example.fastable.data.local.AppDatabase
 import com.example.fastable.data.models.UserProfile
 import com.example.fastable.utils.PermissionManager
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import android.util.Base64
@@ -319,6 +321,11 @@ class Home : AppCompatActivity() {
             findViewById<TextView>(R.id.tvRefreshStatus)?.text = text
         }
 
+        viewModel.syncStatusColor.observe(this) { color ->
+            findViewById<View>(R.id.dotSyncStatus)?.backgroundTintList =
+                android.content.res.ColorStateList.valueOf(color)
+        }
+
         viewModel.isRefreshing.observe(this) { isRefreshing ->
             loadingOverlay.visibility = if (isRefreshing) View.VISIBLE else View.GONE
         }
@@ -403,6 +410,33 @@ class Home : AppCompatActivity() {
         findViewById<Button>(R.id.btnBatchTimetable).setOnClickListener {
             startActivity(Intent(this, CustomTimetable::class.java))
             drawerLayout.closeDrawer(GravityCompat.START)
+        }
+
+        findViewById<Button>(R.id.btnRosterSyncDrawer)?.setOnClickListener {
+            drawerLayout.closeDrawer(GravityCompat.START)
+            lifecycleScope.launch {
+                val userEmail = withContext(Dispatchers.IO) {
+                    com.example.fastable.data.local.AppDatabase.getDatabase(this@Home).userProfileDao().getAnyUserProfile()?.email
+                        ?: com.google.android.gms.auth.api.signin.GoogleSignIn.getLastSignedInAccount(this@Home)?.email
+                }
+                val rollNo = com.example.fastable.utils.RosterSyncManager.extractRollNoFromEmail(userEmail)
+                androidx.appcompat.app.AlertDialog.Builder(this@Home)
+                    .setTitle("Fast Roster Sync")
+                    .setMessage("Auto-load official CS Section E courses for Roll Number $rollNo?")
+                    .setPositiveButton("Sync Schedule") { _, _ ->
+                        lifecycleScope.launch {
+                            val result = com.example.fastable.utils.RosterSyncManager.syncRosterForStudent(this@Home, rollNo)
+                            result.onSuccess { count ->
+                                Toast.makeText(this@Home, "Roster Synced! Loaded $count classes (CS-E)", Toast.LENGTH_SHORT).show()
+                                viewModel.loadDashboardSessions()
+                            }.onFailure { ex ->
+                                Toast.makeText(this@Home, "Sync failed: ${ex.message}", Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    }
+                    .setNegativeButton("Cancel", null)
+                    .show()
+            }
         }
 
         findViewById<Button>(R.id.btnSyncGoogleCalendar)?.setOnClickListener {

@@ -40,6 +40,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     val isRefreshing: LiveData<Boolean> = _isRefreshing
     private val _lastSyncText = MutableLiveData<String>()
     val lastSyncText: LiveData<String> = _lastSyncText
+    private val _syncStatusColor = MutableLiveData<Int>()
+    val syncStatusColor: LiveData<Int> = _syncStatusColor
 
     private val _errorMessage = MutableLiveData<String?>()
     val errorMessage: LiveData<String?> = _errorMessage
@@ -57,20 +59,28 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         val lastTimestamp = repository.getLastSyncTimestamp()
         if (lastTimestamp == 0L) {
             _lastSyncText.postValue("Last synced: never")
+            _syncStatusColor.postValue(0xFFEF4444.toInt())
             return
         }
         val diffMs = System.currentTimeMillis() - lastTimestamp
-        val diffSec = diffMs / 1000
-        val diffMin = diffSec / 60
+        val diffMin = diffMs / (1000 * 60)
         val diffHour = diffMin / 60
         val diffDay = diffHour / 24
 
+        // Deliverable D3 Concept 2: Traffic Light Indicator
+        val color = when {
+            diffMin < 60 -> 0xFF10B981.toInt()   // Green: < 1 hour
+            diffHour < 6 -> 0xFFF59E0B.toInt()   // Amber: 1 - 6 hours
+            else -> 0xFFEF4444.toInt()           // Red: > 6 hours or stale
+        }
+        _syncStatusColor.postValue(color)
+
         val text = when {
-            diffMin < 1 -> "Last synced just now"
-            diffMin < 60 -> "Last synced ${diffMin}m ago"
-            diffHour < 24 -> "Last synced ${diffHour}h ago"
-            diffDay == 1L -> "Last synced yesterday"
-            else -> "Last synced ${diffDay}d ago"
+            diffMin < 1 -> "Synced just now"
+            diffMin < 60 -> "Synced ${diffMin}m ago"
+            diffHour < 24 -> "Synced ${diffHour}h ago"
+            diffDay == 1L -> "Synced yesterday"
+            else -> "Synced ${diffDay}d ago"
         }
         _lastSyncText.postValue(text)
     }

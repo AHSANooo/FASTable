@@ -1,25 +1,50 @@
 package com.example.fastable
 
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.os.Bundle
-import android.text.Editable
-import android.text.TextWatcher
+import android.view.LayoutInflater
 import android.view.View
-import android.widget.EditText
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.fastable.adapters.MapLocationAdapter
-import com.example.fastable.data.models.MapLocation
+import com.example.fastable.adapters.FloorRoomAdapter
+import com.example.fastable.data.local.AppDatabase
+import com.example.fastable.data.models.DashboardSession
+import com.example.fastable.data.models.RoomOccupancyState
+import com.example.fastable.data.models.RoomStatusInfo
+import com.example.fastable.data.repository.CampusFloorRepository
+import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.button.MaterialButtonToggleGroup
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.util.Calendar
 
+/**
+ * Deliverable D3 - Concept 4 (R3):
+ * Live Campus Floor Plan Map for Block A, Block B, and Block C.
+ *
+ * Shows interactive floor layouts, live Free/Occupied room occupancy,
+ * and highlights "★ Your Room" for classes matching the student's schedule.
+ */
 class CampusMap : AppCompatActivity() {
 
-    private lateinit var adapter: MapLocationAdapter
-    private lateinit var rvMapItems: RecyclerView
-    private lateinit var etSearch: EditText
-    private lateinit var tvEmptyState: TextView
+    private lateinit var toggleBlockGroup: MaterialButtonToggleGroup
+    private lateinit var chipGroupFloors: ChipGroup
+    private lateinit var rvFloorRooms: RecyclerView
+    private lateinit var adapter: FloorRoomAdapter
 
-    private val allLocations = mutableListOf<MapLocation>()
+    private var selectedBlock: String = "Block C"
+    private var selectedFloor: String = "3rd Floor"
+    private var userSessions: List<DashboardSession> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -28,101 +53,189 @@ class CampusMap : AppCompatActivity() {
         setupToolbar()
         initViews()
         setupRecyclerView()
-        loadMapData()
-        setupSearch()
+        loadUserSessions()
     }
 
     private fun setupToolbar() {
-        val toolbar = findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
+        val toolbar = findViewById<Toolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        supportActionBar?.title = getString(R.string.campus_map)
+        supportActionBar?.title = "Live Campus Floor Map"
         toolbar.setNavigationOnClickListener { finish() }
     }
 
     private fun initViews() {
-        rvMapItems = findViewById(R.id.rvMapItems)
-        etSearch = findViewById(R.id.etSearch)
-        tvEmptyState = findViewById(R.id.tvEmptyState)
+        toggleBlockGroup = findViewById(R.id.toggleBlockGroup)
+        chipGroupFloors = findViewById(R.id.chipGroupFloors)
+        rvFloorRooms = findViewById(R.id.rvFloorRooms)
+
+        toggleBlockGroup.check(R.id.btnBlockC)
+        selectedBlock = "Block C"
+
+        toggleBlockGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (isChecked) {
+                selectedBlock = when (checkedId) {
+                    R.id.btnBlockA -> "Block A"
+                    R.id.btnBlockB -> "Block B"
+                    R.id.btnBlockC -> "Block C"
+                    else -> "Block C"
+                }
+                setupFloorChipsForBlock(selectedBlock)
+            }
+        }
+
+        setupFloorChipsForBlock(selectedBlock)
+    }
+
+    private fun setupFloorChipsForBlock(block: String) {
+        chipGroupFloors.removeAllViews()
+        val floors = CampusFloorRepository.getFloorsForBlock(block)
+
+        // Reset floor to default on block change
+        selectedFloor = if (block == "Block C") "3rd Floor" else floors.firstOrNull() ?: "Ground Floor"
+
+        floors.forEach { floorName ->
+            val chip = Chip(this).apply {
+                text = floorName
+                isCheckable = true
+                isClickable = true
+                isChecked = (floorName == selectedFloor)
+                chipCornerRadius = 20f
+                setChipBackgroundColorResource(
+                    if (isChecked) R.color.badge_nuces_bg else android.R.color.transparent
+                )
+                chipStrokeWidth = 2f
+                chipStrokeColor = ColorStateList.valueOf(
+                    if (isChecked) Color.parseColor("#FF6D05") else Color.parseColor("#CBD5E1")
+                )
+                setTextColor(
+                    if (isChecked) Color.parseColor("#D85800") else Color.parseColor("#64748B")
+                )
+
+                setOnCheckedChangeListener { _, checked ->
+                    if (checked) {
+                        selectedFloor = floorName
+                        updateChipStyles()
+                        renderFloorRooms()
+                    }
+                }
+            }
+            chipGroupFloors.addView(chip)
+        }
+
+        renderFloorRooms()
+    }
+
+    private fun updateChipStyles() {
+        for (i in 0 until chipGroupFloors.childCount) {
+            val chip = chipGroupFloors.getChildAt(i) as? Chip ?: continue
+            val isChecked = chip.isChecked
+            chip.chipStrokeColor = ColorStateList.valueOf(
+                if (isChecked) Color.parseColor("#FF6D05") else Color.parseColor("#CBD5E1")
+            )
+            chip.setTextColor(
+                if (isChecked) Color.parseColor("#D85800") else Color.parseColor("#64748B")
+            )
+        }
     }
 
     private fun setupRecyclerView() {
-        adapter = MapLocationAdapter()
-        rvMapItems.layoutManager = LinearLayoutManager(this)
-        rvMapItems.adapter = adapter
+        adapter = FloorRoomAdapter { roomStatus ->
+            showRoomDetailsBottomSheet(roomStatus)
+        }
+        rvFloorRooms.layoutManager = LinearLayoutManager(this)
+        rvFloorRooms.adapter = adapter
     }
 
-    private fun loadMapData() {
-        // Block C - Green
-        allLocations.add(MapLocation("C-301 to C-311", "3rd Floor, Block-C", R.color.block_c))
-        allLocations.add(MapLocation("C-401-C-410", "4th Floor, Block-C", R.color.block_c))
-        allLocations.add(MapLocation("C-110", "1st Floor, Block-C", R.color.block_c))
-
-        // Block D - Blue
-        allLocations.add(MapLocation("D-301 to D-316", "3rd Floor, Block-D", R.color.block_d))
-        allLocations.add(MapLocation("D-401 to D-416", "4th Floor, Block-D", R.color.block_d))
-        allLocations.add(MapLocation("D-501 to D-506", "5th Floor, Block-D", R.color.block_d))
-        allLocations.add(MapLocation("D-IT Labs (1 to 4)", "2nd Floor, Block-D", R.color.block_d))
-
-        // Margala Labs - Block C (different floor)
-        allLocations.add(MapLocation("Margala Labs (1 to 4)", "2nd Floor, Block-C", R.color.block_c))
-
-        // Rawal Labs - Block C
-        allLocations.add(MapLocation("Rawal Labs (1 & 4)", "5th Floor, Block-C", R.color.block_c))
-        allLocations.add(MapLocation("GPU Lab", "5th Floor, Block-C", R.color.block_c))
-
-        // Block B - Orange/Yellow
-        allLocations.add(MapLocation("Rawal Lab (3)", "2nd Floor, Block-B", R.color.block_b))
-
-        // Block A - Pink/Magenta
-        allLocations.add(MapLocation("Mehran Labs (1 & 2)", "3rd Floor, Block-A", R.color.block_a))
-
-        // DLD Lab - Block B
-        allLocations.add(MapLocation("DLD Lab", "2nd Floor, Block-B", R.color.block_b))
-
-        // Call Labs - Red
-        allLocations.add(MapLocation("Call Labs (1 & 2)", "2nd Floor, Block-A", R.color.block_call_lab))
-        allLocations.add(MapLocation("Call Lab (3)", "3rd Floor, Block A", R.color.block_call_lab))
-
-        // Khyber Labs - Yellow
-        allLocations.add(MapLocation("Khyber Labs", "2nd Flr, Block-A", R.color.block_khyber))
-
-        // Auditorium - Dark Green
-        allLocations.add(MapLocation("Auditorium", "Ground Floor, Block-A", R.color.block_auditorium))
-
-        // Submit the list to adapter
-        adapter.submitList(allLocations.toList())
-    }
-
-    private fun setupSearch() {
-        etSearch.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: Editable?) {
-                filterLocations(s?.toString() ?: "")
+    private fun loadUserSessions() {
+        lifecycleScope.launch {
+            val sessions = withContext(Dispatchers.IO) {
+                AppDatabase.getDatabase(this@CampusMap)
+                    .dashboardDao()
+                    .getAllDashboardSessions()
+                    .firstOrNull() ?: emptyList()
             }
-        })
+            userSessions = sessions
+            renderFloorRooms()
+        }
     }
 
-    private fun filterLocations(query: String) {
-        val filteredList = if (query.isEmpty()) {
-            allLocations
-        } else {
-            allLocations.filter { location ->
-                location.roomName.contains(query, ignoreCase = true) ||
-                location.location.contains(query, ignoreCase = true)
+    private fun renderFloorRooms() {
+        val cal = Calendar.getInstance()
+        val currentDay = when (cal.get(Calendar.DAY_OF_WEEK)) {
+            Calendar.MONDAY -> "Monday"
+            Calendar.TUESDAY -> "Tuesday"
+            Calendar.WEDNESDAY -> "Wednesday"
+            Calendar.THURSDAY -> "Thursday"
+            Calendar.FRIDAY -> "Friday"
+            Calendar.SATURDAY -> "Saturday"
+            else -> "Monday"
+        }
+        val currentMinutes = cal.get(Calendar.HOUR_OF_DAY) * 60 + cal.get(Calendar.MINUTE)
+
+        val rooms = CampusFloorRepository.getRoomsForFloor(selectedBlock, selectedFloor)
+        val roomStatuses = rooms.map { room ->
+            CampusFloorRepository.evaluateRoomStatus(
+                room = room,
+                userSessions = userSessions,
+                allCampusSessions = emptyList(),
+                currentDay = currentDay,
+                currentMinutes = currentMinutes
+            )
+        }
+
+        adapter.submitList(roomStatuses)
+    }
+
+    private fun showRoomDetailsBottomSheet(status: RoomStatusInfo) {
+        val dialog = BottomSheetDialog(this)
+        val view = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_room_details, null)
+        dialog.setContentView(view)
+
+        val room = status.room
+        val bsRoomTitle = view.findViewById<TextView>(R.id.bsRoomTitle)
+        val bsRoomSubtitle = view.findViewById<TextView>(R.id.bsRoomSubtitle)
+        val bsStatusBadge = view.findViewById<TextView>(R.id.bsStatusBadge)
+        val bsBannerUserRoom = view.findViewById<View>(R.id.bsBannerUserRoom)
+        val bsUserRoomInfo = view.findViewById<TextView>(R.id.bsUserRoomInfo)
+        val bsLectureName = view.findViewById<TextView>(R.id.bsLectureName)
+        val bsTimeSlot = view.findViewById<TextView>(R.id.bsTimeSlot)
+        val bsAdditionalInfo = view.findViewById<TextView>(R.id.bsAdditionalInfo)
+        val bsBtnClose = view.findViewById<MaterialButton>(R.id.bsBtnClose)
+
+        bsRoomTitle.text = room.displayName
+        bsRoomSubtitle.text = "${room.block} • ${room.floor} • ${room.wing}"
+        bsAdditionalInfo.text = "Capacity: ${room.capacity} seats • Category: ${room.type.name}"
+
+        when (status.state) {
+            RoomOccupancyState.FREE -> {
+                bsStatusBadge.text = "FREE FOR STUDY"
+                bsStatusBadge.setTextColor(Color.parseColor("#10B981"))
+                bsBannerUserRoom.visibility = View.GONE
+                bsLectureName.text = "Vacant Study Space"
+                bsTimeSlot.text = "No lecture scheduled • Ideal for quiet study"
+            }
+            RoomOccupancyState.OCCUPIED -> {
+                bsStatusBadge.text = "OCCUPIED"
+                bsStatusBadge.setTextColor(Color.parseColor("#EF4444"))
+                bsBannerUserRoom.visibility = View.GONE
+                bsLectureName.text = status.currentLecture ?: "Class in session"
+                bsTimeSlot.text = "Time slot: ${status.timeSlot ?: "Ongoing"}"
+            }
+            RoomOccupancyState.STUDENT_CLASS -> {
+                bsStatusBadge.text = "★ YOUR CLASS"
+                bsStatusBadge.setTextColor(Color.parseColor("#C04600"))
+                bsBannerUserRoom.visibility = View.VISIBLE
+                bsUserRoomInfo.text = "${status.currentLecture} (${status.timeSlot})"
+                bsLectureName.text = status.currentLecture ?: "Your enrolled class"
+                bsTimeSlot.text = "Scheduled time: ${status.timeSlot ?: ""}"
             }
         }
 
-        adapter.submitList(filteredList)
-
-        if (filteredList.isEmpty()) {
-            tvEmptyState.visibility = View.VISIBLE
-            rvMapItems.visibility = View.GONE
-        } else {
-            tvEmptyState.visibility = View.GONE
-            rvMapItems.visibility = View.VISIBLE
+        bsBtnClose.setOnClickListener {
+            dialog.dismiss()
         }
+
+        dialog.show()
     }
 }
-
