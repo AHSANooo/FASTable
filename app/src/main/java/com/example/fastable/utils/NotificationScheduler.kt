@@ -87,13 +87,20 @@ object NotificationScheduler {
             return
         }
 
+        val stableId = if (session.id > 0) {
+            session.id.toString()
+        } else {
+            val hash = "${session.day}_${session.courseName}_${session.timeSlot}_${session.room}".hashCode()
+            if (hash == Int.MIN_VALUE) 0 else kotlin.math.abs(hash)
+        }.toString()
+
         if (fifteenMinBefore > currentTime) {
             scheduleNotification(
                 context,
                 session,
                 fifteenMinBefore - currentTime,
                 15,
-                "${session.id}_15"
+                "${stableId}_15"
             )
         }
     }

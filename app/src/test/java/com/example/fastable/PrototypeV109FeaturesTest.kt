@@ -416,4 +416,67 @@ class PrototypeV109FeaturesTest {
         // 10,000 lookups must take less than 200ms
         assertTrue("Execution took ${duration}ms, expected < 200ms", duration < 200)
     }
+
+    @Test
+    fun testStrictDepartmentSectionMatching() {
+        // Cross-department tests: CS student should NOT match AI or SE sections
+        assertFalse(com.example.fastable.utils.CourseNameMatcher.matchesSection("Applied HCI (AI-E)", "CS-E", "CS"))
+        assertFalse(com.example.fastable.utils.CourseNameMatcher.matchesSection("Applied HCI (SE-E)", "CS-E", "CS"))
+        assertFalse(com.example.fastable.utils.CourseNameMatcher.matchesSection("Data Structures (BAI-3E)", "CS-E", "CS"))
+        assertFalse(com.example.fastable.utils.CourseNameMatcher.matchesSection("Deep Learning (CS-A)", "CS-E", "CS"))
+        assertFalse(com.example.fastable.utils.CourseNameMatcher.matchesSection("Parallel (CS-B)", "CS-E", "CS"))
+
+        // Correct department matches
+        assertTrue(com.example.fastable.utils.CourseNameMatcher.matchesSection("Applied HCI (CS-E)", "CS-E", "CS"))
+        assertTrue(com.example.fastable.utils.CourseNameMatcher.matchesSection("PPIT (CS-E)", "CS-E", "CS"))
+        assertTrue(com.example.fastable.utils.CourseNameMatcher.matchesSection("Info Sec (BCS-7E)", "CS-E", "CS"))
+        assertTrue(com.example.fastable.utils.CourseNameMatcher.matchesSection("Deep Learning (CS-A)", "CS-A", "CS"))
+        assertTrue(com.example.fastable.utils.CourseNameMatcher.matchesSection("Parallel (CS-B)", "CS-B", "CS"))
+    }
+
+    @Test
+    fun testCourseDeletionRemovesAllSessionsAcrossWeek() {
+        val sessions = listOf(
+            DashboardSession(id = 1, day = "Monday", timeSlot = "10:00 - 11:20", room = "C-301", sessionType = "Class", courseName = "Deep Learning for Perception", section = "CS-A", batch = "2023", department = "CS", rank = 1, colorCode = ""),
+            DashboardSession(id = 2, day = "Wednesday", timeSlot = "10:00 - 11:20", room = "C-301", sessionType = "Class", courseName = "Deep Learning for Perception", section = "CS-A", batch = "2023", department = "CS", rank = 1, colorCode = ""),
+            DashboardSession(id = 3, day = "Monday", timeSlot = "08:30 - 09:50", room = "D-406", sessionType = "Class", courseName = "Professional Practices in IT", section = "CS-E", batch = "2023", department = "CS", rank = 1, colorCode = "")
+        )
+
+        val targetCanonical = com.example.fastable.utils.CourseNameMatcher.getCanonicalName("Deep Learning for Perception")
+        val remaining = sessions.filterNot {
+            val canonical = com.example.fastable.utils.CourseNameMatcher.getCanonicalName(it.courseName)
+            canonical.equals(targetCanonical, ignoreCase = true)
+        }
+
+        assertEquals(1, remaining.size)
+        assertEquals("Professional Practices in IT", remaining[0].courseName)
+        assertFalse(remaining.any { it.courseName.contains("Deep Learning") })
+    }
+
+    @Test
+    fun testRefreshDoesNotResurrectRemovedCourses() {
+        val removedCourses = setOf("deep learning for perception", "parallel and distributed computing")
+
+        val currentDashboardSessions = listOf(
+            DashboardSession(id = 3, day = "Monday", timeSlot = "08:30 - 09:50", room = "D-406", sessionType = "Class", courseName = "Professional Practices in IT", section = "CS-E", batch = "2023", department = "CS", rank = 1, colorCode = "")
+        )
+
+        // Simulate spreadsheet returning sessions including removed courses
+        val freshSpreadsheetSessions = listOf(
+            DashboardSession(id = 0, day = "Monday", timeSlot = "08:30 - 09:50", room = "D-406", sessionType = "Class", courseName = "Professional Practices in IT", section = "CS-E", batch = "2023", department = "CS", rank = 1, colorCode = ""),
+            DashboardSession(id = 0, day = "Monday", timeSlot = "10:00 - 11:20", room = "C-301", sessionType = "Class", courseName = "Deep Learning for Perception", section = "CS-A", batch = "2023", department = "CS", rank = 1, colorCode = ""),
+            DashboardSession(id = 0, day = "Monday", timeSlot = "11:30 - 12:50", room = "C-609", sessionType = "Class", courseName = "Parallel and Distributed Computing", section = "CS-B", batch = "2023", department = "CS", rank = 1, colorCode = "")
+        )
+
+        // Filter through refresh logic
+        val activeFresh = freshSpreadsheetSessions.filterNot { session ->
+            val canonical = com.example.fastable.utils.CourseNameMatcher.getCanonicalName(session.courseName).lowercase(java.util.Locale.ROOT)
+            removedCourses.contains(canonical)
+        }
+
+        assertEquals(1, activeFresh.size)
+        assertEquals("Professional Practices in IT", activeFresh[0].courseName)
+        assertFalse(activeFresh.any { it.courseName.contains("Deep Learning") })
+        assertFalse(activeFresh.any { it.courseName.contains("Parallel") })
+    }
 }

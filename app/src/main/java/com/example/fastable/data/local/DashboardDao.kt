@@ -32,6 +32,12 @@ interface DashboardDao {
     @Query("DELETE FROM dashboard_sessions WHERE id = :sessionId")
     suspend fun deleteSessionById(sessionId: Long)
 
+    @Query("DELETE FROM dashboard_sessions WHERE id IN (:sessionIds)")
+    suspend fun deleteSessionsByIds(sessionIds: List<Long>)
+
+    @Query("DELETE FROM dashboard_sessions WHERE courseName = :courseName")
+    suspend fun deleteSessionsByExactCourseName(courseName: String)
+
     @Query("DELETE FROM dashboard_sessions")
     suspend fun clearAllSessions()
 

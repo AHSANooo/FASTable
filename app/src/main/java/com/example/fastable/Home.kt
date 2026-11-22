@@ -192,9 +192,9 @@ class Home : AppCompatActivity() {
         allTimetableAdapter = DashboardSessionAdapter(
             onLongClick = { session ->
                 androidx.appcompat.app.AlertDialog.Builder(this)
-                    .setTitle("Remove Class")
-                    .setMessage("Remove ${session.courseName} from your dashboard?")
-                    .setPositiveButton("Remove") { _, _ ->
+                    .setTitle("Remove Course")
+                    .setMessage("Remove ${session.courseName} from your dashboard?\n\nThis will remove all sessions of this course across all days.")
+                    .setPositiveButton("Remove Course") { _, _ ->
                         viewModel.deleteDashboardSession(session)
                     }
                     .setNegativeButton("Cancel", null)
@@ -278,9 +278,9 @@ class Home : AppCompatActivity() {
         adapter = DashboardSessionAdapter(
             onLongClick = { session ->
                 androidx.appcompat.app.AlertDialog.Builder(this)
-                    .setTitle("Remove Class")
-                    .setMessage("Remove ${session.courseName} from your dashboard?")
-                    .setPositiveButton("Remove") { _, _ ->
+                    .setTitle("Remove Course")
+                    .setMessage("Remove ${session.courseName} from your dashboard?\n\nThis will remove all sessions of this course across all days.")
+                    .setPositiveButton("Remove Course") { _, _ ->
                         viewModel.deleteDashboardSession(session)
                     }
                     .setNegativeButton("Cancel", null)

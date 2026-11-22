@@ -141,18 +141,23 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     fun deleteDashboardSession(session: DashboardSession) {
         viewModelScope.launch {
             try {
-                repository.deleteDashboardSession(session)
-                // Cancel notifications for this specific session
-                NotificationScheduler.cancelNotificationForSession(context, session.id)
+                // Delete all sessions of this course across all days from database and blacklist from refresh
+                val remainingSessions = repository.deleteCourseFromDashboard(session)
 
-                // Also reschedule all notifications to ensure consistency
-                // This handles edge cases where session IDs might have changed
-                val remainingSessions = _dashboardSessions.value?.filter { it.id != session.id } ?: emptyList()
+                // Update LiveData immediately so UI updates without waiting or reload
+                _dashboardSessions.value = remainingSessions
+                filterTodaysSessions(remainingSessions)
+                currentViewingDay?.let { day ->
+                    loadAllSessionsForDay(day)
+                }
+
+                // Strictly sync notifications: cancel old and schedule ONLY for remaining active sessions
                 NotificationScheduler.scheduleNotificationsForSessions(context, remainingSessions)
 
-                _errorMessage.value = "Session removed from dashboard"
+                val cleanName = session.courseName.replace(" Cancelled", "", ignoreCase = true).trim()
+                _errorMessage.value = "$cleanName removed from dashboard"
             } catch (e: Exception) {
-                _errorMessage.value = "Failed to remove session: ${e.message}"
+                _errorMessage.value = "Failed to remove course: ${e.message}"
             }
         }
     }
@@ -218,8 +223,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 Log.d(TAG, "refreshDashboardOnStart: Starting quick refresh with cache")
 
-                // Get current dashboard sessions
-                val currentSessions = _dashboardSessions.value ?: emptyList()
+                // Get current dashboard sessions directly from DB to prevent stale cache/memory states
+                val currentSessions = repository.getDashboardSessionsOnce()
                 if (currentSessions.isEmpty()) {
                     Log.d(TAG, "refreshDashboardOnStart: No sessions to refresh")
                     return@launch
@@ -283,8 +288,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 Log.d(TAG, "manualRefresh: User triggered refresh")
 
-                // Get current dashboard sessions
-                val currentSessions = _dashboardSessions.value ?: emptyList()
+                // Get current dashboard sessions directly from DB to prevent stale cache/memory states
+                val currentSessions = repository.getDashboardSessionsOnce()
                 if (currentSessions.isEmpty()) {
                     Log.d(TAG, "manualRefresh: No sessions to refresh")
                     _errorMessage.value = "No courses in your timetable to refresh"

@@ -647,23 +647,33 @@ object CourseNameMatcher {
         val dept = if (courseDept.isNotBlank()) courseDept.uppercase(Locale.ROOT)
         else Regex("^([A-Za-z]{2})").find(courseSection.trim())?.groupValues?.get(1)?.uppercase(Locale.ROOT) ?: ""
 
-        val patterns = mutableListOf(
-            "($dept-$secLetter)",
-            "(${secLetter})",
-            "-$secLetter)",
-            "-$secLetter ",
-            "-$secLetter,",
-            " $secLetter)",
-            ",$secLetter)",
-            "(${courseSection.uppercase(Locale.ROOT)})"
-        )
+        val upperCell = cellText.uppercase(Locale.ROOT)
+
+        // Strict department isolation: If department is known, reject if cell explicitly specifies a different department
         if (dept.isNotEmpty()) {
-            patterns.add("($dept-$secLetter")
-            patterns.add("$dept-$secLetter")
+            val allDepts = listOf("CS", "AI", "SE", "DS", "CY", "EE")
+            val otherDepts = allDepts.filter { it != dept }
+            for (other in otherDepts) {
+                if (Regex("B?$other-\\d*$secLetter").containsMatchIn(upperCell)) {
+                    return false
+                }
+            }
+
+            // Department matches: e.g. CS-E, BCS-7E, BCS-E
+            val deptRegex = Regex("(?:\\b|\\()B?$dept-\\d*$secLetter(?:\\b|\\)|,)")
+            if (deptRegex.containsMatchIn(upperCell)) {
+                return true
+            }
         }
 
-        val upperCell = cellText.uppercase(Locale.ROOT)
-        return patterns.any { upperCell.contains(it) }
+        // Generic section patterns: (E), (7E), ,E), etc.
+        val genericRegex = Regex("(?:\\b|\\(|,)\\s*\\d*$secLetter\\s*(?:\\)|,)")
+        if (genericRegex.containsMatchIn(upperCell)) {
+            return true
+        }
+
+        val exactPattern = "(${courseSection.uppercase(Locale.ROOT)})"
+        return upperCell.contains(exactPattern)
     }
 
     private fun normalizeText(text: String): String {

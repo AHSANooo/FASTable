@@ -492,6 +492,7 @@ object RosterSyncManager {
                 val (batchName, dept, cleanSection) = parseBatchAndSectionFromRoster(primarySection, normalizedRollNo)
 
                 // Replace old sessions in Room DB cleanly to prevent duplicates
+                com.example.fastable.data.repository.TimetableRepository(context).clearAllRemovedCourses()
                 db.dashboardDao().clearAllSessions()
                 db.dashboardDao().insertDashboardSessions(sessions)
 
