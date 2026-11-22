@@ -644,6 +644,8 @@ object CourseNameMatcher {
         val secLetter = Regex("([A-Za-z])$").find(courseSection.trim())?.groupValues?.get(1)?.uppercase(Locale.ROOT)
             ?: courseSection.trim().uppercase(Locale.ROOT)
 
+        val targetSemester = Regex("(\\d+)").find(courseSection.trim())?.groupValues?.get(1)
+
         val dept = if (courseDept.isNotBlank()) courseDept.uppercase(Locale.ROOT)
         else Regex("^([A-Za-z]{2})").find(courseSection.trim())?.groupValues?.get(1)?.uppercase(Locale.ROOT) ?: ""
 
@@ -659,10 +661,27 @@ object CourseNameMatcher {
                 }
             }
 
-            // Department matches: e.g. CS-E, BCS-7E, BCS-E
+            // Semester conflict check: If target specifies semester (e.g. 7 from "CS-7B"), reject if cell specifies a different semester (e.g. "CS-5B")
+            if (targetSemester != null) {
+                val cellSemMatch = Regex("B?$dept-(\\d+)$secLetter").find(upperCell)
+                    ?: Regex("\\((\\d+)$secLetter\\)").find(upperCell)
+                if (cellSemMatch != null && cellSemMatch.groupValues[1] != targetSemester) {
+                    return false
+                }
+            }
+
+            // Department matches: e.g. CS-E, BCS-7E, BCS-E, CS-7B
             val deptRegex = Regex("(?:\\b|\\()B?$dept-\\d*$secLetter(?:\\b|\\)|,)")
             if (deptRegex.containsMatchIn(upperCell)) {
                 return true
+            }
+        }
+
+        // Check semester mismatch for generic pattern as well
+        if (targetSemester != null) {
+            val genericSemMatch = Regex("(?:\\b|\\(|,)\\s*(\\d+)$secLetter\\s*(?:\\)|,)").find(upperCell)
+            if (genericSemMatch != null && genericSemMatch.groupValues[1] != targetSemester) {
+                return false
             }
         }
 

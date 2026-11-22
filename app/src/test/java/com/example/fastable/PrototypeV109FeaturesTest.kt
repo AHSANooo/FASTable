@@ -432,6 +432,13 @@ class PrototypeV109FeaturesTest {
         assertTrue(com.example.fastable.utils.CourseNameMatcher.matchesSection("Info Sec (BCS-7E)", "CS-E", "CS"))
         assertTrue(com.example.fastable.utils.CourseNameMatcher.matchesSection("Deep Learning (CS-A)", "CS-A", "CS"))
         assertTrue(com.example.fastable.utils.CourseNameMatcher.matchesSection("Parallel (CS-B)", "CS-B", "CS"))
+
+        // Semester isolation: BCS-7B / CS-7B must NOT match semester 5 (CS-5B or BCS-5B)
+        assertFalse(com.example.fastable.utils.CourseNameMatcher.matchesSection("PDC (CS-5B)", "CS-7B", "CS"))
+        assertFalse(com.example.fastable.utils.CourseNameMatcher.matchesSection("PDC (BCS-5B)", "BCS-7B", "CS"))
+        assertTrue(com.example.fastable.utils.CourseNameMatcher.matchesSection("PDC (CS-7B)", "CS-7B", "CS"))
+        assertTrue(com.example.fastable.utils.CourseNameMatcher.matchesSection("PDC (BCS-7B)", "BCS-7B", "CS"))
+        assertTrue(com.example.fastable.utils.CourseNameMatcher.matchesSection("PDC (CS-B)", "CS-7B", "CS"))
     }
 
     @Test

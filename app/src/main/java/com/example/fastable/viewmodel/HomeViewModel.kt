@@ -48,6 +48,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private var currentViewingDay: String? = null
     private var hasRefreshedOnStart = false
+    private var dashboardCollectionJob: kotlinx.coroutines.Job? = null
 
     init {
         updateCurrentDay()
@@ -107,7 +108,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     fun loadDashboardSessions() {
         _isLoading.value = true
         Log.d(TAG, "loadDashboardSessions: Starting to load dashboard sessions")
-        viewModelScope.launch {
+        dashboardCollectionJob?.cancel()
+        dashboardCollectionJob = viewModelScope.launch {
             repository.getDashboardSessions().collect { sessions ->
                 Log.d(TAG, "loadDashboardSessions: Received ${sessions.size} total sessions from repository")
                 _dashboardSessions.value = sessions

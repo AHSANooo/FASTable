@@ -8,6 +8,7 @@ import com.example.fastable.data.models.DefaultBatch
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.InputStreamReader
 import java.util.Locale
@@ -242,7 +243,7 @@ object RosterSyncManager {
         val fullYear = "20$yearPart"
 
         if (m != null) {
-            val (degreePrefix, _, secLetter) = m.destructured
+            val (degreePrefix, semesterDigit, secLetter) = m.destructured
             val dept = when (degreePrefix.uppercase(Locale.ROOT)) {
                 "BAI" -> "AI"
                 "BCS" -> "CS"
@@ -252,7 +253,7 @@ object RosterSyncManager {
                 else -> "CS"
             }
             val batchName = "BS $dept ($fullYear)"
-            val cleanSection = "$dept-$secLetter"
+            val cleanSection = "$dept-${semesterDigit}$secLetter"
             return Triple(batchName, dept, cleanSection)
         }
 
@@ -469,80 +470,145 @@ object RosterSyncManager {
     /**
      * Executes Roster Sync for the given roll number:
      * 1. Looks up student in official roster database (4,313 students).
-     * 2. Generates their course sessions and replaces old batch sessions in Room DB.
+     * 2. Extracts real course sessions from the university Google Sheets timetable (or fallback).
      * 3. Sets default batch metadata.
      * 4. Updates UserProfile with student's official name, degree, and section.
      * 5. Records persistent sync timestamp.
      * 6. Attempts native Google Calendar auto-sync.
      */
     suspend fun syncRosterForStudent(context: Context, rollNo: String): Result<Int> {
-        return withContext(Dispatchers.IO) {
-            try {
-                val db = AppDatabase.getDatabase(context)
-                val normalizedRollNo = normalizeRollNo(rollNo)
-                val student = findStudent(context, normalizedRollNo)
-
-                val sessions = if (student != null && student.courses.isNotEmpty()) {
-                    generateScheduleForStudent(student)
-                } else {
-                    getFallbackSchedule(normalizedRollNo)
-                }
-
-                val primarySection = student?.courses?.firstOrNull()?.section ?: "BCS-7E"
-                val (batchName, dept, cleanSection) = parseBatchAndSectionFromRoster(primarySection, normalizedRollNo)
-
-                // Replace old sessions in Room DB cleanly to prevent duplicates
-                com.example.fastable.data.repository.TimetableRepository(context).clearAllRemovedCourses()
-                db.dashboardDao().clearAllSessions()
-                db.dashboardDao().insertDashboardSessions(sessions)
-
-                // Save default batch metadata
-                db.defaultBatchDao().setDefaultBatch(
-                    DefaultBatch(
-                        batchName = batchName,
-                        section = cleanSection
-                    )
-                )
-
-                // Update UserProfile if available
-                val studentName = student?.name ?: "Student"
+        return com.example.fastable.data.repository.TimetableRepository.syncMutex.withLock {
+            withContext(Dispatchers.IO) {
                 try {
-                    val profileDao = db.userProfileDao()
-                    val existingProfile = profileDao.getAnyUserProfile()
-                    if (existingProfile != null) {
-                        profileDao.updateProfileFields(
-                            uid = existingProfile.uid,
-                            batch = batchName,
-                            degree = dept,
+                    val db = AppDatabase.getDatabase(context)
+                    val normalizedRollNo = normalizeRollNo(rollNo)
+                    val student = findStudent(context, normalizedRollNo)
+                    val repository = com.example.fastable.data.repository.TimetableRepository(context)
+
+                    val primarySection = student?.courses?.firstOrNull()?.section ?: "BCS-7E"
+                    val (batchName, dept, cleanSection) = parseBatchAndSectionFromRoster(primarySection, normalizedRollNo)
+
+                    // Build course list for spreadsheet lookup
+                    val coursesToLookup = student?.courses?.map { c ->
+                        val canonical = CourseNameMatcher.getCanonicalName(c.name)
+                        val (bName, cDept, cSec) = parseBatchAndSectionFromRoster(c.section, normalizedRollNo)
+                        com.example.fastable.data.models.Course(
+                            id = 0,
+                            name = canonical,
+                            section = cSec,
+                            batch = bName,
+                            department = cDept,
+                            colorCode = "",
+                            fullEntry = canonical
+                        )
+                    } ?: emptyList()
+
+                    // Try to fetch real sessions from university Google Sheets spreadsheet
+                    val spreadsheet = repository.getSpreadsheet(forceRefresh = false)
+                    val realSessions = if (spreadsheet != null && coursesToLookup.isNotEmpty()) {
+                        com.example.fastable.data.remote.TimetableExtractor.getCustomTimetable(spreadsheet, coursesToLookup).map { s ->
+                            DashboardSession(
+                                day = s.day,
+                                timeSlot = s.timeSlot,
+                                room = s.room,
+                                sessionType = s.sessionType,
+                                courseName = s.courseName,
+                                section = s.section,
+                                batch = s.batch,
+                                department = s.department,
+                                rank = s.rank,
+                                colorCode = s.colorCode,
+                                isCustom = false,
+                                lastUpdated = System.currentTimeMillis()
+                            )
+                        }
+                    } else emptyList()
+
+                    val sessions = if (realSessions.isNotEmpty()) {
+                        val foundCanonicals = realSessions.map {
+                            CourseNameMatcher.getCanonicalName(it.courseName).lowercase(Locale.ROOT)
+                        }.toSet()
+                        val missingCourses = student?.courses?.filterNot { c ->
+                            foundCanonicals.contains(CourseNameMatcher.getCanonicalName(c.name).lowercase(Locale.ROOT))
+                        } ?: emptyList()
+
+                        if (missingCourses.isNotEmpty()) {
+                            val partialStudent = StudentRosterEntry(
+                                rollNo = student?.rollNo ?: normalizedRollNo,
+                                name = student?.name ?: "Student",
+                                courses = missingCourses
+                            )
+                            val fallbackSessions = generateScheduleForStudent(partialStudent)
+                            realSessions + fallbackSessions
+                        } else {
+                            realSessions
+                        }
+                    } else if (student != null && student.courses.isNotEmpty()) {
+                        generateScheduleForStudent(student)
+                    } else {
+                        getFallbackSchedule(normalizedRollNo)
+                    }
+
+                    // Save sync preferences (so getRemovedCourses() knows the active roll number)
+                    val studentName = student?.name ?: "Student"
+                    val prefs = context.getSharedPreferences("fastable_timetable_prefs", Context.MODE_PRIVATE)
+                    prefs.edit()
+                        .putString(PREF_ROSTER_SYNCED, normalizedRollNo)
+                        .putString(PREF_ROSTER_STUDENT_NAME, studentName)
+                        .putLong("timetable_last_sync_timestamp", System.currentTimeMillis())
+                        .apply()
+
+                    // Filter out any courses previously removed for this student
+                    val removedCourses = repository.getRemovedCourses()
+                    val finalSessions = sessions.filterNot { session ->
+                        val clean = session.courseName.replace(" Cancelled", "", ignoreCase = true).trim()
+                        val canonical = CourseNameMatcher.getCanonicalName(clean).lowercase(java.util.Locale.ROOT)
+                        removedCourses.contains(canonical)
+                    }
+
+                    // Atomically replace sessions in Room DB cleanly to prevent duplicates
+                    db.dashboardDao().clearAllSessions()
+                    db.dashboardDao().insertDashboardSessions(finalSessions)
+
+                    // Save default batch metadata
+                    db.defaultBatchDao().setDefaultBatch(
+                        DefaultBatch(
+                            batchName = batchName,
                             section = cleanSection
                         )
+                    )
+
+                    // Update UserProfile if available
+                    try {
+                        val profileDao = db.userProfileDao()
+                        val existingProfile = profileDao.getAnyUserProfile()
+                        if (existingProfile != null) {
+                            profileDao.updateProfileFields(
+                                uid = existingProfile.uid,
+                                batch = batchName,
+                                degree = dept,
+                                section = cleanSection
+                            )
+                        }
+                    } catch (profEx: Exception) {
+                        Log.w(TAG, "Profile update deferred: ${profEx.message}")
                     }
-                } catch (profEx: Exception) {
-                    Log.w(TAG, "Profile update deferred: ${profEx.message}")
-                }
 
-                // Save sync preferences
-                val prefs = context.getSharedPreferences("fastable_timetable_prefs", Context.MODE_PRIVATE)
-                prefs.edit()
-                    .putString(PREF_ROSTER_SYNCED, normalizedRollNo)
-                    .putString(PREF_ROSTER_STUDENT_NAME, studentName)
-                    .putLong("timetable_last_sync_timestamp", System.currentTimeMillis())
-                    .apply()
-
-                // Optional calendar sync if permission granted
-                try {
-                    if (PermissionManager.hasCalendarPermission(context)) {
-                        GoogleCalendarSyncManager.syncCurrentWeek(context, sessions)
+                    // Optional calendar sync if permission granted
+                    try {
+                        if (PermissionManager.hasCalendarPermission(context)) {
+                            GoogleCalendarSyncManager.syncCurrentWeek(context, finalSessions)
+                        }
+                    } catch (calEx: Exception) {
+                        Log.w(TAG, "Calendar auto-sync deferred: ${calEx.message}")
                     }
-                } catch (calEx: Exception) {
-                    Log.w(TAG, "Calendar auto-sync deferred: ${calEx.message}")
-                }
 
-                Log.d(TAG, "Roster sync successful for $normalizedRollNo ($studentName): inserted ${sessions.size} sessions")
-                Result.success(sessions.size)
-            } catch (e: Exception) {
-                Log.e(TAG, "Roster sync failed for $rollNo", e)
-                Result.failure(e)
+                    Log.d(TAG, "Roster sync successful for $normalizedRollNo ($studentName): inserted ${finalSessions.size} sessions")
+                    Result.success(finalSessions.size)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Roster sync failed for $rollNo", e)
+                    Result.failure(e)
+                }
             }
         }
     }

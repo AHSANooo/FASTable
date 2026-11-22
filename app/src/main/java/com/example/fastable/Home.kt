@@ -131,7 +131,6 @@ class Home : AppCompatActivity() {
         viewModel.loadDashboardSessions()
         viewModel.updateSyncTimeDisplay()
         loadUserProfile()
-        TimetableSyncWorker.runImmediateSync(this)
     }
 
 
@@ -433,13 +432,19 @@ class Home : AppCompatActivity() {
                     .setView(input)
                     .setPositiveButton("Sync Schedule") { _, _ ->
                         val targetRoll = input.text.toString().trim().ifBlank { defaultRoll }
+                        loadingOverlay.visibility = View.VISIBLE
                         lifecycleScope.launch {
-                            val result = com.example.fastable.utils.RosterSyncManager.syncRosterForStudent(this@Home, targetRoll)
-                            result.onSuccess { count ->
-                                Toast.makeText(this@Home, "Roster Synced for $targetRoll! Loaded $count classes", Toast.LENGTH_SHORT).show()
-                                viewModel.loadDashboardSessions()
-                            }.onFailure { ex ->
-                                Toast.makeText(this@Home, "Sync failed: ${ex.message}", Toast.LENGTH_LONG).show()
+                            try {
+                                val result = com.example.fastable.utils.RosterSyncManager.syncRosterForStudent(this@Home, targetRoll)
+                                result.onSuccess { count ->
+                                    Toast.makeText(this@Home, "Roster Synced for $targetRoll! Loaded $count classes", Toast.LENGTH_SHORT).show()
+                                    viewModel.loadDashboardSessions()
+                                    viewModel.updateSyncTimeDisplay()
+                                }.onFailure { ex ->
+                                    Toast.makeText(this@Home, "Sync failed: ${ex.message}", Toast.LENGTH_LONG).show()
+                                }
+                            } finally {
+                                loadingOverlay.visibility = View.GONE
                             }
                         }
                     }
