@@ -97,57 +97,92 @@
                 app:selectionRequired="true" />
         </HorizontalScrollView>
 
-        <!-- Live Status Legend Bar -->
+        <!-- Live Status Legend Bar: Compact Material 3 Pill Badges -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
             android:paddingHorizontal="16dp"
-            android:paddingVertical="6dp"
+            android:paddingVertical="8dp"
             android:background="?attr/colorSurface">
 
-            <!-- Green: Free -->
-            <View
-                android:layout_width="9dp"
-                android:layout_height="9dp"
-                android:background="@drawable/bg_dot_green" />
-            <TextView
+            <!-- Free Badge -->
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="4dp"
-                android:layout_marginEnd="12dp"
-                android:text="Free for Study"
-                android:textSize="11sp"
-                android:textColor="?attr/colorOnSurfaceVariant" />
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="7dp"
+                android:paddingVertical="3dp"
+                android:background="@drawable/bg_badge_room_free">
 
-            <!-- Red: Occupied -->
-            <View
-                android:layout_width="9dp"
-                android:layout_height="9dp"
-                android:background="@drawable/bg_dot_red" />
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="4dp"
-                android:layout_marginEnd="12dp"
-                android:text="Occupied"
-                android:textSize="11sp"
-                android:textColor="?attr/colorOnSurfaceVariant" />
+                <View
+                    android:layout_width="6dp"
+                    android:layout_height="6dp"
+                    android:background="@drawable/ic_dot_green" />
 
-            <!-- Blue: Your Room -->
-            <View
-                android:layout_width="9dp"
-                android:layout_height="9dp"
-                android:background="@drawable/bg_dot_blue" />
-            <TextView
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:text="Free"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:textColor="#047857" />
+            </LinearLayout>
+
+            <!-- Occupied Badge -->
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="4dp"
-                android:text="★ Your Room"
-                android:textSize="11sp"
-                android:textStyle="bold"
-                android:textColor="@color/primary_orange_dark" />
+                android:layout_marginStart="8dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="7dp"
+                android:paddingVertical="3dp"
+                android:background="@drawable/bg_badge_room_occupied">
+
+                <View
+                    android:layout_width="6dp"
+                    android:layout_height="6dp"
+                    android:background="@drawable/ic_dot_red" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:text="Occupied"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:textColor="#B91C1C" />
+            </LinearLayout>
+
+            <!-- Your Room Badge -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="7dp"
+                android:paddingVertical="3dp"
+                android:background="@drawable/bg_badge_room_user">
+
+                <View
+                    android:layout_width="6dp"
+                    android:layout_height="6dp"
+                    android:background="@drawable/ic_dot_orange" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:text="★ Your Room"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:textColor="#C2410C" />
+            </LinearLayout>
         </LinearLayout>
 
         <!-- Floor Plan Room List / Grid -->

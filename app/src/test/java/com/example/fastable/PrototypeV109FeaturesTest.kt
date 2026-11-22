@@ -254,4 +254,77 @@ class PrototypeV109FeaturesTest {
         assertTrue(CampusFloorRepository.isRoomNameMatching("Rawal-1", "Rawal Lab 1"))
         assertFalse(CampusFloorRepository.isRoomNameMatching("C-301", "C-302"))
     }
+
+    @Test
+    fun testCourseNameMatcherCanonicalResolution() {
+        assertEquals("Information Security", com.example.fastable.utils.CourseNameMatcher.getCanonicalName("Info Sec"))
+        assertEquals("Information Security", com.example.fastable.utils.CourseNameMatcher.getCanonicalName("infosec"))
+        assertEquals("Professional Practices in IT", com.example.fastable.utils.CourseNameMatcher.getCanonicalName("PPIT"))
+        assertEquals("Applied Human Computer Interaction", com.example.fastable.utils.CourseNameMatcher.getCanonicalName("Applied HCI"))
+        assertEquals("MLOps", com.example.fastable.utils.CourseNameMatcher.getCanonicalName("MLOps"))
+        assertEquals("Operating Systems", com.example.fastable.utils.CourseNameMatcher.getCanonicalName("OS"))
+        assertEquals("Database Systems", com.example.fastable.utils.CourseNameMatcher.getCanonicalName("DB"))
+        assertEquals("Parallel and Distributed Computing", com.example.fastable.utils.CourseNameMatcher.getCanonicalName("PDC"))
+        assertEquals("Computer Organization and Assembly Language", com.example.fastable.utils.CourseNameMatcher.getCanonicalName("COAL"))
+        assertEquals("Design and Analysis of Algorithms", com.example.fastable.utils.CourseNameMatcher.getCanonicalName("DAA"))
+        assertEquals("Software Design and Analysis", com.example.fastable.utils.CourseNameMatcher.getCanonicalName("SDA"))
+        assertEquals("Introduction to Software Engineering", com.example.fastable.utils.CourseNameMatcher.getCanonicalName("SE"))
+    }
+
+    @Test
+    fun testSeatingPlanRefreshRetentionSimulated() {
+        // Enrolled courses for student 23I-0553
+        val currentSessions = listOf(
+            DashboardSession(day = "Monday", timeSlot = "10:00 - 11:20", room = "C-301", sessionType = "Class", courseName = "Information Security", section = "CS-E", batch = "BS CS (2023)"),
+            DashboardSession(day = "Monday", timeSlot = "11:30 - 12:50", room = "C-304", sessionType = "Class", courseName = "Professional Practices in IT", section = "CS-E", batch = "BS CS (2023)"),
+            DashboardSession(day = "Tuesday", timeSlot = "10:00 - 11:20", room = "C-302", sessionType = "Class", courseName = "MLOps", section = "CS-B", batch = "BS CS (2023)"),
+            DashboardSession(day = "Wednesday", timeSlot = "01:00 - 02:20", room = "C-307", sessionType = "Class", courseName = "Applied Human Computer Interaction", section = "CS-E", batch = "BS CS (2023)")
+        )
+
+        // Simulate sheet only returning an update for MLOps with a room shift to C-401
+        val freshSessions = listOf(
+            DashboardSession(day = "Tuesday", timeSlot = "10:00 - 11:20", room = "C-401", sessionType = "Class", courseName = "MLOps", section = "CS-B", batch = "BS CS (2023)")
+        )
+
+        val oldSessionsMap = currentSessions.associateBy { session ->
+            val clean = session.courseName.replace(" Cancelled", "", ignoreCase = true).trim()
+            val canonical = com.example.fastable.utils.CourseNameMatcher.getCanonicalName(clean)
+            "${canonical}_${session.day}_${session.timeSlot}_${session.section}"
+        }
+
+        val refreshedSessions = mutableListOf<DashboardSession>()
+        val processedKeys = mutableSetOf<String>()
+
+        freshSessions.forEach { freshSession ->
+            val freshClean = freshSession.courseName.replace(" Cancelled", "", ignoreCase = true).trim()
+            val freshCanonical = com.example.fastable.utils.CourseNameMatcher.getCanonicalName(freshClean)
+            val exactKey = "${freshCanonical}_${freshSession.day}_${freshSession.timeSlot}_${freshSession.section}"
+
+            refreshedSessions.add(freshSession)
+            processedKeys.add(exactKey)
+        }
+
+        currentSessions.forEach { oldSession ->
+            val oldClean = oldSession.courseName.replace(" Cancelled", "", ignoreCase = true).trim()
+            val oldCanonical = com.example.fastable.utils.CourseNameMatcher.getCanonicalName(oldClean)
+            val oldKey = "${oldCanonical}_${oldSession.day}_${oldSession.timeSlot}_${oldSession.section}"
+
+            if (!processedKeys.contains(oldKey)) {
+                refreshedSessions.add(oldSession)
+                processedKeys.add(oldKey)
+            }
+        }
+
+        // All 4 courses must be retained in the dashboard after refresh
+        assertEquals(4, refreshedSessions.size)
+        val refreshedCourseNames = refreshedSessions.map { it.courseName }.toSet()
+        assertTrue(refreshedCourseNames.contains("Information Security"))
+        assertTrue(refreshedCourseNames.contains("Professional Practices in IT"))
+        assertTrue(refreshedCourseNames.contains("MLOps"))
+        assertTrue(refreshedCourseNames.contains("Applied Human Computer Interaction"))
+
+        // MLOps must have the updated room C-401
+        val mlops = refreshedSessions.first { it.courseName == "MLOps" }
+        assertEquals("C-401", mlops.room)
+    }
 }

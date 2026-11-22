@@ -457,23 +457,11 @@ object TimetableExtractor {
                 rowValues.forEach { cellElement ->
                     if (cellElement is ArrayList<*>) {
                         cellElement.forEachIndexed { colIdx, cell ->
-                            val cellColor = SheetsHelper.getBackgroundColor(cell)
-
-                            // Quick filter: skip cells that don't match any selected course's batch color
-                            if (cellColor.isEmpty() || cellColor !in validColors) {
-                                return@forEachIndexed
-                            }
-
                             val classEntry = SheetsHelper.getFormattedValue(cell) ?: ""
                             if (classEntry.isEmpty()) return@forEachIndexed
+                            val cellColor = SheetsHelper.getBackgroundColor(cell)
 
-                            // Check courses that match color OR check all courses if color legend didn't match
-                            val matchingCourses = selectedCourses.filter {
-                                val expectedColor = courseColorMap[it]
-                                expectedColor == null || expectedColor == cellColor || validColors.isEmpty()
-                            }
-
-                            matchingCourses.forEach { selectedCourse ->
+                            selectedCourses.forEach { selectedCourse ->
                                 if (matchesSelectedCourseOptimized(classEntry, selectedCourse, normalizedFullEntries[selectedCourse] ?: "")) {
                                     val (cleanEntry, embeddedTime, hasEmbeddedTime) = TimeParser.parseEmbeddedTime(classEntry)
 
@@ -531,13 +519,13 @@ object TimetableExtractor {
                                         timeCell ?: "Unknown"
                                     }
 
-                                    val courseName = if (hasEmbeddedTime) cleanEntry else selectedCourse.name
+                                    val canonicalName = com.example.fastable.utils.CourseNameMatcher.getCanonicalName(selectedCourse.name)
                                     // Append "Cancelled" if present in the original cell entry
                                     val finalCourseName = if (classEntry.contains("Cancelled", ignoreCase = true) &&
-                                        !courseName.contains("Cancelled", ignoreCase = true)) {
-                                        "$courseName Cancelled"
+                                        !canonicalName.contains("Cancelled", ignoreCase = true)) {
+                                        "$canonicalName Cancelled"
                                     } else {
-                                        courseName
+                                        canonicalName
                                     }
                                     val rank = colRank[colIdx] ?: 999
 

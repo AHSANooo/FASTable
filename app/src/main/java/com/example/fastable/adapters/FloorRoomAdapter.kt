@@ -47,7 +47,7 @@ class FloorRoomAdapter(
                 RoomOccupancyState.FREE -> {
                     tvStatusBadge.text = "Free"
                     tvStatusBadge.setTextColor(Color.parseColor("#047857"))
-                    dotStatus.setBackgroundResource(R.drawable.ic_dot_circle)
+                    dotStatus.setBackgroundResource(R.drawable.ic_dot_green)
                     pillRoomStatus.setBackgroundResource(R.drawable.bg_badge_room_free)
                     tvCurrentLectureInfo.text = status.details ?: "Vacant study spot • Quiet area"
                     bannerUserClass.visibility = View.GONE
@@ -57,7 +57,7 @@ class FloorRoomAdapter(
                 RoomOccupancyState.OCCUPIED -> {
                     tvStatusBadge.text = "Occupied"
                     tvStatusBadge.setTextColor(Color.parseColor("#B91C1C"))
-                    dotStatus.setBackgroundResource(R.drawable.bg_dot_red)
+                    dotStatus.setBackgroundResource(R.drawable.ic_dot_red)
                     pillRoomStatus.setBackgroundResource(R.drawable.bg_badge_room_occupied)
                     tvCurrentLectureInfo.text = status.details ?: "${status.currentLecture ?: "Class"} • ${status.timeSlot ?: ""}"
                     bannerUserClass.visibility = View.GONE
@@ -67,7 +67,7 @@ class FloorRoomAdapter(
                 RoomOccupancyState.STUDENT_CLASS -> {
                     tvStatusBadge.text = "★ Your Room"
                     tvStatusBadge.setTextColor(Color.parseColor("#C2410C"))
-                    dotStatus.setBackgroundResource(R.drawable.bg_dot_blue)
+                    dotStatus.setBackgroundResource(R.drawable.ic_dot_orange)
                     pillRoomStatus.setBackgroundResource(R.drawable.bg_badge_room_user)
                     tvCurrentLectureInfo.text = "${status.currentLecture} (${status.timeSlot})"
                     bannerUserClass.visibility = View.VISIBLE

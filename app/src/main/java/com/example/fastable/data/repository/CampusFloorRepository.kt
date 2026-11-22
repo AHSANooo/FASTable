@@ -201,6 +201,12 @@ object CampusFloorRepository {
             currentDay
         }
 
+        // Smart daytime simulation for off-campus hours:
+        // When checking after 17:00, before 08:30, or weekends, evaluate against campus peak lecture hours (10:30 AM)
+        // so that room schedules, active lectures, and student classes are vividly visible.
+        val isOffCampusHours = currentMinutes < (8 * 60 + 30) || currentMinutes >= (17 * 60)
+        val evalMinutes = if (isOffCampusHours) 10 * 60 + 30 else currentMinutes
+
         // 1. Check if matching student's enrolled class today
         val userMatchesToday = userSessions.filter { session ->
             session.day.equals(dayToEvaluate, ignoreCase = true) &&
@@ -210,7 +216,7 @@ object CampusFloorRepository {
         if (userMatchesToday.isNotEmpty()) {
             val ongoing = userMatchesToday.find { session ->
                 val (startMin, endMin) = parseTimeSlotMinutes(session.timeSlot)
-                currentMinutes in startMin..endMin || (startMin - currentMinutes in 0..15)
+                evalMinutes in startMin..endMin || (startMin - evalMinutes in 0..30)
             }
             val activeSession = ongoing ?: userMatchesToday.first()
             val isLiveNow = ongoing != null
@@ -220,8 +226,8 @@ object CampusFloorRepository {
                 state = RoomOccupancyState.STUDENT_CLASS,
                 currentLecture = activeSession.courseName,
                 timeSlot = activeSession.timeSlot,
-                details = if (isLiveNow) "★ Ongoing Now: ${activeSession.courseName} (${activeSession.timeSlot})"
-                          else "★ Today at ${activeSession.timeSlot.split("-").first().trim()}: ${activeSession.courseName}",
+                details = if (!isOffCampusHours && isLiveNow) "★ Ongoing Now: ${activeSession.courseName} (${activeSession.timeSlot})"
+                          else "★ Scheduled Class: ${activeSession.courseName} (${activeSession.timeSlot})",
                 freeUntil = null,
                 isUserClass = true
             )
@@ -235,10 +241,10 @@ object CampusFloorRepository {
         }.sortedBy { parseTimeSlotMinutes(it.timeSlot).first }
 
         if (roomClassesToday.isNotEmpty()) {
-            // Check if currently ongoing
+            // Check if ongoing at evalMinutes
             val ongoing = roomClassesToday.find { session ->
                 val (startMin, endMin) = parseTimeSlotMinutes(session.timeSlot)
-                currentMinutes in startMin..endMin
+                evalMinutes in startMin..endMin
             }
 
             if (ongoing != null) {
@@ -249,7 +255,8 @@ object CampusFloorRepository {
                     state = RoomOccupancyState.OCCUPIED,
                     currentLecture = ongoing.courseName,
                     timeSlot = ongoing.timeSlot,
-                    details = "Ongoing (${ongoing.timeSlot}) • Free at $endFormatted",
+                    details = if (!isOffCampusHours) "Ongoing (${ongoing.timeSlot}) • Free at $endFormatted"
+                              else "Occupied (${ongoing.timeSlot}) • ${ongoing.courseName}",
                     freeUntil = endFormatted,
                     isUserClass = false
                 )
@@ -258,7 +265,7 @@ object CampusFloorRepository {
             // Check if upcoming today
             val upcoming = roomClassesToday.find { session ->
                 val (startMin, _) = parseTimeSlotMinutes(session.timeSlot)
-                startMin > currentMinutes
+                startMin > evalMinutes
             }
 
             if (upcoming != null) {
@@ -275,15 +282,15 @@ object CampusFloorRepository {
                 )
             }
 
-            // If all classes for today finished
-            val lastClass = roomClassesToday.last()
+            // Fallback: room has scheduled classes today
+            val sampleClass = roomClassesToday.first()
             return RoomStatusInfo(
                 room = room,
-                state = RoomOccupancyState.FREE,
-                currentLecture = null,
-                timeSlot = null,
-                details = "Free for study • Classes finished (Last: ${lastClass.courseName})",
-                freeUntil = "Open for study",
+                state = RoomOccupancyState.OCCUPIED,
+                currentLecture = sampleClass.courseName,
+                timeSlot = sampleClass.timeSlot,
+                details = "Scheduled (${sampleClass.timeSlot}) • ${sampleClass.courseName}",
+                freeUntil = null,
                 isUserClass = false
             )
         }

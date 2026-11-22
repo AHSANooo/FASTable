@@ -578,28 +578,30 @@ class TimetableRepository(private val context: Context) {
 
                 // Get unique course base names (without "Cancelled" suffix) from dashboard
                 val courseBaseNames = currentSessions.map { session ->
-                    session.courseName
+                    val clean = session.courseName
                         .replace(" Cancelled", "", ignoreCase = true)
                         .replace("Cancelled", "", ignoreCase = true)
                         .trim()
+                    com.example.fastable.utils.CourseNameMatcher.getCanonicalName(clean)
                 }.distinct()
 
                 Log.d(TAG, "refreshDashboardSessions: Looking for ${courseBaseNames.size} unique courses: $courseBaseNames")
 
-                // Create Course objects for lookup - include section info for better matching
+                // Create Course objects for lookup - using canonical course names and section info for optimal matching
                 val coursesToLookup = currentSessions.map { session ->
-                    val baseName = session.courseName
+                    val clean = session.courseName
                         .replace(" Cancelled", "", ignoreCase = true)
                         .replace("Cancelled", "", ignoreCase = true)
                         .trim()
+                    val canonicalName = com.example.fastable.utils.CourseNameMatcher.getCanonicalName(clean)
                     Course(
                         id = 0,
-                        name = baseName,
+                        name = canonicalName,
                         section = session.section,
                         batch = session.batch,
                         department = session.department,
                         colorCode = session.colorCode,
-                        fullEntry = baseName
+                        fullEntry = canonicalName
                     )
                 }.distinctBy { "${it.name}_${it.section}_${it.batch}" }
 
@@ -615,78 +617,84 @@ class TimetableRepository(private val context: Context) {
                 }
 
                 // Build lookup map for old sessions: key -> session
-                // Key format: "baseName_day_timeSlot_section" for precise matching
+                // Key format: "canonicalName_day_timeSlot_section"
                 val oldSessionsMap = currentSessions.associateBy { session ->
-                    val baseName = session.courseName
+                    val clean = session.courseName
                         .replace(" Cancelled", "", ignoreCase = true)
                         .replace("Cancelled", "", ignoreCase = true)
                         .trim()
-                    "${baseName}_${session.day}_${session.timeSlot}_${session.section}"
+                    val canonicalName = com.example.fastable.utils.CourseNameMatcher.getCanonicalName(clean)
+                    "${canonicalName}_${session.day}_${session.timeSlot}_${session.section}"
                 }
-
 
                 val refreshedSessions = mutableListOf<com.example.fastable.data.models.DashboardSession>()
                 val processedKeys = mutableSetOf<String>()
 
-                // First, process all fresh sessions from spreadsheet
+                // Process all fresh sessions from spreadsheet
                 freshSessions.forEach { freshSession ->
-                    val baseName = freshSession.courseName
+                    val freshClean = freshSession.courseName
                         .replace(" Cancelled", "", ignoreCase = true)
                         .replace("Cancelled", "", ignoreCase = true)
                         .trim()
-                    val key = "${baseName}_${freshSession.day}_${freshSession.timeSlot}_${freshSession.section}"
+                    val freshCanonical = com.example.fastable.utils.CourseNameMatcher.getCanonicalName(freshClean)
+                    val exactKey = "${freshCanonical}_${freshSession.day}_${freshSession.timeSlot}_${freshSession.section}"
 
-                    // Check if this was an existing session
-                    val existingSession = oldSessionsMap[key]
+                    // Check if matching an existing session (exact slot or shifted slot for this course on same day)
+                    val existingSession = oldSessionsMap[exactKey] ?: currentSessions.firstOrNull { old ->
+                        val oldClean = old.courseName.replace(" Cancelled", "", ignoreCase = true).replace("Cancelled", "", ignoreCase = true).trim()
+                        val oldCanonical = com.example.fastable.utils.CourseNameMatcher.getCanonicalName(oldClean)
+                        oldCanonical.equals(freshCanonical, ignoreCase = true) && old.day.equals(freshSession.day, ignoreCase = true)
+                    }
+
+                    val isCancelled = freshSession.courseName.contains("Cancelled", ignoreCase = true)
+                    val finalCourseName = if (isCancelled) "$freshCanonical Cancelled" else freshCanonical
 
                     val dashboardSession = com.example.fastable.data.models.DashboardSession(
                         day = freshSession.day,
                         timeSlot = freshSession.timeSlot,
-                        room = freshSession.room,  // May be different if shifted
+                        room = freshSession.room,  // May be updated if room shifted
                         sessionType = freshSession.sessionType,
-                        courseName = freshSession.courseName,  // May include "Cancelled"
+                        courseName = finalCourseName,
                         section = freshSession.section,
                         batch = freshSession.batch,
                         department = freshSession.department,
                         rank = freshSession.rank,
-                        colorCode = freshSession.colorCode,
+                        colorCode = existingSession?.colorCode ?: freshSession.colorCode,
                         isCustom = existingSession?.isCustom ?: true,
                         lastUpdated = System.currentTimeMillis()
                     )
 
                     refreshedSessions.add(dashboardSession)
-                    processedKeys.add(key)
+                    processedKeys.add(exactKey)
 
-                    // Log changes detected
-                    if (freshSession.courseName.contains("Cancelled", ignoreCase = true)) {
-                        Log.d(TAG, "refreshDashboardSessions: CANCELLED detected - ${freshSession.courseName} on ${freshSession.day}")
-                    } else if (existingSession != null && existingSession.room != freshSession.room) {
-                        Log.d(TAG, "refreshDashboardSessions: SHIFTED detected - ${freshSession.courseName} moved from ${existingSession.room} to ${freshSession.room}")
+                    if (existingSession != null) {
+                        val oldClean = existingSession.courseName.replace(" Cancelled", "", ignoreCase = true).replace("Cancelled", "", ignoreCase = true).trim()
+                        val oldCanonical = com.example.fastable.utils.CourseNameMatcher.getCanonicalName(oldClean)
+                        val oldKey = "${oldCanonical}_${existingSession.day}_${existingSession.timeSlot}_${existingSession.section}"
+                        processedKeys.add(oldKey)
+
+                        if (isCancelled) {
+                            Log.d(TAG, "refreshDashboardSessions: CANCELLED detected - $finalCourseName on ${freshSession.day}")
+                        } else if (existingSession.room != freshSession.room) {
+                            Log.d(TAG, "refreshDashboardSessions: SHIFTED detected - $finalCourseName moved from ${existingSession.room} to ${freshSession.room}")
+                        }
                     }
                 }
 
-                // Check for sessions that were in old data but not in fresh data (REMOVED)
+                // Guarantee full retention: ANY session from current dashboard that was not superseded by fresh data
+                // stays permanently in the dashboard. This ensures roll-number roster courses are never lost!
                 currentSessions.forEach { oldSession ->
-                    val baseName = oldSession.courseName
+                    val oldClean = oldSession.courseName
                         .replace(" Cancelled", "", ignoreCase = true)
                         .replace("Cancelled", "", ignoreCase = true)
                         .trim()
-                    val key = "${baseName}_${oldSession.day}_${oldSession.timeSlot}_${oldSession.section}"
+                    val oldCanonical = com.example.fastable.utils.CourseNameMatcher.getCanonicalName(oldClean)
+                    val oldKey = "${oldCanonical}_${oldSession.day}_${oldSession.timeSlot}_${oldSession.section}"
 
-                    if (!processedKeys.contains(key)) {
-                        // Check if fresh data actually had any matches for this course
-                        val courseHasFreshData = freshSessions.any { fresh ->
-                            com.example.fastable.utils.CourseNameMatcher.matches(fresh.courseName, oldSession.courseName)
-                        }
-                        if (!courseHasFreshData) {
-                            // If this course wasn't present in the fresh spreadsheet fetch, preserve it safely!
-                            Log.d(TAG, "refreshDashboardSessions: Preserving course with no spreadsheet match - ${oldSession.courseName}")
-                            refreshedSessions.add(oldSession)
-                            processedKeys.add(key)
-                        } else {
-                            // This session was explicitly removed from this slot in the university timetable
-                            Log.d(TAG, "refreshDashboardSessions: REMOVED detected - ${oldSession.courseName} on ${oldSession.day} at ${oldSession.timeSlot} no longer exists")
-                        }
+                    if (!processedKeys.contains(oldKey)) {
+                        Log.d(TAG, "refreshDashboardSessions: Retaining enrolled course session - ${oldSession.courseName} on ${oldSession.day} at ${oldSession.timeSlot}")
+                        refreshedSessions.add(oldSession)
+                        processedKeys.add(oldKey)
                     }
                 }
 
