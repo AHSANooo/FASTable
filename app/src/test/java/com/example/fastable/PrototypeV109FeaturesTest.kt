@@ -107,6 +107,54 @@ class PrototypeV109FeaturesTest {
     }
 
     @Test
+    fun testNormalizeRollNoVariants() {
+        assertEquals("23I-0553", RosterSyncManager.normalizeRollNo("i230553"))
+        assertEquals("23I-0553", RosterSyncManager.normalizeRollNo("23i0553"))
+        assertEquals("23I-0553", RosterSyncManager.normalizeRollNo("23i-0553"))
+        assertEquals("24I-0008", RosterSyncManager.normalizeRollNo("24i-0008"))
+        assertEquals("26I-3001", RosterSyncManager.normalizeRollNo("26i3001"))
+        assertEquals("21F-0666", RosterSyncManager.normalizeRollNo("f210666"))
+        assertEquals("23I-0553", RosterSyncManager.normalizeRollNo("i230553@isb.nu.edu.pk"))
+    }
+
+    @Test
+    fun testStudentRosterJsonFileValidityAndStudentLookup() {
+        val file = java.io.File("src/main/assets/student_roster.json")
+        val altFile = java.io.File("app/src/main/assets/student_roster.json")
+        val targetFile = if (file.exists()) file else altFile
+        assertTrue("student_roster.json must exist in assets", targetFile.exists())
+
+        val reader = java.io.FileReader(targetFile)
+        val type = object : com.google.gson.reflect.TypeToken<Map<String, com.example.fastable.utils.StudentRosterEntry>>() {}.type
+        val roster: Map<String, com.example.fastable.utils.StudentRosterEntry> = com.google.gson.Gson().fromJson(reader, type)
+
+        assertEquals("Must contain all 4,313 students", 4313, roster.size)
+
+        val student23I0553 = roster["23I-0553"]
+        assertNotNull("Student 23I-0553 must be found", student23I0553)
+        assertEquals("Muhammad Ahsan", student23I0553!!.name)
+
+        val courseCodes = student23I0553.courses.map { it.code }
+        assertTrue("Must contain CS3014 (HCI)", courseCodes.contains("CS3014"))
+        assertTrue("Must contain CS4001 (PPIT)", courseCodes.contains("CS4001"))
+        assertTrue("Must contain CS3002 (InfoSec)", courseCodes.contains("CS3002"))
+        assertTrue("Must contain CS4085 (MLOps)", courseCodes.contains("CS4085"))
+
+        // Generate schedule for 23I-0553
+        val schedule = RosterSyncManager.generateScheduleForStudent(student23I0553)
+        assertTrue("Schedule must not be empty", schedule.isNotEmpty())
+        assertTrue("Schedule contains HCI course", schedule.any { it.courseName.contains("Human Computer Interaction") })
+
+        // Verify zero collision
+        val dayTimes = mutableSetOf<Pair<String, String>>()
+        for (session in schedule) {
+            val key = Pair(session.day, session.timeSlot)
+            assertFalse("Duplicate time slot on same day: $key", dayTimes.contains(key))
+            dayTimes.add(key)
+        }
+    }
+
+    @Test
     fun testRosterMockCSSectionESchedule() {
         val schedule = RosterSyncManager.getMockCSSectionESchedule()
         assertTrue("Schedule must not be empty", schedule.isNotEmpty())

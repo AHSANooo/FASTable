@@ -33,7 +33,6 @@ class FloorRoomAdapter(
         private val tvStatusBadge: TextView = itemView.findViewById(R.id.tvStatusBadge)
         private val dotStatus: View = itemView.findViewById(R.id.dotStatus)
         private val tvWingAndType: TextView = itemView.findViewById(R.id.tvWingAndType)
-        private val tvCapacity: TextView = itemView.findViewById(R.id.tvCapacity)
         private val tvCurrentLectureInfo: TextView = itemView.findViewById(R.id.tvCurrentLectureInfo)
         private val bannerUserClass: View = itemView.findViewById(R.id.bannerUserClass)
         private val tvUserClassDetail: TextView = itemView.findViewById(R.id.tvUserClassDetail)
@@ -42,7 +41,6 @@ class FloorRoomAdapter(
             val room = status.room
             tvRoomName.text = room.displayName
             tvWingAndType.text = "${room.type.name.lowercase().replaceFirstChar { it.uppercase() }} • ${room.wing}"
-            tvCapacity.text = "${room.capacity} seats"
 
             when (status.state) {
                 RoomOccupancyState.FREE -> {

@@ -33,48 +33,48 @@ object CampusFloorRepository {
     private fun getBlockARooms(floor: String): List<FloorRoom> {
         return when (floor) {
             "Ground Floor" -> listOf(
-                FloorRoom("A-01", "Classroom A-01", "Block A", floor, RoomType.CLASSROOM, "South Hallway", 50),
-                FloorRoom("A-02", "Classroom A-02", "Block A", floor, RoomType.CLASSROOM, "South Hallway", 50),
-                FloorRoom("A-03", "Classroom A-03", "Block A", floor, RoomType.CLASSROOM, "South Hallway", 50),
-                FloorRoom("A-04", "Classroom A-04", "Block A", floor, RoomType.CLASSROOM, "South Hallway", 50),
-                FloorRoom("A-AUD", "Main Auditorium", "Block A", floor, RoomType.FACILITY, "West Wing", 300),
-                FloorRoom("A-ONESTOP", "One Stop Student Center", "Block A", floor, RoomType.FACILITY, "North Hallway", 30),
-                FloorRoom("A-ACAD", "Manager Academics Office", "Block A", floor, RoomType.OFFICE, "North Hallway", 10),
-                FloorRoom("A-ADMIN", "Admin & Accounts Office", "Block A", floor, RoomType.OFFICE, "North Hallway", 15)
+                FloorRoom("A-01", "Classroom A-01", "Block A", floor, RoomType.CLASSROOM, "South Hallway"),
+                FloorRoom("A-02", "Classroom A-02", "Block A", floor, RoomType.CLASSROOM, "South Hallway"),
+                FloorRoom("A-03", "Classroom A-03", "Block A", floor, RoomType.CLASSROOM, "South Hallway"),
+                FloorRoom("A-04", "Classroom A-04", "Block A", floor, RoomType.CLASSROOM, "South Hallway"),
+                FloorRoom("A-AUD", "Main Auditorium", "Block A", floor, RoomType.FACILITY, "West Wing"),
+                FloorRoom("A-ONESTOP", "One Stop Student Center", "Block A", floor, RoomType.FACILITY, "North Hallway"),
+                FloorRoom("A-ACAD", "Manager Academics Office", "Block A", floor, RoomType.OFFICE, "North Hallway"),
+                FloorRoom("A-ADMIN", "Admin & Accounts Office", "Block A", floor, RoomType.OFFICE, "North Hallway")
             )
             "1st Floor" -> listOf(
-                FloorRoom("A-101", "Classroom A-101", "Block A", floor, RoomType.CLASSROOM, "South Hallway", 50),
-                FloorRoom("A-102", "Classroom A-102", "Block A", floor, RoomType.CLASSROOM, "South Hallway", 50),
-                FloorRoom("A-103", "Classroom A-103", "Block A", floor, RoomType.CLASSROOM, "South Hallway", 50),
-                FloorRoom("A-104", "Classroom A-104", "Block A", floor, RoomType.CLASSROOM, "South Hallway", 50),
-                FloorRoom("A-CONF", "Conference Hall", "Block A", floor, RoomType.FACILITY, "West Wing", 80),
-                FloorRoom("A-SEM", "Seminar Hall", "Block A", floor, RoomType.FACILITY, "West Wing", 100),
-                FloorRoom("A-105", "Faculty Offices A-105", "Block A", floor, RoomType.OFFICE, "North Hallway", 20),
-                FloorRoom("A-108", "Faculty Offices A-108", "Block A", floor, RoomType.OFFICE, "North Hallway", 20)
+                FloorRoom("A-101", "Classroom A-101", "Block A", floor, RoomType.CLASSROOM, "South Hallway"),
+                FloorRoom("A-102", "Classroom A-102", "Block A", floor, RoomType.CLASSROOM, "South Hallway"),
+                FloorRoom("A-103", "Classroom A-103", "Block A", floor, RoomType.CLASSROOM, "South Hallway"),
+                FloorRoom("A-104", "Classroom A-104", "Block A", floor, RoomType.CLASSROOM, "South Hallway"),
+                FloorRoom("A-CONF", "Conference Hall", "Block A", floor, RoomType.FACILITY, "West Wing"),
+                FloorRoom("A-SEM", "Seminar Hall", "Block A", floor, RoomType.FACILITY, "West Wing"),
+                FloorRoom("A-105", "Faculty Offices A-105", "Block A", floor, RoomType.OFFICE, "North Hallway"),
+                FloorRoom("A-108", "Faculty Offices A-108", "Block A", floor, RoomType.OFFICE, "North Hallway")
             )
             "2nd Floor" -> listOf(
-                FloorRoom("A-201", "Classroom A-201", "Block A", floor, RoomType.CLASSROOM, "South Hallway", 50),
-                FloorRoom("A-202", "Classroom A-202", "Block A", floor, RoomType.CLASSROOM, "South Hallway", 50),
-                FloorRoom("A-203", "Classroom A-203", "Block A", floor, RoomType.CLASSROOM, "South Hallway", 50),
-                FloorRoom("A-210", "Classroom A-210", "Block A", floor, RoomType.CLASSROOM, "South Hallway", 45),
-                FloorRoom("A-211", "Classroom A-211", "Block A", floor, RoomType.CLASSROOM, "South Hallway", 45),
-                FloorRoom("Khyber-1", "Khyber Lab 1", "Block A", floor, RoomType.LAB, "North Hallway", 40),
-                FloorRoom("Khyber-2", "Khyber Lab 2", "Block A", floor, RoomType.LAB, "North Hallway", 40),
-                FloorRoom("Khyber-3", "Khyber Lab 3", "Block A", floor, RoomType.LAB, "North Hallway", 40),
-                FloorRoom("Khyber-4", "Khyber Lab 4", "Block A", floor, RoomType.LAB, "North Hallway", 40),
-                FloorRoom("CALL-1", "CALL Lab 1 (A-213)", "Block A", floor, RoomType.LAB, "West Wing", 35),
-                FloorRoom("CALL-2", "CALL Lab 2 (A-214)", "Block A", floor, RoomType.LAB, "West Wing", 35)
+                FloorRoom("A-201", "Classroom A-201", "Block A", floor, RoomType.CLASSROOM, "South Hallway"),
+                FloorRoom("A-202", "Classroom A-202", "Block A", floor, RoomType.CLASSROOM, "South Hallway"),
+                FloorRoom("A-203", "Classroom A-203", "Block A", floor, RoomType.CLASSROOM, "South Hallway"),
+                FloorRoom("A-210", "Classroom A-210", "Block A", floor, RoomType.CLASSROOM, "South Hallway"),
+                FloorRoom("A-211", "Classroom A-211", "Block A", floor, RoomType.CLASSROOM, "South Hallway"),
+                FloorRoom("Khyber-1", "Khyber Lab 1", "Block A", floor, RoomType.LAB, "North Hallway"),
+                FloorRoom("Khyber-2", "Khyber Lab 2", "Block A", floor, RoomType.LAB, "North Hallway"),
+                FloorRoom("Khyber-3", "Khyber Lab 3", "Block A", floor, RoomType.LAB, "North Hallway"),
+                FloorRoom("Khyber-4", "Khyber Lab 4", "Block A", floor, RoomType.LAB, "North Hallway"),
+                FloorRoom("CALL-1", "CALL Lab 1 (A-213)", "Block A", floor, RoomType.LAB, "West Wing"),
+                FloorRoom("CALL-2", "CALL Lab 2 (A-214)", "Block A", floor, RoomType.LAB, "West Wing")
             )
             "3rd Floor" -> listOf(
-                FloorRoom("A-301", "Classroom A-301", "Block A", floor, RoomType.CLASSROOM, "South Hallway", 50),
-                FloorRoom("A-302", "Classroom A-302", "Block A", floor, RoomType.CLASSROOM, "South Hallway", 50),
-                FloorRoom("A-303", "Classroom A-303", "Block A", floor, RoomType.CLASSROOM, "South Hallway", 50),
-                FloorRoom("A-309", "Classroom A-309", "Block A", floor, RoomType.CLASSROOM, "South Hallway", 45),
-                FloorRoom("A-310", "Classroom A-310", "Block A", floor, RoomType.CLASSROOM, "South Hallway", 45),
-                FloorRoom("Mehran-1", "Mehran Lab 1", "Block A", floor, RoomType.LAB, "North Hallway", 40),
-                FloorRoom("Karakoram-1", "Karakoram Lab 1", "Block A", floor, RoomType.LAB, "West Wing", 35),
-                FloorRoom("Karakoram-2", "Karakoram Lab 2", "Block A", floor, RoomType.LAB, "West Wing", 35),
-                FloorRoom("CALL-3", "CALL Lab 3", "Block A", floor, RoomType.LAB, "North Hallway", 35)
+                FloorRoom("A-301", "Classroom A-301", "Block A", floor, RoomType.CLASSROOM, "South Hallway"),
+                FloorRoom("A-302", "Classroom A-302", "Block A", floor, RoomType.CLASSROOM, "South Hallway"),
+                FloorRoom("A-303", "Classroom A-303", "Block A", floor, RoomType.CLASSROOM, "South Hallway"),
+                FloorRoom("A-309", "Classroom A-309", "Block A", floor, RoomType.CLASSROOM, "South Hallway"),
+                FloorRoom("A-310", "Classroom A-310", "Block A", floor, RoomType.CLASSROOM, "South Hallway"),
+                FloorRoom("Mehran-1", "Mehran Lab 1", "Block A", floor, RoomType.LAB, "North Hallway"),
+                FloorRoom("Karakoram-1", "Karakoram Lab 1", "Block A", floor, RoomType.LAB, "West Wing"),
+                FloorRoom("Karakoram-2", "Karakoram Lab 2", "Block A", floor, RoomType.LAB, "West Wing"),
+                FloorRoom("CALL-3", "CALL Lab 3", "Block A", floor, RoomType.LAB, "North Hallway")
             )
             else -> emptyList()
         }
@@ -83,31 +83,31 @@ object CampusFloorRepository {
     private fun getBlockBRooms(floor: String): List<FloorRoom> {
         return when (floor) {
             "Ground Floor" -> listOf(
-                FloorRoom("MARS-Lab", "MARS Lab (B-15)", "Block B", floor, RoomType.LAB, "North Corridor", 40),
-                FloorRoom("B-16", "Classroom B-16", "Block B", floor, RoomType.CLASSROOM, "North Corridor", 45),
-                FloorRoom("Power-Lab", "Power Systems Lab (B-22)", "Block B", floor, RoomType.LAB, "North Corridor", 40),
-                FloorRoom("Machine-Lab", "Electric Machine Lab (B-23)", "Block B", floor, RoomType.LAB, "North Corridor", 40),
-                FloorRoom("B-26", "Classroom B-26", "Block B", floor, RoomType.CLASSROOM, "West Corridor", 45),
-                FloorRoom("B-27", "Classroom B-27", "Block B", floor, RoomType.CLASSROOM, "West Corridor", 45),
-                FloorRoom("B-28", "Classroom B-28", "Block B", floor, RoomType.CLASSROOM, "West Corridor", 45)
+                FloorRoom("MARS-Lab", "MARS Lab (B-15)", "Block B", floor, RoomType.LAB, "North Corridor"),
+                FloorRoom("B-16", "Classroom B-16", "Block B", floor, RoomType.CLASSROOM, "North Corridor"),
+                FloorRoom("Power-Lab", "Power Systems Lab (B-22)", "Block B", floor, RoomType.LAB, "North Corridor"),
+                FloorRoom("Machine-Lab", "Electric Machine Lab (B-23)", "Block B", floor, RoomType.LAB, "North Corridor"),
+                FloorRoom("B-26", "Classroom B-26", "Block B", floor, RoomType.CLASSROOM, "West Corridor"),
+                FloorRoom("B-27", "Classroom B-27", "Block B", floor, RoomType.CLASSROOM, "West Corridor"),
+                FloorRoom("B-28", "Classroom B-28", "Block B", floor, RoomType.CLASSROOM, "West Corridor")
             )
             "1st Floor" -> listOf(
-                FloorRoom("B-213", "Classroom B-213", "Block B", floor, RoomType.CLASSROOM, "North Corridor", 45),
-                FloorRoom("B-214", "Classroom B-214", "Block B", floor, RoomType.CLASSROOM, "North Corridor", 45),
-                FloorRoom("Micro-Lab", "Microprocessor Lab (B-218)", "Block B", floor, RoomType.LAB, "North Corridor", 40),
-                FloorRoom("DLD-Lab", "Digital Logic Design (DLD) Lab", "Block B", floor, RoomType.LAB, "South Corridor", 40),
-                FloorRoom("B-215", "Classroom B-215", "Block B", floor, RoomType.CLASSROOM, "South Corridor", 45),
-                FloorRoom("B-216", "Classroom B-216", "Block B", floor, RoomType.CLASSROOM, "South Corridor", 45),
-                FloorRoom("Rawal-3", "Rawal Lab 3 (B-232)", "Block B", floor, RoomType.LAB, "West Corridor", 40)
+                FloorRoom("B-213", "Classroom B-213", "Block B", floor, RoomType.CLASSROOM, "North Corridor"),
+                FloorRoom("B-214", "Classroom B-214", "Block B", floor, RoomType.CLASSROOM, "North Corridor"),
+                FloorRoom("Micro-Lab", "Microprocessor Lab (B-218)", "Block B", floor, RoomType.LAB, "North Corridor"),
+                FloorRoom("DLD-Lab", "Digital Logic Design (DLD) Lab", "Block B", floor, RoomType.LAB, "South Corridor"),
+                FloorRoom("B-215", "Classroom B-215", "Block B", floor, RoomType.CLASSROOM, "South Corridor"),
+                FloorRoom("B-216", "Classroom B-216", "Block B", floor, RoomType.CLASSROOM, "South Corridor"),
+                FloorRoom("Rawal-3", "Rawal Lab 3 (B-232)", "Block B", floor, RoomType.LAB, "West Corridor")
             )
             "2nd Floor" -> listOf(
-                FloorRoom("B-115", "Classroom B-115", "Block B", floor, RoomType.CLASSROOM, "North Corridor", 45),
-                FloorRoom("Maker-Lab", "Maker Lab (B-116)", "Block B", floor, RoomType.LAB, "North Corridor", 35),
-                FloorRoom("Electronic-Lab", "Electronic Lab (B-122B)", "Block B", floor, RoomType.LAB, "North Corridor", 35),
-                FloorRoom("Physics-Lab", "Physics Lab (B-119)", "Block B", floor, RoomType.LAB, "South Corridor", 40),
-                FloorRoom("Circuit-Lab", "Circuit Lab (B-123B)", "Block B", floor, RoomType.LAB, "South Corridor", 40),
-                FloorRoom("RFCS-Lab", "RFCS Lab", "Block B", floor, RoomType.LAB, "West Corridor", 35),
-                FloorRoom("Stationary", "Stationary & Book Shop", "Block B", floor, RoomType.FACILITY, "South Corridor", 20)
+                FloorRoom("B-115", "Classroom B-115", "Block B", floor, RoomType.CLASSROOM, "North Corridor"),
+                FloorRoom("Maker-Lab", "Maker Lab (B-116)", "Block B", floor, RoomType.LAB, "North Corridor"),
+                FloorRoom("Electronic-Lab", "Electronic Lab (B-122B)", "Block B", floor, RoomType.LAB, "North Corridor"),
+                FloorRoom("Physics-Lab", "Physics Lab (B-119)", "Block B", floor, RoomType.LAB, "South Corridor"),
+                FloorRoom("Circuit-Lab", "Circuit Lab (B-123B)", "Block B", floor, RoomType.LAB, "South Corridor"),
+                FloorRoom("RFCS-Lab", "RFCS Lab", "Block B", floor, RoomType.LAB, "West Corridor"),
+                FloorRoom("Stationary", "Stationary & Book Shop", "Block B", floor, RoomType.FACILITY, "South Corridor")
             )
             else -> emptyList()
         }
@@ -116,68 +116,68 @@ object CampusFloorRepository {
     private fun getBlockCRooms(floor: String): List<FloorRoom> {
         return when (floor) {
             "Basement 1" -> listOf(
-                FloorRoom("CAFE-MAIN", "Cafeteria Main Hall", "Block C", floor, RoomType.FACILITY, "Center Area", 250),
-                FloorRoom("CAFE-1", "Cafe Counter 1 & 2", "Block C", floor, RoomType.FACILITY, "West Wing", 40),
-                FloorRoom("BADMINTON", "Indoor Badminton Court", "Block C", floor, RoomType.FACILITY, "South Area", 50),
-                FloorRoom("FACULTY-CAFE", "Faculty Sitting Area", "Block C", floor, RoomType.FACILITY, "South Area", 30)
+                FloorRoom("CAFE-MAIN", "Cafeteria Main Hall", "Block C", floor, RoomType.FACILITY, "Center Area"),
+                FloorRoom("CAFE-1", "Cafe Counter 1 & 2", "Block C", floor, RoomType.FACILITY, "West Wing"),
+                FloorRoom("BADMINTON", "Indoor Badminton Court", "Block C", floor, RoomType.FACILITY, "South Area"),
+                FloorRoom("FACULTY-CAFE", "Faculty Sitting Area", "Block C", floor, RoomType.FACILITY, "South Area")
             )
             "Ground Floor" -> listOf(
-                FloorRoom("LIB-MAIN", "Central Library", "Block C", floor, RoomType.FACILITY, "Central Hall", 200),
-                FloorRoom("LIB-STUDY-1", "Library Study Room 1-3", "Block C", floor, RoomType.CLASSROOM, "North Wing", 25),
-                FloorRoom("LIB-STUDY-2", "Library Study Room 4-6", "Block C", floor, RoomType.CLASSROOM, "North Wing", 25),
-                FloorRoom("LIB-STUDY-3", "Library Study Room 7-9", "Block C", floor, RoomType.CLASSROOM, "North Wing", 25),
-                FloorRoom("LIB-MEDIA", "Digital Media Room", "Block C", floor, RoomType.LAB, "West Wing", 30)
+                FloorRoom("LIB-MAIN", "Central Library", "Block C", floor, RoomType.FACILITY, "Central Hall"),
+                FloorRoom("LIB-STUDY-1", "Library Study Room 1-3", "Block C", floor, RoomType.CLASSROOM, "North Wing"),
+                FloorRoom("LIB-STUDY-2", "Library Study Room 4-6", "Block C", floor, RoomType.CLASSROOM, "North Wing"),
+                FloorRoom("LIB-STUDY-3", "Library Study Room 7-9", "Block C", floor, RoomType.CLASSROOM, "North Wing"),
+                FloorRoom("LIB-MEDIA", "Digital Media Room", "Block C", floor, RoomType.LAB, "West Wing")
             )
             "1st Floor" -> listOf(
-                FloorRoom("C-105", "Learning Resource Center (C-105)", "Block C", floor, RoomType.FACILITY, "LRC Lobby", 60),
-                FloorRoom("C-104", "Career Services Office", "Block C", floor, RoomType.OFFICE, "Center Corridor", 20),
-                FloorRoom("C-109", "MEDC Conference Room", "Block C", floor, RoomType.FACILITY, "North Hallway", 40),
-                FloorRoom("C-110", "MEDC Seminar Hall", "Block C", floor, RoomType.FACILITY, "North Hallway", 80)
+                FloorRoom("C-105", "Learning Resource Center (C-105)", "Block C", floor, RoomType.FACILITY, "LRC Lobby"),
+                FloorRoom("C-104", "Career Services Office", "Block C", floor, RoomType.OFFICE, "Center Corridor"),
+                FloorRoom("C-109", "MEDC Conference Room", "Block C", floor, RoomType.FACILITY, "North Hallway"),
+                FloorRoom("C-110", "MEDC Seminar Hall", "Block C", floor, RoomType.FACILITY, "North Hallway")
             )
             "2nd Floor" -> listOf(
-                FloorRoom("Margalla-1", "Margalla Lab 1 (C-209)", "Block C", floor, RoomType.LAB, "North Hallway", 45),
-                FloorRoom("Margalla-2", "Margalla Lab 2 (C-210)", "Block C", floor, RoomType.LAB, "North Hallway", 45),
-                FloorRoom("Margalla-3", "Margalla Lab 3 (C-211)", "Block C", floor, RoomType.LAB, "North Hallway", 45),
-                FloorRoom("Margalla-4", "Margalla Lab 4 (C-212)", "Block C", floor, RoomType.LAB, "North Hallway", 45),
-                FloorRoom("C-213", "Academic Office (Flex/Slate)", "Block C", floor, RoomType.OFFICE, "East Wing", 20),
-                FloorRoom("C-201", "HOD CS Office", "Block C", floor, RoomType.OFFICE, "South Wing", 15)
+                FloorRoom("Margalla-1", "Margalla Lab 1 (C-209)", "Block C", floor, RoomType.LAB, "North Hallway"),
+                FloorRoom("Margalla-2", "Margalla Lab 2 (C-210)", "Block C", floor, RoomType.LAB, "North Hallway"),
+                FloorRoom("Margalla-3", "Margalla Lab 3 (C-211)", "Block C", floor, RoomType.LAB, "North Hallway"),
+                FloorRoom("Margalla-4", "Margalla Lab 4 (C-212)", "Block C", floor, RoomType.LAB, "North Hallway"),
+                FloorRoom("C-213", "Academic Office (Flex/Slate)", "Block C", floor, RoomType.OFFICE, "East Wing"),
+                FloorRoom("C-201", "HOD CS Office", "Block C", floor, RoomType.OFFICE, "South Wing")
             )
             "3rd Floor" -> listOf(
                 // North Hallway
-                FloorRoom("C-307", "Classroom C-307", "Block C", floor, RoomType.CLASSROOM, "North Hallway", 50),
-                FloorRoom("C-308", "Classroom C-308", "Block C", floor, RoomType.CLASSROOM, "North Hallway", 50),
-                FloorRoom("C-309", "Classroom C-309", "Block C", floor, RoomType.CLASSROOM, "North Hallway", 50),
-                FloorRoom("C-310", "Classroom C-310", "Block C", floor, RoomType.CLASSROOM, "North Hallway", 50),
-                FloorRoom("C-311", "Classroom C-311", "Block C", floor, RoomType.CLASSROOM, "North Hallway", 50),
+                FloorRoom("C-307", "Classroom C-307", "Block C", floor, RoomType.CLASSROOM, "North Hallway"),
+                FloorRoom("C-308", "Classroom C-308", "Block C", floor, RoomType.CLASSROOM, "North Hallway"),
+                FloorRoom("C-309", "Classroom C-309", "Block C", floor, RoomType.CLASSROOM, "North Hallway"),
+                FloorRoom("C-310", "Classroom C-310", "Block C", floor, RoomType.CLASSROOM, "North Hallway"),
+                FloorRoom("C-311", "Classroom C-311", "Block C", floor, RoomType.CLASSROOM, "North Hallway"),
                 // South Hallway
-                FloorRoom("C-301", "Classroom C-301", "Block C", floor, RoomType.CLASSROOM, "South Hallway", 50),
-                FloorRoom("C-302", "Classroom C-302", "Block C", floor, RoomType.CLASSROOM, "South Hallway", 50),
-                FloorRoom("C-303", "Classroom C-303", "Block C", floor, RoomType.CLASSROOM, "South Hallway", 50),
-                FloorRoom("C-304", "Classroom C-304", "Block C", floor, RoomType.CLASSROOM, "South Hallway", 50),
-                FloorRoom("C-305", "Classroom C-305", "Block C", floor, RoomType.CLASSROOM, "South Hallway", 50),
-                FloorRoom("C-306", "Girls Common Room (GCR)", "Block C", floor, RoomType.FACILITY, "North Hallway", 40)
+                FloorRoom("C-301", "Classroom C-301", "Block C", floor, RoomType.CLASSROOM, "South Hallway"),
+                FloorRoom("C-302", "Classroom C-302", "Block C", floor, RoomType.CLASSROOM, "South Hallway"),
+                FloorRoom("C-303", "Classroom C-303", "Block C", floor, RoomType.CLASSROOM, "South Hallway"),
+                FloorRoom("C-304", "Classroom C-304", "Block C", floor, RoomType.CLASSROOM, "South Hallway"),
+                FloorRoom("C-305", "Classroom C-305", "Block C", floor, RoomType.CLASSROOM, "South Hallway"),
+                FloorRoom("C-306", "Girls Common Room (GCR)", "Block C", floor, RoomType.FACILITY, "North Hallway")
             )
             "4th Floor" -> listOf(
                 // North Hallway
-                FloorRoom("C-406", "Classroom C-406", "Block C", floor, RoomType.CLASSROOM, "North Hallway", 50),
-                FloorRoom("C-407", "Classroom C-407", "Block C", floor, RoomType.CLASSROOM, "North Hallway", 50),
-                FloorRoom("C-408", "Classroom C-408", "Block C", floor, RoomType.CLASSROOM, "North Hallway", 50),
-                FloorRoom("C-409", "Classroom C-409", "Block C", floor, RoomType.CLASSROOM, "North Hallway", 50),
-                FloorRoom("C-410", "Classroom C-410", "Block C", floor, RoomType.CLASSROOM, "North Hallway", 50),
+                FloorRoom("C-406", "Classroom C-406", "Block C", floor, RoomType.CLASSROOM, "North Hallway"),
+                FloorRoom("C-407", "Classroom C-407", "Block C", floor, RoomType.CLASSROOM, "North Hallway"),
+                FloorRoom("C-408", "Classroom C-408", "Block C", floor, RoomType.CLASSROOM, "North Hallway"),
+                FloorRoom("C-409", "Classroom C-409", "Block C", floor, RoomType.CLASSROOM, "North Hallway"),
+                FloorRoom("C-410", "Classroom C-410", "Block C", floor, RoomType.CLASSROOM, "North Hallway"),
                 // South Hallway
-                FloorRoom("C-401", "Classroom C-401", "Block C", floor, RoomType.CLASSROOM, "South Hallway", 50),
-                FloorRoom("C-402", "Classroom C-402", "Block C", floor, RoomType.CLASSROOM, "South Hallway", 50),
-                FloorRoom("C-403", "Classroom C-403", "Block C", floor, RoomType.CLASSROOM, "South Hallway", 50),
-                FloorRoom("C-404", "Classroom C-404", "Block C", floor, RoomType.CLASSROOM, "South Hallway", 50),
-                FloorRoom("C-405", "Classroom C-405", "Block C", floor, RoomType.CLASSROOM, "South Hallway", 50)
+                FloorRoom("C-401", "Classroom C-401", "Block C", floor, RoomType.CLASSROOM, "South Hallway"),
+                FloorRoom("C-402", "Classroom C-402", "Block C", floor, RoomType.CLASSROOM, "South Hallway"),
+                FloorRoom("C-403", "Classroom C-403", "Block C", floor, RoomType.CLASSROOM, "South Hallway"),
+                FloorRoom("C-404", "Classroom C-404", "Block C", floor, RoomType.CLASSROOM, "South Hallway"),
+                FloorRoom("C-405", "Classroom C-405", "Block C", floor, RoomType.CLASSROOM, "South Hallway")
             )
             "5th Floor" -> listOf(
-                FloorRoom("Rawal-1", "Rawal Lab 1 (C-509)", "Block C", floor, RoomType.LAB, "North Hallway", 45),
-                FloorRoom("Rawal-2", "Rawal Lab 2 (C-510)", "Block C", floor, RoomType.LAB, "North Hallway", 45),
-                FloorRoom("GPU-Lab", "GPU Research Lab (C-511)", "Block C", floor, RoomType.LAB, "North Hallway", 40),
-                FloorRoom("Rawal-4", "Rawal Lab 4 (C-512)", "Block C", floor, RoomType.LAB, "North Hallway", 45),
-                FloorRoom("C-513", "Graduate Academic Office", "Block C", floor, RoomType.OFFICE, "East Wing", 20),
-                FloorRoom("C-501", "HOD CS Office", "Block C", floor, RoomType.OFFICE, "South Wing", 15)
+                FloorRoom("Rawal-1", "Rawal Lab 1 (C-509)", "Block C", floor, RoomType.LAB, "North Hallway"),
+                FloorRoom("Rawal-2", "Rawal Lab 2 (C-510)", "Block C", floor, RoomType.LAB, "North Hallway"),
+                FloorRoom("GPU-Lab", "GPU Research Lab (C-511)", "Block C", floor, RoomType.LAB, "North Hallway"),
+                FloorRoom("Rawal-4", "Rawal Lab 4 (C-512)", "Block C", floor, RoomType.LAB, "North Hallway"),
+                FloorRoom("C-513", "Graduate Academic Office", "Block C", floor, RoomType.OFFICE, "East Wing"),
+                FloorRoom("C-501", "HOD CS Office", "Block C", floor, RoomType.OFFICE, "South Wing")
             )
             else -> emptyList()
         }

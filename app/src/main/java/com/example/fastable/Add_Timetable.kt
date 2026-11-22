@@ -392,20 +392,42 @@ class Add_Timetable : AppCompatActivity() {
                 AppDatabase.getDatabase(this@Add_Timetable).userProfileDao().getAnyUserProfile()?.email
                     ?: com.google.android.gms.auth.api.signin.GoogleSignIn.getLastSignedInAccount(this@Add_Timetable)?.email
             }
-            val rollNo = RosterSyncManager.extractRollNoFromEmail(userEmail)
-            tvDetectedRollNo.text = rollNo
+            var activeRollNo = RosterSyncManager.extractRollNoFromEmail(userEmail)
+            tvDetectedRollNo.text = activeRollNo
+
+            tvDetectedRollNo.setOnClickListener {
+                val input = android.widget.EditText(this@Add_Timetable).apply {
+                    setText(activeRollNo)
+                    setSelection(text.length)
+                    hint = "e.g. 23I-0553 or 24I-0008"
+                    setPadding(50, 40, 50, 40)
+                }
+                androidx.appcompat.app.AlertDialog.Builder(this@Add_Timetable)
+                    .setTitle("Change Roll Number")
+                    .setMessage("Enter student roll number:")
+                    .setView(input)
+                    .setPositiveButton("Set") { _, _ ->
+                        val typed = input.text.toString().trim()
+                        if (typed.isNotEmpty()) {
+                            activeRollNo = RosterSyncManager.normalizeRollNo(typed)
+                            tvDetectedRollNo.text = activeRollNo
+                        }
+                    }
+                    .setNegativeButton("Cancel", null)
+                    .show()
+            }
 
             btnQuickRosterSync.setOnClickListener {
                 val progress = android.app.ProgressDialog(this@Add_Timetable).apply {
-                    setMessage("Syncing roster for $rollNo...")
+                    setMessage("Syncing roster for $activeRollNo...")
                     setCancelable(false)
                     show()
                 }
                 lifecycleScope.launch {
-                    val result = RosterSyncManager.syncRosterForStudent(this@Add_Timetable, rollNo)
+                    val result = RosterSyncManager.syncRosterForStudent(this@Add_Timetable, activeRollNo)
                     progress.dismiss()
                     result.onSuccess { count ->
-                        Toast.makeText(this@Add_Timetable, "Roster Synced! Loaded $count classes", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@Add_Timetable, "Roster Synced! Loaded $count classes for $activeRollNo", Toast.LENGTH_SHORT).show()
                         val intent = Intent(this@Add_Timetable, Home::class.java).apply {
                             flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
                         }

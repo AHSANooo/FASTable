@@ -45,6 +45,7 @@ class CampusMap : AppCompatActivity() {
     private var selectedBlock: String = "Block C"
     private var selectedFloor: String = "3rd Floor"
     private var userSessions: List<DashboardSession> = emptyList()
+    private var allCampusSessions: List<DashboardSession> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -148,13 +149,32 @@ class CampusMap : AppCompatActivity() {
 
     private fun loadUserSessions() {
         lifecycleScope.launch {
-            val sessions = withContext(Dispatchers.IO) {
-                AppDatabase.getDatabase(this@CampusMap)
-                    .dashboardDao()
+            val db = AppDatabase.getDatabase(this@CampusMap)
+            val (user, campus) = withContext(Dispatchers.IO) {
+                val user = db.dashboardDao()
                     .getAllDashboardSessions()
                     .firstOrNull() ?: emptyList()
+                val campus = db.timetableDao()
+                    .getAllSessions()
+                    .firstOrNull()?.map { session ->
+                        DashboardSession(
+                            day = session.day,
+                            timeSlot = session.timeSlot,
+                            room = session.room,
+                            sessionType = session.sessionType,
+                            courseName = session.courseName,
+                            section = session.section,
+                            batch = session.batch,
+                            department = session.department,
+                            rank = session.rank,
+                            colorCode = session.colorCode,
+                            isCustom = false
+                        )
+                    } ?: emptyList()
+                Pair(user, campus)
             }
-            userSessions = sessions
+            userSessions = user
+            allCampusSessions = campus
             renderFloorRooms()
         }
     }
@@ -178,7 +198,7 @@ class CampusMap : AppCompatActivity() {
             CampusFloorRepository.evaluateRoomStatus(
                 room = room,
                 userSessions = userSessions,
-                allCampusSessions = emptyList(),
+                allCampusSessions = allCampusSessions,
                 currentDay = currentDay,
                 currentMinutes = currentMinutes
             )
@@ -205,7 +225,7 @@ class CampusMap : AppCompatActivity() {
 
         bsRoomTitle.text = room.displayName
         bsRoomSubtitle.text = "${room.block} • ${room.floor} • ${room.wing}"
-        bsAdditionalInfo.text = "Capacity: ${room.capacity} seats • Category: ${room.type.name}"
+        bsAdditionalInfo.text = "Category: ${room.type.name.lowercase().replaceFirstChar { it.uppercase() }} • Floor: ${room.floor}"
 
         when (status.state) {
             RoomOccupancyState.FREE -> {

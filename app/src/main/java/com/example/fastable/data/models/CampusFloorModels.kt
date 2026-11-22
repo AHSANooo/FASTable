@@ -19,8 +19,7 @@ data class FloorRoom(
     val block: String,              // "Block A", "Block B", "Block C"
     val floor: String,              // e.g. "3rd Floor"
     val type: RoomType,             // CLASSROOM, LAB, OFFICE, FACILITY
-    val wing: String = "Main Corridor", // e.g. "North Hallway", "South Hallway"
-    val capacity: Int = 45          // Approximate seating capacity
+    val wing: String = "Main Corridor" // e.g. "North Hallway", "South Hallway"
 )
 
 data class RoomStatusInfo(

@@ -419,15 +419,24 @@ class Home : AppCompatActivity() {
                     com.example.fastable.data.local.AppDatabase.getDatabase(this@Home).userProfileDao().getAnyUserProfile()?.email
                         ?: com.google.android.gms.auth.api.signin.GoogleSignIn.getLastSignedInAccount(this@Home)?.email
                 }
-                val rollNo = com.example.fastable.utils.RosterSyncManager.extractRollNoFromEmail(userEmail)
+                val defaultRoll = com.example.fastable.utils.RosterSyncManager.extractRollNoFromEmail(userEmail)
+                val input = android.widget.EditText(this@Home).apply {
+                    setText(defaultRoll)
+                    setSelection(text.length)
+                    hint = "e.g. 23I-0553 or 24I-0008"
+                    setPadding(50, 40, 50, 40)
+                }
+
                 androidx.appcompat.app.AlertDialog.Builder(this@Home)
                     .setTitle("Fast Roster Sync")
-                    .setMessage("Auto-load official courses for Roll Number $rollNo?")
+                    .setMessage("Enter or confirm your student roll number to load official registered courses:")
+                    .setView(input)
                     .setPositiveButton("Sync Schedule") { _, _ ->
+                        val targetRoll = input.text.toString().trim().ifBlank { defaultRoll }
                         lifecycleScope.launch {
-                            val result = com.example.fastable.utils.RosterSyncManager.syncRosterForStudent(this@Home, rollNo)
+                            val result = com.example.fastable.utils.RosterSyncManager.syncRosterForStudent(this@Home, targetRoll)
                             result.onSuccess { count ->
-                                Toast.makeText(this@Home, "Roster Synced! Loaded $count classes", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(this@Home, "Roster Synced for $targetRoll! Loaded $count classes", Toast.LENGTH_SHORT).show()
                                 viewModel.loadDashboardSessions()
                             }.onFailure { ex ->
                                 Toast.makeText(this@Home, "Sync failed: ${ex.message}", Toast.LENGTH_LONG).show()
