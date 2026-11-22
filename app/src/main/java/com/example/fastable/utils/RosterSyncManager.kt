@@ -491,8 +491,8 @@ object RosterSyncManager {
                 val primarySection = student?.courses?.firstOrNull()?.section ?: "BCS-7E"
                 val (batchName, dept, cleanSection) = parseBatchAndSectionFromRoster(primarySection, normalizedRollNo)
 
-                // Replace old batch sessions in Room DB
-                db.dashboardDao().deleteBatchSessions()
+                // Replace old sessions in Room DB cleanly to prevent duplicates
+                db.dashboardDao().clearAllSessions()
                 db.dashboardDao().insertDashboardSessions(sessions)
 
                 // Save default batch metadata

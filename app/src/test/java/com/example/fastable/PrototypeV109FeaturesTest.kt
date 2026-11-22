@@ -327,4 +327,93 @@ class PrototypeV109FeaturesTest {
         val mlops = refreshedSessions.first { it.courseName == "MLOps" }
         assertEquals("C-401", mlops.room)
     }
+
+    @Test
+    fun testRefreshSupersedesAndPreventsDuplicates() {
+        // Reproduce exact user case from screenshot:
+        // Student had Monday classes generated or from previous sync:
+        // 1. Information Security on Monday 10:00 - 11:20 in C-301
+        // 2. Professional Practices in IT on Monday 11:30 - 12:50 in C-302
+        val currentSessions = listOf(
+            DashboardSession(day = "Monday", timeSlot = "10:00 - 11:20", room = "C-301", sessionType = "Class", courseName = "Information Security", section = "CS-E", batch = "BS CS (2023)"),
+            DashboardSession(day = "Monday", timeSlot = "11:30 - 12:50", room = "C-302", sessionType = "Class", courseName = "Professional Practices in IT", section = "CS-E", batch = "BS CS (2023)")
+        )
+
+        // Fresh spreadsheet returns updated slots and rooms from Google Sheet:
+        // 1. Professional Practices in IT on Monday 08:30-09:50 in D-406
+        // 2. Information Security on Monday 10:00-11:20 in D-406
+        val freshSessions = listOf(
+            DashboardSession(day = "Monday", timeSlot = "08:30-09:50", room = "D-406", sessionType = "Class", courseName = "PPIT", section = "CS-E", batch = "BS CS (2023)"),
+            DashboardSession(day = "Monday", timeSlot = "10:00-11:20", room = "D-406", sessionType = "Class", courseName = "Info Sec", section = "CS-E", batch = "BS CS (2023)")
+        )
+
+        val refreshedSessions = mutableListOf<DashboardSession>()
+        val coveredCourseDayTypes = mutableSetOf<Triple<String, String, String>>()
+
+        freshSessions.forEach { freshSession ->
+            val freshClean = freshSession.courseName.replace(" Cancelled", "", ignoreCase = true).trim()
+            val freshCanonical = com.example.fastable.utils.CourseNameMatcher.getCanonicalName(freshClean)
+            val normTime = com.example.fastable.utils.TimeParser.normalizeTimeSlot(freshSession.timeSlot)
+
+            refreshedSessions.add(freshSession.copy(courseName = freshCanonical, timeSlot = normTime))
+            coveredCourseDayTypes.add(
+                Triple(
+                    freshCanonical.lowercase(java.util.Locale.ROOT),
+                    freshSession.day.lowercase(java.util.Locale.ROOT),
+                    freshSession.sessionType.lowercase(java.util.Locale.ROOT)
+                )
+            )
+        }
+
+        currentSessions.forEach { oldSession ->
+            val oldClean = oldSession.courseName.replace(" Cancelled", "", ignoreCase = true).trim()
+            val oldCanonical = com.example.fastable.utils.CourseNameMatcher.getCanonicalName(oldClean)
+            val key = Triple(
+                oldCanonical.lowercase(java.util.Locale.ROOT),
+                oldSession.day.lowercase(java.util.Locale.ROOT),
+                oldSession.sessionType.lowercase(java.util.Locale.ROOT)
+            )
+
+            if (!coveredCourseDayTypes.contains(key)) {
+                val normOldSession = oldSession.copy(timeSlot = com.example.fastable.utils.TimeParser.normalizeTimeSlot(oldSession.timeSlot))
+                refreshedSessions.add(normOldSession)
+                coveredCourseDayTypes.add(key)
+            }
+        }
+
+        // Deduplicate
+        val finalSessions = refreshedSessions.distinctBy { session ->
+            val clean = session.courseName.replace(" Cancelled", "", ignoreCase = true).trim()
+            val canonical = com.example.fastable.utils.CourseNameMatcher.getCanonicalName(clean)
+            val normTime = com.example.fastable.utils.TimeParser.normalizeTimeSlot(session.timeSlot)
+            "${canonical.lowercase(java.util.Locale.ROOT)}_${session.day.lowercase(java.util.Locale.ROOT)}_${normTime}_${session.section.lowercase(java.util.Locale.ROOT)}"
+        }
+
+        // Must have EXACTLY 2 sessions, NOT 4!
+        assertEquals(2, finalSessions.size)
+        // Must contain D-406 rooms from Google Sheet
+        assertTrue(finalSessions.all { it.room == "D-406" })
+        assertTrue(finalSessions.any { it.courseName == "Professional Practices in IT" && it.timeSlot == "08:30 - 09:50" })
+        assertTrue(finalSessions.any { it.courseName == "Information Security" && it.timeSlot == "10:00 - 11:20" })
+    }
+
+    @Test
+    fun testTimeParserNormalizeTimeSlot() {
+        assertEquals("08:30 - 09:50", com.example.fastable.utils.TimeParser.normalizeTimeSlot("08:30-09:50"))
+        assertEquals("08:30 - 09:50", com.example.fastable.utils.TimeParser.normalizeTimeSlot("08:30 - 09:50"))
+        assertEquals("08:30 - 09:50", com.example.fastable.utils.TimeParser.normalizeTimeSlot(" 08:30 - 09:50 "))
+        assertEquals("10:00 - 11:20", com.example.fastable.utils.TimeParser.normalizeTimeSlot("10:00-11:20"))
+    }
+
+    @Test
+    fun testCourseNameMatcherHighPerformanceAndCaching() {
+        val startTime = System.currentTimeMillis()
+        for (i in 0 until 10000) {
+            val canonical = com.example.fastable.utils.CourseNameMatcher.getCanonicalName("PPIT (CS-E)")
+            assertEquals("Professional Practices in IT", canonical)
+        }
+        val duration = System.currentTimeMillis() - startTime
+        // 10,000 lookups must take less than 200ms
+        assertTrue("Execution took ${duration}ms, expected < 200ms", duration < 200)
+    }
 }

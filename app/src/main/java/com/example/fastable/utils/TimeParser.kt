@@ -130,6 +130,20 @@ object TimeParser {
     }
 
     /**
+     * Standardizes time slot formatting so comparisons succeed regardless of spacing.
+     * e.g. "08:30-09:50" -> "08:30 - 09:50", " 10:00 - 11:20 " -> "10:00 - 11:20"
+     */
+    fun normalizeTimeSlot(timeSlot: String): String {
+        if (!timeSlot.contains("-")) return timeSlot.trim()
+        val parts = timeSlot.split("-")
+        return if (parts.size == 2) {
+            "${parts[0].trim()} - ${parts[1].trim()}"
+        } else {
+            timeSlot.trim()
+        }
+    }
+
+    /**
      * Normalize course name for comparison
      */
     fun normalizeCourse(name: String): String {

@@ -519,6 +519,26 @@ object CourseNameMatcher {
         ),
     )
 
+    private val canonicalCache = java.util.concurrent.ConcurrentHashMap<String, String>()
+
+    private val canonicalByNameMap by lazy {
+        MAPPINGS.associateBy { normalizeText(it.canonicalName) }
+    }
+
+    private val exactAliasMap by lazy {
+        val map = mutableMapOf<Pair<String, Boolean>, String>()
+        for (m in MAPPINGS) {
+            val isLab = m.canonicalName.contains("lab", ignoreCase = true)
+            for (a in m.sheetAliases) {
+                val norm = normalizeText(a)
+                if (!map.containsKey(Pair(norm, isLab))) {
+                    map[Pair(norm, isLab)] = m.canonicalName
+                }
+            }
+        }
+        map
+    }
+
     /**
      * Maps ANY variation, abbreviation, or sheet cell text into the canonical Seating Plan course title.
      * Examples:
@@ -529,24 +549,28 @@ object CourseNameMatcher {
      */
     fun getCanonicalName(rawNameOrAlias: String): String {
         if (rawNameOrAlias.isBlank()) return rawNameOrAlias
+        canonicalCache[rawNameOrAlias]?.let { return it }
+
         val clean = normalizeText(rawNameOrAlias)
 
         // 1. Direct exact match with canonicalName
-        val directMatch = MAPPINGS.firstOrNull { normalizeText(it.canonicalName) == clean }
-        if (directMatch != null) return directMatch.canonicalName
+        val directMatch = canonicalByNameMap[clean]
+        if (directMatch != null) {
+            canonicalCache[rawNameOrAlias] = directMatch.canonicalName
+            return directMatch.canonicalName
+        }
 
         val targetIsLab = clean.contains("lab")
 
         // 2. Exact match with sheet aliases
-        val exactAliasMatch = MAPPINGS.firstOrNull { mapping ->
-            val mappingIsLab = mapping.canonicalName.contains("lab", ignoreCase = true)
-            if (targetIsLab != mappingIsLab) return@firstOrNull false
-
-            mapping.sheetAliases.any { normalizeText(it) == clean }
+        val exactAliasMatch = exactAliasMap[Pair(clean, targetIsLab)]
+        if (exactAliasMatch != null) {
+            canonicalCache[rawNameOrAlias] = exactAliasMatch
+            return exactAliasMatch
         }
-        if (exactAliasMatch != null) return exactAliasMatch.canonicalName
 
         // 3. Match with longest matching alias contained within clean
+        val cleanWords = clean.split(" ").filter { it.isNotBlank() }.toSet()
         val candidateMatches = MAPPINGS.filter { mapping ->
             val mappingIsLab = mapping.canonicalName.contains("lab", ignoreCase = true)
             if (targetIsLab != mappingIsLab) return@filter false
@@ -554,7 +578,7 @@ object CourseNameMatcher {
             mapping.sheetAliases.any { alias ->
                 val normAlias = normalizeText(alias)
                 if (normAlias.length <= 3) {
-                    Regex("\\b${Regex.escape(normAlias)}\\b").containsMatchIn(clean)
+                    cleanWords.contains(normAlias)
                 } else {
                     clean.contains(normAlias)
                 }
@@ -565,15 +589,20 @@ object CourseNameMatcher {
             val bestMatch = candidateMatches.maxByOrNull { mapping ->
                 mapping.sheetAliases.filter { alias ->
                     val normAlias = normalizeText(alias)
-                    if (normAlias.length <= 3) Regex("\\b${Regex.escape(normAlias)}\\b").containsMatchIn(clean)
+                    if (normAlias.length <= 3) cleanWords.contains(normAlias)
                     else clean.contains(normAlias)
                 }.maxOfOrNull { it.length } ?: 0
             }
-            if (bestMatch != null) return bestMatch.canonicalName
+            if (bestMatch != null) {
+                canonicalCache[rawNameOrAlias] = bestMatch.canonicalName
+                return bestMatch.canonicalName
+            }
         }
 
         // Fallback: return trimmed original (without section parenthesis)
-        return rawNameOrAlias.replace(Regex("\\([^)]*\\)"), "").trim()
+        val fallback = rawNameOrAlias.replace(Regex("\\([^)]*\\)"), "").trim()
+        canonicalCache[rawNameOrAlias] = fallback
+        return fallback
     }
 
     /**
@@ -587,15 +616,14 @@ object CourseNameMatcher {
 
         // Compare canonical representations
         val isNameMatch = cellCanonical.equals(targetCanonical, ignoreCase = true) ||
-                normalizeText(cellText).contains(normalizeText(targetCanonical)) ||
-                normalizeText(targetCanonical).contains(normalizeText(cellText)) ||
+                cellText.contains(targetCanonical, ignoreCase = true) ||
                 (targetCanonical.contains("Human Computer Interaction") && cellCanonical.contains("Human Computer Interaction"))
 
         if (!isNameMatch) return false
 
         // Distinguish Lab vs Theory
-        val cellIsLab = cellText.contains("lab", ignoreCase = true)
-        val targetIsLab = courseName.contains("lab", ignoreCase = true)
+        val cellIsLab = cellText.contains("lab", ignoreCase = true) || cellCanonical.contains("lab", ignoreCase = true)
+        val targetIsLab = courseName.contains("lab", ignoreCase = true) || targetCanonical.contains("lab", ignoreCase = true)
         if (cellIsLab != targetIsLab) return false
 
         // Section check if provided

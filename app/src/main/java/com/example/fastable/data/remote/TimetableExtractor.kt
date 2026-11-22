@@ -417,9 +417,13 @@ object TimetableExtractor {
         // Get set of valid colors for quick filtering
         val validColors = courseColorMap.values.filterNotNull().toSet()
 
-        // Pre-compute normalized full entries for faster matching
-        val normalizedFullEntries = selectedCourses.associateWith { course ->
-            course.fullEntry.lowercase().replace(Regex("\\s+"), " ").trim()
+        // Pre-compute canonical info for selected courses to enable O(1) matching
+        val selectedCourseInfo = selectedCourses.map { course ->
+            Triple(
+                course,
+                com.example.fastable.utils.CourseNameMatcher.getCanonicalName(course.name),
+                course.name.contains("lab", ignoreCase = true)
+            )
         }
 
         spreadsheet.sheets?.forEach { sheet ->
@@ -454,162 +458,115 @@ object TimetableExtractor {
                 var room = roomCellValue ?: "Unknown"
                 room = TimeParser.cleanRoomData(room)
 
-                rowValues.forEach { cellElement ->
-                    if (cellElement is ArrayList<*>) {
-                        cellElement.forEachIndexed { colIdx, cell ->
-                            val classEntry = SheetsHelper.getFormattedValue(cell) ?: ""
-                            if (classEntry.isEmpty()) return@forEachIndexed
-                            val cellColor = SheetsHelper.getBackgroundColor(cell)
+                // Safely flatten row cells once (whether rowValues contains CellData or an ArrayList wrapper)
+                val cells: List<Any?> = if (rowValues.isNotEmpty() && rowValues.first() is ArrayList<*>) {
+                    rowValues.flatMap { (it as? ArrayList<*>) ?: listOf(it) }
+                } else {
+                    rowValues.toList()
+                }
 
-                            selectedCourses.forEach { selectedCourse ->
-                                if (matchesSelectedCourseOptimized(classEntry, selectedCourse, normalizedFullEntries[selectedCourse] ?: "")) {
-                                    val (cleanEntry, embeddedTime, hasEmbeddedTime) = TimeParser.parseEmbeddedTime(classEntry)
+                cells.forEachIndexed { colIdx, cell ->
+                    val classEntry = SheetsHelper.getFormattedValue(cell) ?: ""
+                    if (classEntry.isBlank()) return@forEachIndexed
 
-                                    val timeSlot = if (hasEmbeddedTime) {
-                                        embeddedTime
-                                    } else if (isLab && labTimeRow != null) {
-                                        // For labs, get time from the Lab row itself
-                                        val labTimeValues = labTimeRow.values
-                                        if (labTimeValues != null) {
-                                            val labTimeList = labTimeValues.toList()
-                                            if (labTimeList.isNotEmpty() && labTimeList[0] is ArrayList<*>) {
-                                                val labTimeCellArray = labTimeList[0] as ArrayList<*>
+                    val cellColor = SheetsHelper.getBackgroundColor(cell)
+                    val cellCanonical = com.example.fastable.utils.CourseNameMatcher.getCanonicalName(classEntry)
+                    val cellIsLab = classEntry.contains("lab", ignoreCase = true) || cellCanonical.contains("lab", ignoreCase = true)
 
-                                                // Collect all time values from merged cells
-                                                val timeValues = mutableListOf<String>()
-                                                for (i in colIdx until minOf(colIdx + 10, labTimeCellArray.size)) {
-                                                    val timeValue = SheetsHelper.getFormattedValue(labTimeCellArray[i])
-                                                    if (timeValue != null && timeValue.isNotEmpty() &&
-                                                        timeValue.contains(":")) {
-                                                        timeValues.add(timeValue)
-                                                    } else if (timeValues.isNotEmpty()) {
-                                                        // Stop when we hit empty or non-time cell
-                                                        break
-                                                    }
-                                                }
+                    selectedCourseInfo.forEach { (selectedCourse, courseCanonical, courseIsLab) ->
+                        // 1. Lab vs Theory match
+                        if (cellIsLab != courseIsLab) return@forEach
 
-                                                // Build time range
-                                                if (timeValues.size >= 2) {
-                                                    "${timeValues.first()}-${timeValues.last()}"
-                                                } else if (timeValues.isNotEmpty()) {
-                                                    timeValues.first()
-                                                } else {
-                                                    "Unknown"
-                                                }
-                                            } else {
-                                                SheetsHelper.getFormattedValue(SheetsHelper.getCellAt(labTimeValues, colIdx)) ?: "Unknown"
-                                            }
-                                        } else {
-                                            "Unknown"
-                                        }
-                                    } else {
-                                        // For regular classes, use the time row
-                                        val timeValues = timeRow?.values
-                                        val timeCell = if (timeValues != null) {
-                                            val timeList = timeValues.toList()
-                                            if (timeList.isNotEmpty() && timeList[0] is ArrayList<*>) {
-                                                val timeCellArray = timeList[0] as ArrayList<*>
-                                                if (colIdx < timeCellArray.size) {
-                                                    SheetsHelper.getFormattedValue(timeCellArray[colIdx])
-                                                } else null
-                                            } else {
-                                                SheetsHelper.getFormattedValue(SheetsHelper.getCellAt(timeValues, colIdx))
-                                            }
-                                        } else null
-                                        timeCell ?: "Unknown"
-                                    }
+                        // 2. Fast canonical name match
+                        val isNameMatch = cellCanonical.equals(courseCanonical, ignoreCase = true) ||
+                                classEntry.contains(courseCanonical, ignoreCase = true) ||
+                                (courseCanonical.contains("Human Computer Interaction") && cellCanonical.contains("Human Computer Interaction"))
+                        if (!isNameMatch) return@forEach
 
-                                    val canonicalName = com.example.fastable.utils.CourseNameMatcher.getCanonicalName(selectedCourse.name)
-                                    // Append "Cancelled" if present in the original cell entry
-                                    val finalCourseName = if (classEntry.contains("Cancelled", ignoreCase = true) &&
-                                        !canonicalName.contains("Cancelled", ignoreCase = true)) {
-                                        "$canonicalName Cancelled"
-                                    } else {
-                                        canonicalName
-                                    }
-                                    val rank = colRank[colIdx] ?: 999
-
-                                    // Determine session type: check if course name contains "Lab" or if it's in lab section
-                                    val sessionType = if (isLab || finalCourseName.contains("Lab", ignoreCase = true)) "Lab" else "Class"
-
-                                    val session = TimetableSession(
-                                        day = normalizedDayName,
-                                        timeSlot = timeSlot,
-                                        room = room,
-                                        sessionType = sessionType,
-                                        courseName = finalCourseName,
-                                        section = selectedCourse.section,
-                                        batch = selectedCourse.batch,
-                                        department = selectedCourse.department,
-                                        rank = rank,
-                                        colorCode = cellColor,
-                                        isCustom = true
-                                    )
-
-                                    if (!sessions.any { isSimilarSession(it, session) }) {
-                                        sessions.add(session)
-                                    }
-                                }
+                        // 3. Section match
+                        if (selectedCourse.section.isNotBlank()) {
+                            if (!com.example.fastable.utils.CourseNameMatcher.matchesSection(classEntry, selectedCourse.section, selectedCourse.department)) {
+                                return@forEach
                             }
                         }
-                    } else {
-                        // Fallback for non-ArrayList cells
-                        rowValues.toList().forEachIndexed { colIdx, cell ->
-                            val classEntry = SheetsHelper.getFormattedValue(cell) ?: ""
-                            if (classEntry.isEmpty()) return@forEachIndexed
 
-                            val cellColor = SheetsHelper.getBackgroundColor(cell)
+                        val (cleanEntry, embeddedTime, hasEmbeddedTime) = TimeParser.parseEmbeddedTime(classEntry)
 
-                            selectedCourses.forEach { selectedCourse ->
-                                if (matchesSelectedCourse(classEntry, selectedCourse, cellColor, batchColors)) {
-                                    val (cleanEntry, embeddedTime, hasEmbeddedTime) = TimeParser.parseEmbeddedTime(classEntry)
-
-                                    val timeSlot = if (hasEmbeddedTime) {
-                                        embeddedTime
-                                    } else if (isLab && labTimeRow != null) {
-                                        // For labs, get time from the Lab row itself
-                                        val labTimeValues = labTimeRow.values
-                                        val timeCell = SheetsHelper.getFormattedValue(SheetsHelper.getCellAt(labTimeValues, colIdx))
-                                        timeCell ?: "Unknown"
+                        val rawTimeSlot = if (hasEmbeddedTime) {
+                            embeddedTime
+                        } else if (isLab && labTimeRow != null) {
+                            // For labs, get time from the Lab row itself
+                            val labTimeValues = labTimeRow.values
+                            if (labTimeValues != null) {
+                                val labTimeList = labTimeValues.toList()
+                                if (labTimeList.isNotEmpty() && labTimeList[0] is ArrayList<*>) {
+                                    val labTimeCellArray = labTimeList[0] as ArrayList<*>
+                                    val timeValues = mutableListOf<String>()
+                                    for (i in colIdx until minOf(colIdx + 10, labTimeCellArray.size)) {
+                                        val timeValue = SheetsHelper.getFormattedValue(labTimeCellArray[i])
+                                        if (timeValue != null && timeValue.isNotEmpty() && timeValue.contains(":")) {
+                                            timeValues.add(timeValue)
+                                        } else if (timeValues.isNotEmpty()) {
+                                            break
+                                        }
+                                    }
+                                    if (timeValues.size >= 2) {
+                                        "${timeValues.first()} - ${timeValues.last()}"
+                                    } else if (timeValues.isNotEmpty()) {
+                                        timeValues.first()
                                     } else {
-                                        // For regular classes
-                                        val timeValues = timeRow?.values
-                                        val timeCell = SheetsHelper.getFormattedValue(SheetsHelper.getCellAt(timeValues, colIdx))
-                                        timeCell ?: "Unknown"
+                                        "Unknown"
                                     }
-
-                                    val courseName = if (hasEmbeddedTime) cleanEntry else selectedCourse.name
-                                    // Append "Cancelled" if present in the original cell entry
-                                    val finalCourseName = if (classEntry.contains("Cancelled", ignoreCase = true) &&
-                                        !courseName.contains("Cancelled", ignoreCase = true)) {
-                                        "$courseName Cancelled"
-                                    } else {
-                                        courseName
-                                    }
-                                    val rank = colRank[colIdx] ?: 999
-
-                                    // Determine session type: check if course name contains "Lab" or if it's in lab section
-                                    val sessionType = if (isLab || finalCourseName.contains("Lab", ignoreCase = true)) "Lab" else "Class"
-
-                                    val session = TimetableSession(
-                                        day = normalizedDayName,
-                                        timeSlot = timeSlot,
-                                        room = room,
-                                        sessionType = sessionType,
-                                        courseName = finalCourseName,
-                                        section = selectedCourse.section,
-                                        batch = selectedCourse.batch,
-                                        department = selectedCourse.department,
-                                        rank = rank,
-                                        colorCode = cellColor,
-                                        isCustom = true
-                                    )
-
-                                    if (!sessions.any { isSimilarSession(it, session) }) {
-                                        sessions.add(session)
-                                    }
+                                } else {
+                                    SheetsHelper.getFormattedValue(SheetsHelper.getCellAt(labTimeValues, colIdx)) ?: "Unknown"
                                 }
+                            } else {
+                                "Unknown"
                             }
+                        } else {
+                            // For regular classes, use the time row
+                            val timeValues = timeRow?.values
+                            val timeCell = if (timeValues != null) {
+                                val timeList = timeValues.toList()
+                                if (timeList.isNotEmpty() && timeList[0] is ArrayList<*>) {
+                                    val timeCellArray = timeList[0] as ArrayList<*>
+                                    if (colIdx < timeCellArray.size) {
+                                        SheetsHelper.getFormattedValue(timeCellArray[colIdx])
+                                    } else null
+                                } else {
+                                    SheetsHelper.getFormattedValue(SheetsHelper.getCellAt(timeValues, colIdx))
+                                }
+                            } else null
+                            timeCell ?: "Unknown"
+                        }
+
+                        val timeSlot = TimeParser.normalizeTimeSlot(rawTimeSlot)
+                        val canonicalName = com.example.fastable.utils.CourseNameMatcher.getCanonicalName(selectedCourse.name)
+                        val finalCourseName = if (classEntry.contains("Cancelled", ignoreCase = true) &&
+                            !canonicalName.contains("Cancelled", ignoreCase = true)) {
+                            "$canonicalName Cancelled"
+                        } else {
+                            canonicalName
+                        }
+                        val rank = colRank[colIdx] ?: 999
+                        val sessionType = if (isLab || finalCourseName.contains("Lab", ignoreCase = true)) "Lab" else "Class"
+
+                        val session = TimetableSession(
+                            day = normalizedDayName,
+                            timeSlot = timeSlot,
+                            room = room,
+                            sessionType = sessionType,
+                            courseName = finalCourseName,
+                            section = selectedCourse.section,
+                            batch = selectedCourse.batch,
+                            department = selectedCourse.department,
+                            rank = rank,
+                            colorCode = cellColor,
+                            isCustom = true
+                        )
+
+                        if (!sessions.any { isSimilarSession(it, session) }) {
+                            sessions.add(session)
                         }
                     }
                 }
@@ -735,9 +692,12 @@ object TimetableExtractor {
     }
 
     private fun isSimilarSession(session1: TimetableSession, session2: TimetableSession): Boolean {
-        return session1.day == session2.day &&
-                session1.timeSlot == session2.timeSlot &&
-                session1.courseName.lowercase() == session2.courseName.lowercase() &&
-                session1.section == session2.section
+        return session1.day.equals(session2.day, ignoreCase = true) &&
+                TimeParser.normalizeTimeSlot(session1.timeSlot) == TimeParser.normalizeTimeSlot(session2.timeSlot) &&
+                com.example.fastable.utils.CourseNameMatcher.getCanonicalName(session1.courseName).equals(
+                    com.example.fastable.utils.CourseNameMatcher.getCanonicalName(session2.courseName),
+                    ignoreCase = true
+                ) &&
+                session1.section.equals(session2.section, ignoreCase = true)
     }
 }
