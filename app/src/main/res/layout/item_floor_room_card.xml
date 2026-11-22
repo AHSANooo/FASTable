@@ -37,32 +37,32 @@
                 android:textStyle="bold"
                 android:textColor="?attr/colorOnSurface" />
 
-            <!-- Status Indicator Pill -->
+            <!-- Status Indicator Pill: Compact Material 3 Badge (Decreased Width) -->
             <LinearLayout
                 android:id="@+id/pillRoomStatus"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:paddingHorizontal="8dp"
+                android:paddingHorizontal="7dp"
                 android:paddingVertical="3dp"
-                android:background="@drawable/bg_dot_online">
+                android:background="@drawable/bg_badge_room_free">
 
                 <View
                     android:id="@+id/dotStatus"
-                    android:layout_width="7dp"
-                    android:layout_height="7dp"
-                    android:background="@drawable/bg_dot_green" />
+                    android:layout_width="6dp"
+                    android:layout_height="6dp"
+                    android:background="@drawable/ic_dot_circle" />
 
                 <TextView
                     android:id="@+id/tvStatusBadge"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="5dp"
-                    android:text="Free for Study"
+                    android:layout_marginStart="4dp"
+                    android:text="Free"
                     android:textSize="11sp"
                     android:textStyle="bold"
-                    android:textColor="#10B981" />
+                    android:textColor="#047857" />
             </LinearLayout>
         </LinearLayout>
 

@@ -467,9 +467,10 @@ object TimetableExtractor {
                             val classEntry = SheetsHelper.getFormattedValue(cell) ?: ""
                             if (classEntry.isEmpty()) return@forEachIndexed
 
-                            // Only check courses that have matching color
+                            // Check courses that match color OR check all courses if color legend didn't match
                             val matchingCourses = selectedCourses.filter {
-                                courseColorMap[it] == cellColor
+                                val expectedColor = courseColorMap[it]
+                                expectedColor == null || expectedColor == cellColor || validColors.isEmpty()
                             }
 
                             matchingCourses.forEach { selectedCourse ->
@@ -642,70 +643,19 @@ object TimetableExtractor {
     ): Boolean {
         if (classEntry.isBlank()) return false
 
-        // Normalize class entry for comparison
-        val normalizedClassEntry = classEntry.lowercase().replace(Regex("\\s+"), " ").trim()
-
         // Check if fullEntry matches exactly (most reliable)
+        val normalizedClassEntry = classEntry.lowercase().replace(Regex("\\s+"), " ").trim()
         if (normalizedFullEntry.isNotEmpty() && normalizedClassEntry == normalizedFullEntry) {
             return true
         }
 
-        val dept = selectedCourse.department
-        val section = selectedCourse.section
-
-        // Extract the course name part (without section info)
-        val baseCourseName = selectedCourse.name.lowercase()
-            .replace(Regex("\\([^)]*\\)"), "")
-            .replace(Regex("[,\\s]+"), " ")
-            .trim()
-
-        if (baseCourseName.isEmpty()) return false
-
-        // Check if class entry contains the course name
-        val entryLower = classEntry.lowercase()
-        if (!entryLower.contains(baseCourseName)) {
-            return false
-        }
-
-        // If selected course is not a lab but entry is a lab, skip
-        if ("lab" !in selectedCourse.name.lowercase() && "lab" in entryLower) {
-            return false
-        }
-
-        // Handle group patterns
-        val selectedGroupMatch = Regex("G[p-]?-?\\d+|Gp-[IVX]+", RegexOption.IGNORE_CASE).find(selectedCourse.fullEntry)
-        val entryGroupMatch = Regex("G[p-]?-?\\d+|Gp-[IVX]+", RegexOption.IGNORE_CASE).find(classEntry)
-
-        if (selectedGroupMatch != null && entryGroupMatch != null) {
-            val normalizeGroup = { g: String ->
-                g.lowercase().replace("-", "").replace("p", "").replace(" ", "")
-            }
-            return normalizeGroup(selectedGroupMatch.value) == normalizeGroup(entryGroupMatch.value)
-        } else if (selectedGroupMatch != null && entryGroupMatch == null) {
-            return false
-        } else if (selectedGroupMatch == null && entryGroupMatch != null) {
-            return false
-        }
-
-        // Standard section matching
-        if (section.isNotEmpty()) {
-            val sectionPatterns = listOf(
-                "($dept-$section)",
-                "-$section)",
-                "-$section,",
-                "($section)",
-                " $section)",
-                ",$section)"
-            )
-            val sectionMatches = sectionPatterns.any { pattern ->
-                classEntry.contains(pattern, ignoreCase = true)
-            }
-            if (!sectionMatches) {
-                return false
-            }
-        }
-
-        return true
+        // Use intelligent bidirectional CourseNameMatcher (handles abbreviations like "PPIT", "Info Sec", "Applied HCI")
+        return com.example.fastable.utils.CourseNameMatcher.matches(
+            cellText = classEntry,
+            courseName = selectedCourse.name,
+            courseSection = selectedCourse.section,
+            courseDept = selectedCourse.department
+        )
     }
 
     private fun matchesSelectedCourse(

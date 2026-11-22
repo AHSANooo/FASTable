@@ -229,22 +229,25 @@ class CampusMap : AppCompatActivity() {
 
         when (status.state) {
             RoomOccupancyState.FREE -> {
-                bsStatusBadge.text = "FREE FOR STUDY"
-                bsStatusBadge.setTextColor(Color.parseColor("#10B981"))
+                bsStatusBadge.text = "FREE"
+                bsStatusBadge.setTextColor(Color.parseColor("#047857"))
+                bsStatusBadge.setBackgroundResource(R.drawable.bg_badge_room_free)
                 bsBannerUserRoom.visibility = View.GONE
                 bsLectureName.text = "Vacant Study Space"
-                bsTimeSlot.text = "No lecture scheduled • Ideal for quiet study"
+                bsTimeSlot.text = status.details ?: "No lecture scheduled • Ideal for quiet study"
             }
             RoomOccupancyState.OCCUPIED -> {
                 bsStatusBadge.text = "OCCUPIED"
-                bsStatusBadge.setTextColor(Color.parseColor("#EF4444"))
+                bsStatusBadge.setTextColor(Color.parseColor("#B91C1C"))
+                bsStatusBadge.setBackgroundResource(R.drawable.bg_badge_room_occupied)
                 bsBannerUserRoom.visibility = View.GONE
                 bsLectureName.text = status.currentLecture ?: "Class in session"
                 bsTimeSlot.text = "Time slot: ${status.timeSlot ?: "Ongoing"}"
             }
             RoomOccupancyState.STUDENT_CLASS -> {
-                bsStatusBadge.text = "★ YOUR CLASS"
-                bsStatusBadge.setTextColor(Color.parseColor("#C04600"))
+                bsStatusBadge.text = "★ YOUR ROOM"
+                bsStatusBadge.setTextColor(Color.parseColor("#C2410C"))
+                bsStatusBadge.setBackgroundResource(R.drawable.bg_badge_room_user)
                 bsBannerUserRoom.visibility = View.VISIBLE
                 bsUserRoomInfo.text = "${status.currentLecture} (${status.timeSlot})"
                 bsLectureName.text = status.currentLecture ?: "Your enrolled class"

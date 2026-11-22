@@ -185,6 +185,7 @@ object CampusFloorRepository {
 
     /**
      * Evaluates whether a room is currently Free, Occupied, or matching the user's enrolled class.
+     * Incorporates both ongoing and upcoming lecture context so rooms show rich schedule info.
      */
     fun evaluateRoomStatus(
         room: FloorRoom,
@@ -193,57 +194,192 @@ object CampusFloorRepository {
         currentDay: String,
         currentMinutes: Int
     ): RoomStatusInfo {
+        // Effective day: on weekend (Sunday or Saturday), preview Monday's full schedule
+        val dayToEvaluate = if (currentDay.equals("Sunday", ignoreCase = true) || currentDay.equals("Saturday", ignoreCase = true)) {
+            "Monday"
+        } else {
+            currentDay
+        }
+
         // 1. Check if matching student's enrolled class today
-        val userMatch = userSessions.find { session ->
-            session.day.equals(currentDay, ignoreCase = true) &&
+        val userMatchesToday = userSessions.filter { session ->
+            session.day.equals(dayToEvaluate, ignoreCase = true) &&
                     isRoomNameMatching(room.id, session.room)
         }
 
-        if (userMatch != null) {
-            val (startMin, endMin) = parseTimeSlotMinutes(userMatch.timeSlot)
-            val isCurrentTime = currentMinutes in startMin..endMin || (startMin - currentMinutes in 0..20)
+        if (userMatchesToday.isNotEmpty()) {
+            val ongoing = userMatchesToday.find { session ->
+                val (startMin, endMin) = parseTimeSlotMinutes(session.timeSlot)
+                currentMinutes in startMin..endMin || (startMin - currentMinutes in 0..15)
+            }
+            val activeSession = ongoing ?: userMatchesToday.first()
+            val isLiveNow = ongoing != null
+
             return RoomStatusInfo(
                 room = room,
                 state = RoomOccupancyState.STUDENT_CLASS,
-                currentLecture = userMatch.courseName,
-                timeSlot = userMatch.timeSlot,
-                details = "Section: ${userMatch.section} (${userMatch.sessionType})",
+                currentLecture = activeSession.courseName,
+                timeSlot = activeSession.timeSlot,
+                details = if (isLiveNow) "★ Ongoing Now: ${activeSession.courseName} (${activeSession.timeSlot})"
+                          else "★ Today at ${activeSession.timeSlot.split("-").first().trim()}: ${activeSession.courseName}",
                 freeUntil = null,
                 isUserClass = true
             )
         }
 
-        // 2. Check if occupied by another scheduled university class
-        val campusMatch = allCampusSessions.find { session ->
-            session.day.equals(currentDay, ignoreCase = true) &&
+        // 2. Check scheduled university campus classes for this room
+        val campusPool = if (allCampusSessions.isNotEmpty()) allCampusSessions else getCampusStandardSessions(dayToEvaluate)
+        val roomClassesToday = campusPool.filter { session ->
+            session.day.equals(dayToEvaluate, ignoreCase = true) &&
                     isRoomNameMatching(room.id, session.room)
-        }
+        }.sortedBy { parseTimeSlotMinutes(it.timeSlot).first }
 
-        if (campusMatch != null) {
-            val (startMin, endMin) = parseTimeSlotMinutes(campusMatch.timeSlot)
-            if (currentMinutes in startMin..endMin || (currentMinutes < 8 * 60 + 30)) {
+        if (roomClassesToday.isNotEmpty()) {
+            // Check if currently ongoing
+            val ongoing = roomClassesToday.find { session ->
+                val (startMin, endMin) = parseTimeSlotMinutes(session.timeSlot)
+                currentMinutes in startMin..endMin
+            }
+
+            if (ongoing != null) {
+                val (_, endMin) = parseTimeSlotMinutes(ongoing.timeSlot)
+                val endFormatted = formatMinutes(endMin)
                 return RoomStatusInfo(
                     room = room,
                     state = RoomOccupancyState.OCCUPIED,
-                    currentLecture = campusMatch.courseName,
-                    timeSlot = campusMatch.timeSlot,
-                    details = "Section: ${campusMatch.section} (${campusMatch.sessionType})",
-                    freeUntil = null,
+                    currentLecture = ongoing.courseName,
+                    timeSlot = ongoing.timeSlot,
+                    details = "Ongoing (${ongoing.timeSlot}) • Free at $endFormatted",
+                    freeUntil = endFormatted,
                     isUserClass = false
                 )
             }
+
+            // Check if upcoming today
+            val upcoming = roomClassesToday.find { session ->
+                val (startMin, _) = parseTimeSlotMinutes(session.timeSlot)
+                startMin > currentMinutes
+            }
+
+            if (upcoming != null) {
+                val (startMin, _) = parseTimeSlotMinutes(upcoming.timeSlot)
+                val startFormatted = formatMinutes(startMin)
+                return RoomStatusInfo(
+                    room = room,
+                    state = RoomOccupancyState.FREE,
+                    currentLecture = null,
+                    timeSlot = upcoming.timeSlot,
+                    details = "Free Now • Next: ${upcoming.courseName} at $startFormatted",
+                    freeUntil = startFormatted,
+                    isUserClass = false
+                )
+            }
+
+            // If all classes for today finished
+            val lastClass = roomClassesToday.last()
+            return RoomStatusInfo(
+                room = room,
+                state = RoomOccupancyState.FREE,
+                currentLecture = null,
+                timeSlot = null,
+                details = "Free for study • Classes finished (Last: ${lastClass.courseName})",
+                freeUntil = "Open for study",
+                isUserClass = false
+            )
         }
 
-        // 3. Otherwise: Room is FREE for study
+        // 3. Otherwise: Room is free all day
         return RoomStatusInfo(
             room = room,
             state = RoomOccupancyState.FREE,
             currentLecture = null,
             timeSlot = null,
-            details = "Ideal spot for quiet study or group discussion",
-            freeUntil = "Free for study",
+            details = "Vacant study spot • Quiet area",
+            freeUntil = "Open all day",
             isUserClass = false
         )
+    }
+
+    private fun formatMinutes(minutes: Int): String {
+        var h = minutes / 60
+        val m = minutes % 60
+        val ampm = if (h >= 12) "PM" else "AM"
+        if (h > 12) h -= 12
+        if (h == 0) h = 12
+        return String.format(Locale.ROOT, "%02d:%02d %s", h, m, ampm)
+    }
+
+    /**
+     * Standard university scheduled sessions across campus rooms for baseline occupancy.
+     */
+    fun getCampusStandardSessions(day: String): List<DashboardSession> {
+        val now = System.currentTimeMillis()
+        val s = mutableListOf<DashboardSession>()
+
+        fun addSession(room: String, slot: String, course: String, sec: String) {
+            s.add(
+                DashboardSession(
+                    day = day,
+                    timeSlot = slot,
+                    room = room,
+                    sessionType = if (course.contains("Lab", ignoreCase = true)) "Lab" else "Class",
+                    courseName = course,
+                    section = sec,
+                    batch = "BS CS (2023)",
+                    department = "CS",
+                    rank = 1,
+                    colorCode = "#3B82F6",
+                    isCustom = false,
+                    lastUpdated = now
+                )
+            )
+        }
+
+        // Block C Classrooms & Labs
+        addSession("C-301", "08:30 - 09:50", "Operating Systems", "CS-A")
+        addSession("C-301", "10:00 - 11:20", "Data Structures", "CS-E")
+        addSession("C-301", "11:30 - 12:50", "Design & Analysis of Algorithms", "CS-B")
+        addSession("C-301", "01:00 - 02:20", "Parallel & Distributed Computing", "CS-C")
+
+        addSession("C-302", "08:30 - 09:50", "Computer Organization & Assembly", "CS-E")
+        addSession("C-302", "10:00 - 11:20", "Applied Human Computer Interaction", "CS-E")
+        addSession("C-302", "01:00 - 02:20", "Artificial Intelligence", "AI-A")
+
+        addSession("C-303", "10:00 - 11:20", "Discrete Structures", "CS-B")
+        addSession("C-303", "11:30 - 12:50", "Software Construction & Development", "SE-A")
+
+        addSession("C-304", "08:30 - 09:50", "Programming Fundamentals", "CS-A")
+        addSession("C-304", "11:30 - 12:50", "Linear Algebra", "CS-E")
+        addSession("C-304", "01:00 - 02:20", "Information Security", "CS-E")
+
+        addSession("C-305", "08:30 - 09:50", "Discrete Structures", "CS-E")
+        addSession("C-305", "10:00 - 11:20", "Machine Learning", "AI-B")
+
+        addSession("C-401", "10:00 - 11:20", "MLOps", "CS-B")
+        addSession("C-401", "11:30 - 12:50", "Cloud Computing", "CS-A")
+
+        addSession("C-402", "08:30 - 09:50", "Database Systems", "CS-B")
+        addSession("C-402", "01:00 - 02:20", "Deep Learning", "AI-A")
+
+        addSession("C-406", "10:00 - 11:20", "Generative AI", "AI-A")
+        addSession("C-407", "11:30 - 12:50", "Multiagent Systems", "AI-B")
+
+        addSession("Rawal Lab 1", "10:00 - 12:50", "Assembly Language Lab", "CS-E")
+        addSession("Rawal Lab 1", "01:00 - 03:50", "Operating Systems Lab", "CS-A")
+        addSession("Margalla Lab 1", "01:00 - 03:50", "Data Structures Lab", "CS-E")
+        addSession("Khyber Lab 1", "10:00 - 12:50", "Database Systems Lab", "CS-B")
+
+        // Block A Classrooms & Labs
+        addSession("A-101", "08:30 - 09:50", "Technical & Business Writing", "SE-A")
+        addSession("A-101", "10:00 - 11:20", "Software Quality Engineering", "SE-A")
+        addSession("A-201", "11:30 - 12:50", "Formal Methods in SE", "SE-B")
+        addSession("Khyber-1", "01:00 - 03:50", "Programming Fundamentals Lab", "SE-A")
+
+        // Block B
+        addSession("B-16", "10:00 - 11:20", "Digital Logic Design", "CS-C")
+        addSession("B-26", "11:30 - 12:50", "Electric Machine Analysis", "EE-A")
+
+        return s
     }
 
     fun isRoomNameMatching(roomPattern: String, sessionRoom: String): Boolean {

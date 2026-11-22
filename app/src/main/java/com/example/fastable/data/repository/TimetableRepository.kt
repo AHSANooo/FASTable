@@ -607,6 +607,13 @@ class TimetableRepository(private val context: Context) {
                 val freshSessions = TimetableExtractor.getCustomTimetable(spreadsheet, coursesToLookup)
                 Log.d(TAG, "refreshDashboardSessions: Found ${freshSessions.size} sessions from spreadsheet")
 
+                // SAFEGUARD: If 0 sessions returned from spreadsheet, NEVER wipe out the dashboard!
+                if (freshSessions.isEmpty() && currentSessions.isNotEmpty()) {
+                    Log.w(TAG, "refreshDashboardSessions: 0 fresh sessions found from spreadsheet, retaining ${currentSessions.size} existing sessions to prevent dashboard wipeout")
+                    saveLastSyncTimestamp(System.currentTimeMillis())
+                    return@withContext Result.success(currentSessions)
+                }
+
                 // Build lookup map for old sessions: key -> session
                 // Key format: "baseName_day_timeSlot_section" for precise matching
                 val oldSessionsMap = currentSessions.associateBy { session ->
@@ -667,9 +674,19 @@ class TimetableRepository(private val context: Context) {
                     val key = "${baseName}_${oldSession.day}_${oldSession.timeSlot}_${oldSession.section}"
 
                     if (!processedKeys.contains(key)) {
-                        // This session is no longer in the spreadsheet - it was REMOVED
-                        Log.d(TAG, "refreshDashboardSessions: REMOVED detected - ${oldSession.courseName} on ${oldSession.day} at ${oldSession.timeSlot} no longer exists")
-                        // We intentionally DON'T add it to refreshedSessions - it's been removed
+                        // Check if fresh data actually had any matches for this course
+                        val courseHasFreshData = freshSessions.any { fresh ->
+                            com.example.fastable.utils.CourseNameMatcher.matches(fresh.courseName, oldSession.courseName)
+                        }
+                        if (!courseHasFreshData) {
+                            // If this course wasn't present in the fresh spreadsheet fetch, preserve it safely!
+                            Log.d(TAG, "refreshDashboardSessions: Preserving course with no spreadsheet match - ${oldSession.courseName}")
+                            refreshedSessions.add(oldSession)
+                            processedKeys.add(key)
+                        } else {
+                            // This session was explicitly removed from this slot in the university timetable
+                            Log.d(TAG, "refreshDashboardSessions: REMOVED detected - ${oldSession.courseName} on ${oldSession.day} at ${oldSession.timeSlot} no longer exists")
+                        }
                     }
                 }
 

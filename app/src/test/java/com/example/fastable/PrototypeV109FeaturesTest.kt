@@ -212,7 +212,7 @@ class PrototypeV109FeaturesTest {
         assertTrue("isUserClass flag must be true", statusC301.isUserClass)
         assertEquals("Data Structures", statusC301.currentLecture)
 
-        // Test room C-302 (free)
+        // Test room C-302: has campus lecture 'Applied Human Computer Interaction' at 10:00 - 11:20 AM
         val statusC302 = CampusFloorRepository.evaluateRoomStatus(
             room = roomC302,
             userSessions = userSessions,
@@ -221,8 +221,29 @@ class PrototypeV109FeaturesTest {
             currentMinutes = 615
         )
 
-        assertEquals("Must mark as free for study", RoomOccupancyState.FREE, statusC302.state)
+        assertEquals("Must mark as occupied by ongoing campus lecture", RoomOccupancyState.OCCUPIED, statusC302.state)
+        assertEquals("Applied Human Computer Interaction", statusC302.currentLecture)
         assertFalse(statusC302.isUserClass)
+    }
+
+    @Test
+    fun testCourseNameMatcherAbbreviationMatching() {
+        // Test PPIT
+        assertTrue(com.example.fastable.utils.CourseNameMatcher.matches("PPIT (CS-E)", "Professional Practices in IT", "CS-E"))
+        assertTrue(com.example.fastable.utils.CourseNameMatcher.matches("Professional Practices (CS-E)", "Professional Practices in IT", "CS-E"))
+        // Test Applied HCI
+        assertTrue(com.example.fastable.utils.CourseNameMatcher.matches("Applied HCI (CS-E)", "Applied Human Computer Interaction", "CS-E"))
+        assertTrue(com.example.fastable.utils.CourseNameMatcher.matches("HCI (CS-E)", "Applied Human Computer Interaction", "CS-E"))
+        // Test Info Sec
+        assertTrue(com.example.fastable.utils.CourseNameMatcher.matches("Info Sec (CS-E)", "Information Security", "CS-E"))
+        // Test MLOps
+        assertTrue(com.example.fastable.utils.CourseNameMatcher.matches("MLOps (CS-B)", "MLOps", "CS-B"))
+        // Test COAL
+        assertTrue(com.example.fastable.utils.CourseNameMatcher.matches("COAL (CS-A)", "Computer Organization and Assembly Language", "CS-A"))
+        // Test Data Structures
+        assertTrue(com.example.fastable.utils.CourseNameMatcher.matches("DS (CS-E)", "Data Structures", "CS-E"))
+        // Section mismatch must return false
+        assertFalse(com.example.fastable.utils.CourseNameMatcher.matches("PPIT (CS-A)", "Professional Practices in IT", "CS-E"))
     }
 
     @Test

@@ -30,6 +30,7 @@ class FloorRoomAdapter(
     class RoomViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val cardFloorRoom: MaterialCardView = itemView.findViewById(R.id.cardFloorRoom)
         private val tvRoomName: TextView = itemView.findViewById(R.id.tvRoomName)
+        private val pillRoomStatus: View = itemView.findViewById(R.id.pillRoomStatus)
         private val tvStatusBadge: TextView = itemView.findViewById(R.id.tvStatusBadge)
         private val dotStatus: View = itemView.findViewById(R.id.dotStatus)
         private val tvWingAndType: TextView = itemView.findViewById(R.id.tvWingAndType)
@@ -44,30 +45,33 @@ class FloorRoomAdapter(
 
             when (status.state) {
                 RoomOccupancyState.FREE -> {
-                    tvStatusBadge.text = "Free for Study"
-                    tvStatusBadge.setTextColor(Color.parseColor("#10B981"))
-                    dotStatus.setBackgroundResource(R.drawable.bg_dot_green)
-                    tvCurrentLectureInfo.text = "Vacant study spot • Quiet area"
+                    tvStatusBadge.text = "Free"
+                    tvStatusBadge.setTextColor(Color.parseColor("#047857"))
+                    dotStatus.setBackgroundResource(R.drawable.ic_dot_circle)
+                    pillRoomStatus.setBackgroundResource(R.drawable.bg_badge_room_free)
+                    tvCurrentLectureInfo.text = status.details ?: "Vacant study spot • Quiet area"
                     bannerUserClass.visibility = View.GONE
                     cardFloorRoom.strokeWidth = 2
                     cardFloorRoom.strokeColor = Color.parseColor("#E2E8F0")
                 }
                 RoomOccupancyState.OCCUPIED -> {
                     tvStatusBadge.text = "Occupied"
-                    tvStatusBadge.setTextColor(Color.parseColor("#EF4444"))
+                    tvStatusBadge.setTextColor(Color.parseColor("#B91C1C"))
                     dotStatus.setBackgroundResource(R.drawable.bg_dot_red)
-                    tvCurrentLectureInfo.text = "${status.currentLecture ?: "Class"} • ${status.timeSlot ?: ""}"
+                    pillRoomStatus.setBackgroundResource(R.drawable.bg_badge_room_occupied)
+                    tvCurrentLectureInfo.text = status.details ?: "${status.currentLecture ?: "Class"} • ${status.timeSlot ?: ""}"
                     bannerUserClass.visibility = View.GONE
                     cardFloorRoom.strokeWidth = 2
-                    cardFloorRoom.strokeColor = Color.parseColor("#E2E8F0")
+                    cardFloorRoom.strokeColor = Color.parseColor("#FECACA")
                 }
                 RoomOccupancyState.STUDENT_CLASS -> {
                     tvStatusBadge.text = "★ Your Room"
-                    tvStatusBadge.setTextColor(Color.parseColor("#C04600"))
+                    tvStatusBadge.setTextColor(Color.parseColor("#C2410C"))
                     dotStatus.setBackgroundResource(R.drawable.bg_dot_blue)
+                    pillRoomStatus.setBackgroundResource(R.drawable.bg_badge_room_user)
                     tvCurrentLectureInfo.text = "${status.currentLecture} (${status.timeSlot})"
                     bannerUserClass.visibility = View.VISIBLE
-                    tvUserClassDetail.text = "★ YOUR CLASS: ${status.currentLecture} (${status.timeSlot})"
+                    tvUserClassDetail.text = status.details ?: "★ YOUR CLASS: ${status.currentLecture} (${status.timeSlot})"
                     cardFloorRoom.strokeWidth = 4
                     cardFloorRoom.strokeColor = Color.parseColor("#FF6D05")
                 }
